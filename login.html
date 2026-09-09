@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>NEXORA - Giriş / Kayıt</title>
 
   <style>
@@ -16,7 +15,8 @@
     body {
       min-height: 100vh;
       font-family: Arial, sans-serif;
-      background: #0b1020;
+      background:
+        radial-gradient(circle at top, #173b68 0%, #081525 45%, #030811 100%);
       color: white;
       display: flex;
       align-items: center;
@@ -26,105 +26,183 @@
 
     .container {
       width: 100%;
-      max-width: 430px;
-      background: #131c3a;
-      border: 1px solid #293761;
-      border-radius: 15px;
-      padding: 35px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      max-width: 460px;
     }
 
     .logo {
       text-align: center;
-      font-size: 32px;
-      font-weight: bold;
-      letter-spacing: 5px;
-      margin-bottom: 10px;
+      margin-bottom: 25px;
     }
 
-    .subtitle {
-      text-align: center;
-      color: #aeb7d5;
-      margin-bottom: 30px;
+    .logo h1 {
+      font-size: 42px;
+      letter-spacing: 7px;
+      color: #38bdf8;
+      text-shadow: 0 0 25px rgba(56, 189, 248, 0.45);
+    }
+
+    .logo p {
+      margin-top: 8px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .card {
+      background: rgba(10, 23, 40, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 18px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(12px);
     }
 
     .tabs {
       display: flex;
+      background: #07111f;
+      border-radius: 10px;
+      padding: 4px;
       margin-bottom: 25px;
-      border-bottom: 1px solid #293761;
     }
 
     .tab {
-      width: 50%;
-      padding: 13px;
+      flex: 1;
+      border: 0;
       background: transparent;
-      color: #aeb7d5;
-      border: none;
+      color: #94a3b8;
+      padding: 12px;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 15px;
+      font-weight: bold;
     }
 
     .tab.active {
+      background: #0ea5e9;
       color: white;
-      border-bottom: 2px solid #4d7cff;
     }
 
-    .form-group {
-      margin-bottom: 18px;
+    .form {
+      display: none;
     }
 
-    label {
+    .form.active {
       display: block;
-      margin-bottom: 8px;
-      color: #d9def0;
-      font-size: 14px;
     }
 
-    input {
+    .form h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .form-description {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 22px;
+    }
+
+    .field {
+      margin-bottom: 17px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    .field input {
       width: 100%;
-      padding: 14px;
-      background: #0b1020;
+      padding: 13px 14px;
+      border-radius: 9px;
+      border: 1px solid #263b53;
+      background: #071321;
       color: white;
-      border: 1px solid #35446f;
-      border-radius: 8px;
       outline: none;
       font-size: 15px;
     }
 
-    input:focus {
-      border-color: #4d7cff;
+    .field input:focus {
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.12);
     }
 
-    .submit-button {
+    .submit-btn {
       width: 100%;
-      padding: 15px;
-      margin-top: 10px;
-      background: #4d7cff;
+      border: 0;
+      border-radius: 9px;
+      padding: 14px;
+      margin-top: 5px;
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
       color: white;
-      border: none;
-      border-radius: 8px;
       font-size: 16px;
       font-weight: bold;
       cursor: pointer;
+      transition: 0.2s;
     }
 
-    .submit-button:hover {
-      opacity: 0.9;
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 25px rgba(14, 165, 233, 0.25);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
     }
 
     .message {
-      margin-top: 18px;
-      text-align: center;
-      color: #aeb7d5;
-      min-height: 20px;
+      display: none;
+      padding: 12px;
+      border-radius: 9px;
+      margin-bottom: 18px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .message.success {
+      display: block;
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #86efac;
+    }
+
+    .message.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
     }
 
     .back {
       display: block;
       text-align: center;
-      margin-top: 25px;
-      color: #8da8ff;
+      margin-top: 22px;
+      color: #64748b;
       text-decoration: none;
+      font-size: 14px;
+    }
+
+    .back:hover {
+      color: #38bdf8;
+    }
+
+    .security-note {
+      text-align: center;
+      margin-top: 18px;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    @media (max-width: 500px) {
+      .card {
+        padding: 22px;
+      }
+
+      .logo h1 {
+        font-size: 34px;
+      }
     }
   </style>
 </head>
@@ -133,184 +211,378 @@
 
   <div class="container">
 
-    <div class="logo">NEXORA</div>
-
-    <div class="subtitle">
-      Strateji dünyasına giriş yap
+    <div class="logo">
+      <h1>NEXORA</h1>
+      <p>Yeni dünyanın başlangıcı</p>
     </div>
 
-    <div class="tabs">
+    <div class="card">
 
-      <button
-        class="tab active"
-        id="loginTab"
-        onclick="showLogin()">
-        Giriş Yap
-      </button>
+      <div class="tabs">
+        <button class="tab active" id="loginTab" type="button">
+          Giriş Yap
+        </button>
 
-      <button
-        class="tab"
-        id="registerTab"
-        onclick="showRegister()">
-        Kayıt Ol
-      </button>
+        <button class="tab" id="registerTab" type="button">
+          Kayıt Ol
+        </button>
+      </div>
+
+      <div id="message" class="message"></div>
+
+      <!-- GİRİŞ -->
+      <form id="loginForm" class="form active">
+
+        <h2>Oyuncu Girişi</h2>
+
+        <p class="form-description">
+          Kolonine geri dön ve imparatorluğunu yönet.
+        </p>
+
+        <div class="field">
+          <label for="loginEmail">E-posta</label>
+          <input
+            type="email"
+            id="loginEmail"
+            placeholder="ornek@email.com"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="loginPassword">Şifre</label>
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="Şifren"
+            required
+          >
+        </div>
+
+        <button class="submit-btn" id="loginButton" type="submit">
+          GİRİŞ YAP
+        </button>
+
+      </form>
+
+      <!-- KAYIT -->
+      <form id="registerForm" class="form">
+
+        <h2>Yeni Oyuncu</h2>
+
+        <p class="form-description">
+          NEXORA evrenindeki kolonini şimdi oluştur.
+        </p>
+
+        <div class="field">
+          <label for="registerUsername">Kullanıcı adı</label>
+          <input
+            type="text"
+            id="registerUsername"
+            placeholder="Komutan"
+            minlength="3"
+            maxlength="30"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="registerEmail">E-posta</label>
+          <input
+            type="email"
+            id="registerEmail"
+            placeholder="ornek@email.com"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="registerPassword">Şifre</label>
+          <input
+            type="password"
+            id="registerPassword"
+            placeholder="En az 6 karakter"
+            minlength="6"
+            required
+          >
+        </div>
+
+        <button class="submit-btn" id="registerButton" type="submit">
+          KAYIT OL
+        </button>
+
+      </form>
+
+      <a href="index.html" class="back">
+        ← NEXORA ana sayfasına dön
+      </a>
+
+      <div class="security-note">
+        Hesap bilgilerin güvenli sunucu üzerinden işlenir.
+      </div>
 
     </div>
-
-    <!-- GİRİŞ FORMU -->
-
-    <form id="loginForm">
-
-      <div class="form-group">
-        <label>E-posta</label>
-
-        <input
-          type="email"
-          id="loginEmail"
-          placeholder="E-posta adresiniz"
-          required>
-      </div>
-
-      <div class="form-group">
-        <label>Şifre</label>
-
-        <input
-          type="password"
-          id="loginPassword"
-          placeholder="Şifreniz"
-          required>
-      </div>
-
-      <button
-        type="submit"
-        class="submit-button">
-        Giriş Yap
-      </button>
-
-    </form>
-
-
-    <!-- KAYIT FORMU -->
-
-    <form
-      id="registerForm"
-      style="display:none;">
-
-      <div class="form-group">
-        <label>Kullanıcı Adı</label>
-
-        <input
-          type="text"
-          id="registerUsername"
-          placeholder="Kullanıcı adınız"
-          required>
-      </div>
-
-      <div class="form-group">
-        <label>E-posta</label>
-
-        <input
-          type="email"
-          id="registerEmail"
-          placeholder="E-posta adresiniz"
-          required>
-      </div>
-
-      <div class="form-group">
-        <label>Şifre</label>
-
-        <input
-          type="password"
-          id="registerPassword"
-          placeholder="Şifreniz"
-          required>
-      </div>
-
-      <button
-        type="submit"
-        class="submit-button">
-        Hesap Oluştur
-      </button>
-
-    </form>
-
-    <div
-      class="message"
-      id="message">
-    </div>
-
-    <a
-      href="index.html"
-      class="back">
-      ← Ana Sayfaya Dön
-    </a>
-
   </div>
-
 
   <script>
 
-    function showLogin() {
+    const loginTab = document.getElementById("loginTab");
+    const registerTab = document.getElementById("registerTab");
 
-      document.getElementById("loginForm").style.display = "block";
-      document.getElementById("registerForm").style.display = "none";
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
 
-      document.getElementById("loginTab").classList.add("active");
-      document.getElementById("registerTab").classList.remove("active");
+    const message = document.getElementById("message");
 
-      document.getElementById("message").textContent = "";
+    const loginButton = document.getElementById("loginButton");
+    const registerButton = document.getElementById("registerButton");
+
+
+    function showMessage(text, type) {
+      message.textContent = text;
+      message.className = "message " + type;
     }
 
 
-    function showRegister() {
-
-      document.getElementById("loginForm").style.display = "none";
-      document.getElementById("registerForm").style.display = "block";
-
-      document.getElementById("loginTab").classList.remove("active");
-      document.getElementById("registerTab").classList.add("active");
-
-      document.getElementById("message").textContent = "";
+    function clearMessage() {
+      message.textContent = "";
+      message.className = "message";
     }
 
 
-    document
-      .getElementById("loginForm")
-      .addEventListener("submit", function(event) {
+    loginTab.addEventListener("click", function () {
 
-        event.preventDefault();
+      loginTab.classList.add("active");
+      registerTab.classList.remove("active");
 
-        const email =
-          document.getElementById("loginEmail").value;
+      loginForm.classList.add("active");
+      registerForm.classList.remove("active");
 
-        const password =
-          document.getElementById("loginPassword").value;
-
-        document.getElementById("message").textContent =
-          "Giriş sistemi yakında aktif olacak.";
-
-      });
+      clearMessage();
+    });
 
 
-    document
-      .getElementById("registerForm")
-      .addEventListener("submit", function(event) {
+    registerTab.addEventListener("click", function () {
 
-        event.preventDefault();
+      registerTab.classList.add("active");
+      loginTab.classList.remove("active");
 
-        const username =
-          document.getElementById("registerUsername").value;
+      registerForm.classList.add("active");
+      loginForm.classList.remove("active");
 
-        const email =
-          document.getElementById("registerEmail").value;
+      clearMessage();
+    });
 
-        const password =
-          document.getElementById("registerPassword").value;
 
-        document.getElementById("message").textContent =
-          "Kayıt sistemi yakında aktif olacak.";
+    loginForm.addEventListener("submit", async function (event) {
 
-      });
+      event.preventDefault();
+
+      clearMessage();
+
+      const email =
+        document.getElementById("loginEmail").value.trim();
+
+      const password =
+        document.getElementById("loginPassword").value;
+
+
+      loginButton.disabled = true;
+      loginButton.textContent = "GİRİŞ YAPILIYOR...";
+
+
+      try {
+
+        const response = await fetch(
+          "/api/auth?action=login",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              email,
+              password
+            })
+          }
+        );
+
+
+        const data = await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+          showMessage(
+            data.message || "Giriş başarısız.",
+            "error"
+          );
+
+          return;
+        }
+
+
+        localStorage.setItem(
+          "nexora_token",
+          data.token
+        );
+
+
+        localStorage.setItem(
+          "nexora_player",
+          JSON.stringify(data.player)
+        );
+
+
+        showMessage(
+          "Giriş başarılı! NEXORA'ya yönlendiriliyorsun...",
+          "success"
+        );
+
+
+        setTimeout(function () {
+          window.location.href = "index.html";
+        }, 1200);
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        showMessage(
+          "Sunucuya bağlanılamadı. Lütfen tekrar deneyin.",
+          "error"
+        );
+
+      } finally {
+
+        loginButton.disabled = false;
+        loginButton.textContent = "GİRİŞ YAP";
+
+      }
+
+    });
+
+
+    registerForm.addEventListener("submit", async function (event) {
+
+      event.preventDefault();
+
+      clearMessage();
+
+
+      const username =
+        document.getElementById("registerUsername").value.trim();
+
+      const email =
+        document.getElementById("registerEmail").value.trim();
+
+      const password =
+        document.getElementById("registerPassword").value;
+
+
+      if (username.length < 3) {
+
+        showMessage(
+          "Kullanıcı adı en az 3 karakter olmalıdır.",
+          "error"
+        );
+
+        return;
+      }
+
+
+      if (password.length < 6) {
+
+        showMessage(
+          "Şifre en az 6 karakter olmalıdır.",
+          "error"
+        );
+
+        return;
+      }
+
+
+      registerButton.disabled = true;
+      registerButton.textContent = "HESAP OLUŞTURULUYOR...";
+
+
+      try {
+
+        const response = await fetch(
+          "/api/auth?action=register",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              username,
+              email,
+              password
+            })
+          }
+        );
+
+
+        const data = await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+          showMessage(
+            data.message || "Kayıt başarısız.",
+            "error"
+          );
+
+          return;
+        }
+
+
+        localStorage.setItem(
+          "nexora_token",
+          data.token
+        );
+
+
+        localStorage.setItem(
+          "nexora_player",
+          JSON.stringify(data.player)
+        );
+
+
+        showMessage(
+          "Hesabın oluşturuldu! NEXORA'ya hoş geldin.",
+          "success"
+        );
+
+
+        setTimeout(function () {
+          window.location.href = "index.html";
+        }, 1200);
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        showMessage(
+          "Sunucuya bağlanılamadı. Lütfen tekrar deneyin.",
+          "error"
+        );
+
+      } finally {
+
+        registerButton.disabled = false;
+        registerButton.textContent = "KAYIT OL";
+
+      }
+
+    });
 
   </script>
 
