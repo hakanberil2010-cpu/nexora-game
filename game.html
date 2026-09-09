@@ -484,7 +484,13 @@ body {
 const savedUser = localStorage.getItem("nexora_user");
 
 if (savedUser) {
-    document.getElementById("playerName").textContent = savedUser;
+    try {
+        const player = JSON.parse(savedUser);
+        document.getElementById("playerName").textContent =
+            player.username || "Komutan";
+    } catch (error) {
+        document.getElementById("playerName").textContent = savedUser;
+    }
 }
 
 function logout() {
