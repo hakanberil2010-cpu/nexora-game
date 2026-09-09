@@ -1,1 +1,318 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>NEXORA - Giriş / Kayıt</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #0b1020;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 430px;
+      background: #131c3a;
+      border: 1px solid #293761;
+      border-radius: 15px;
+      padding: 35px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .logo {
+      text-align: center;
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: 5px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #aeb7d5;
+      margin-bottom: 30px;
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 25px;
+      border-bottom: 1px solid #293761;
+    }
+
+    .tab {
+      width: 50%;
+      padding: 13px;
+      background: transparent;
+      color: #aeb7d5;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .tab.active {
+      color: white;
+      border-bottom: 2px solid #4d7cff;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #d9def0;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      background: #0b1020;
+      color: white;
+      border: 1px solid #35446f;
+      border-radius: 8px;
+      outline: none;
+      font-size: 15px;
+    }
+
+    input:focus {
+      border-color: #4d7cff;
+    }
+
+    .submit-button {
+      width: 100%;
+      padding: 15px;
+      margin-top: 10px;
+      background: #4d7cff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .submit-button:hover {
+      opacity: 0.9;
+    }
+
+    .message {
+      margin-top: 18px;
+      text-align: center;
+      color: #aeb7d5;
+      min-height: 20px;
+    }
+
+    .back {
+      display: block;
+      text-align: center;
+      margin-top: 25px;
+      color: #8da8ff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="logo">NEXORA</div>
+
+    <div class="subtitle">
+      Strateji dünyasına giriş yap
+    </div>
+
+    <div class="tabs">
+
+      <button
+        class="tab active"
+        id="loginTab"
+        onclick="showLogin()">
+        Giriş Yap
+      </button>
+
+      <button
+        class="tab"
+        id="registerTab"
+        onclick="showRegister()">
+        Kayıt Ol
+      </button>
+
+    </div>
+
+    <!-- GİRİŞ FORMU -->
+
+    <form id="loginForm">
+
+      <div class="form-group">
+        <label>E-posta</label>
+
+        <input
+          type="email"
+          id="loginEmail"
+          placeholder="E-posta adresiniz"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label>Şifre</label>
+
+        <input
+          type="password"
+          id="loginPassword"
+          placeholder="Şifreniz"
+          required>
+      </div>
+
+      <button
+        type="submit"
+        class="submit-button">
+        Giriş Yap
+      </button>
+
+    </form>
+
+
+    <!-- KAYIT FORMU -->
+
+    <form
+      id="registerForm"
+      style="display:none;">
+
+      <div class="form-group">
+        <label>Kullanıcı Adı</label>
+
+        <input
+          type="text"
+          id="registerUsername"
+          placeholder="Kullanıcı adınız"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label>E-posta</label>
+
+        <input
+          type="email"
+          id="registerEmail"
+          placeholder="E-posta adresiniz"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label>Şifre</label>
+
+        <input
+          type="password"
+          id="registerPassword"
+          placeholder="Şifreniz"
+          required>
+      </div>
+
+      <button
+        type="submit"
+        class="submit-button">
+        Hesap Oluştur
+      </button>
+
+    </form>
+
+    <div
+      class="message"
+      id="message">
+    </div>
+
+    <a
+      href="index.html"
+      class="back">
+      ← Ana Sayfaya Dön
+    </a>
+
+  </div>
+
+
+  <script>
+
+    function showLogin() {
+
+      document.getElementById("loginForm").style.display = "block";
+      document.getElementById("registerForm").style.display = "none";
+
+      document.getElementById("loginTab").classList.add("active");
+      document.getElementById("registerTab").classList.remove("active");
+
+      document.getElementById("message").textContent = "";
+    }
+
+
+    function showRegister() {
+
+      document.getElementById("loginForm").style.display = "none";
+      document.getElementById("registerForm").style.display = "block";
+
+      document.getElementById("loginTab").classList.remove("active");
+      document.getElementById("registerTab").classList.add("active");
+
+      document.getElementById("message").textContent = "";
+    }
+
+
+    document
+      .getElementById("loginForm")
+      .addEventListener("submit", function(event) {
+
+        event.preventDefault();
+
+        const email =
+          document.getElementById("loginEmail").value;
+
+        const password =
+          document.getElementById("loginPassword").value;
+
+        document.getElementById("message").textContent =
+          "Giriş sistemi yakında aktif olacak.";
+
+      });
+
+
+    document
+      .getElementById("registerForm")
+      .addEventListener("submit", function(event) {
+
+        event.preventDefault();
+
+        const username =
+          document.getElementById("registerUsername").value;
+
+        const email =
+          document.getElementById("registerEmail").value;
+
+        const password =
+          document.getElementById("registerPassword").value;
+
+        document.getElementById("message").textContent =
+          "Kayıt sistemi yakında aktif olacak.";
+
+      });
+
+  </script>
+
+</body>
+</html>
