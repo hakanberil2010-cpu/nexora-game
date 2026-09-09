@@ -1,11 +1,12 @@
-import crypto from "crypto";
+const crypto = require("crypto");
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-function json(res, status, data) {
-  res.status(status).setHeader("Content-Type", "application/json");
+function send(res, status, data) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.end(JSON.stringify(data));
 }
 
@@ -39,29 +40,27 @@ function hashPassword(password) {
       100000,
       64,
       "sha512",
-      (error, derivedKey) => {
-        if (error) {
-          reject(error);
-          return;
-        }
+      (err, derivedKey) => {
+        if (err) return reject(err);
 
-        resolve(`${salt}:${derivedKey.toString("hex")}`);
+        resolve(
+          salt + ":" + derivedKey.toString("hex")
+        );
       }
     );
   });
 }
 
-function verifyPassword(password, storedHash) {
+function verifyPassword(password, stored) {
   return new Promise((resolve, reject) => {
-    const parts = storedHash.split(":");
+    const parts = String(stored).split(":");
 
     if (parts.length !== 2) {
-      resolve(false);
-      return;
+      return resolve(false);
     }
 
     const salt = parts[0];
-    const originalHash = parts[1];
+    const original = Buffer.from(parts[1], "hex");
 
     crypto.pbkdf2(
       password,
@@ -69,65 +68,71 @@ function verifyPassword(password, storedHash) {
       100000,
       64,
       "sha512",
-      (error, derivedKey) => {
-        if (error) {
-          reject(error);
-          return;
+      (err, derivedKey) => {
+        if (err) return reject(err);
+
+        const current = derivedKey;
+
+        if (current.length !== original.length) {
+          return resolve(false);
         }
 
-        const newHash = derivedKey.toString("hex");
-
-        const a = Buffer.from(newHash, "hex");
-        const b = Buffer.from(originalHash, "hex");
-
-        if (a.length !== b.length) {
-          resolve(false);
-          return;
-        }
-
-        resolve(crypto.timingSafeEqual(a, b));
+        resolve(
+          crypto.timingSafeEqual(current, original)
+        );
       }
     );
   });
 }
 
-function base64url(input) {
-  return Buffer.from(input)
+function base64url(value) {
+  return Buffer.from(value)
     .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=/g, "");
 }
 
-function createJWT(payload) {
-  const header = {
-    alg: "HS256",
-    typ: "JWT"
-  };
+function createToken(player) {
+  const header = base64url(
+    JSON.stringify({
+      alg: "HS256",
+      typ: "JWT"
+    })
+  );
 
-  const encodedHeader = base64url(JSON.stringify(header));
-  const encodedPayload = base64url(JSON.stringify(payload));
+  const payload = base64url(
+    JSON.stringify({
+      id: player.id,
+      username: player.username,
+      email: player.email,
+      iat: Math.floor(Date.now() / 1000)
+    })
+  );
 
-  const data = `${encodedHeader}.${encodedPayload}`;
+  const data = header + "." + payload;
 
   const signature = crypto
     .createHmac("sha256", JWT_SECRET)
     .update(data)
     .digest();
 
-  return `${data}.${base64url(signature)}`;
+  return data + "." + base64url(signature);
 }
 
-async function supabaseRequest(path, options = {}) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      apikey: SUPABASE_SECRET_KEY,
-      Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-      "Content-Type": "application/json",
-      ...(options.headers || {})
+async function supabase(path, options = {}) {
+  const response = await fetch(
+    SUPABASE_URL + "/rest/v1/" + path,
+    {
+      ...options,
+      headers: {
+        apikey: SUPABASE_SECRET_KEY,
+        Authorization: "Bearer " + SUPABASE_SECRET_KEY,
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      }
     }
-  });
+  );
 
   const text = await response.text();
 
@@ -154,57 +159,68 @@ async function register(req, res) {
   const password = String(body.password || "");
 
   if (!username || !email || !password) {
-    return json(res, 400, {
+    return send(res, 400, {
       success: false,
-      message: "Kullanıcı adı, e-posta ve şifre zorunludur."
+      message: "Tüm alanları doldurun."
     });
   }
 
   if (username.length < 3) {
-    return json(res, 400, {
+    return send(res, 400, {
       success: false,
-      message: "Kullanıcı adı en az 3 karakter olmalıdır."
+      message: "Kullanıcı adı en az 3 karakter olmalı."
     });
   }
 
   if (password.length < 6) {
-    return json(res, 400, {
+    return send(res, 400, {
       success: false,
-      message: "Şifre en az 6 karakter olmalıdır."
+      message: "Şifre en az 6 karakter olmalı."
     });
   }
 
-  const emailCheck = await supabaseRequest(
-    `players?select=id&email=eq.${encodeURIComponent(email)}&limit=1`
+  const existingEmail = await supabase(
+    "players?select=id&email=eq." +
+      encodeURIComponent(email) +
+      "&limit=1"
   );
 
-  if (!emailCheck.ok) {
-    return json(res, 500, {
+  if (!existingEmail.ok) {
+    console.error("Email kontrol hatası:", existingEmail.data);
+
+    return send(res, 500, {
       success: false,
-      message: "Veritabanı kontrolü başarısız."
+      message: "Veritabanına bağlanılamadı."
     });
   }
 
-  if (emailCheck.data && emailCheck.data.length > 0) {
-    return json(res, 409, {
+  if (existingEmail.data.length > 0) {
+    return send(res, 409, {
       success: false,
-      message: "Bu e-posta adresi zaten kayıtlı."
+      message: "Bu e-posta zaten kayıtlı."
     });
   }
 
-  const usernameCheck = await supabaseRequest(
-    `players?select=id&username=eq.${encodeURIComponent(username)}&limit=1`
+  const existingUsername = await supabase(
+    "players?select=id&username=eq." +
+      encodeURIComponent(username) +
+      "&limit=1"
   );
 
-  if (!usernameCheck.ok) {
-    return json(res, 500, {
+  if (!existingUsername.ok) {
+    console.error(
+      "Username kontrol hatası:",
+      existingUsername.data
+    );
+
+    return send(res, 500, {
       success: false,
-      message: "Veritabanı kontrolü başarısız."
+      message: "Veritabanına bağlanılamadı."
     });
   }
 
-  if (usernameCheck.data && usernameCheck.data.length > 0) {
-    return json(res, 409, {
+  if (existingUsername.data.length > 0) {
+    return send(res, 409, {
       success: false,
       message: "Bu kullanıcı adı zaten kullanılıyor."
     });
@@ -212,7 +228,7 @@ async function register(req, res) {
 
   const passwordHash = await hashPassword(password);
 
-  const playerResult = await supabaseRequest("players", {
+  const playerResult = await supabase("players", {
     method: "POST",
     headers: {
       Prefer: "return=representation"
@@ -225,24 +241,20 @@ async function register(req, res) {
   });
 
   if (!playerResult.ok) {
-    return json(res, 500, {
+    console.error(
+      "Oyuncu oluşturma hatası:",
+      playerResult.data
+    );
+
+    return send(res, 500, {
       success: false,
       message: "Oyuncu oluşturulamadı."
     });
   }
 
-  const player = Array.isArray(playerResult.data)
-    ? playerResult.data[0]
-    : playerResult.data;
+  const player = playerResult.data[0];
 
-  if (!player || !player.id) {
-    return json(res, 500, {
-      success: false,
-      message: "Oyuncu oluşturuldu ancak oyuncu bilgisi alınamadı."
-    });
-  }
-
-  const cityResult = await supabaseRequest("cities", {
+  const cityResult = await supabase("cities", {
     method: "POST",
     headers: {
       Prefer: "return=minimal"
@@ -259,22 +271,22 @@ async function register(req, res) {
   });
 
   if (!cityResult.ok) {
-    return json(res, 500, {
+    console.error(
+      "Şehir oluşturma hatası:",
+      cityResult.data
+    );
+
+    return send(res, 500, {
       success: false,
-      message: "Oyuncu oluşturuldu fakat başlangıç kolonisi oluşturulamadı."
+      message: "Başlangıç kolonisi oluşturulamadı."
     });
   }
 
-  const token = createJWT({
-    id: player.id,
-    username: player.username,
-    email: player.email,
-    iat: Math.floor(Date.now() / 1000)
-  });
+  const token = createToken(player);
 
-  return json(res, 201, {
+  return send(res, 201, {
     success: true,
-    message: "NEXORA hesabın başarıyla oluşturuldu.",
+    message: "Hesabın başarıyla oluşturuldu.",
     token,
     player: {
       id: player.id,
@@ -291,25 +303,29 @@ async function login(req, res) {
   const password = String(body.password || "");
 
   if (!email || !password) {
-    return json(res, 400, {
+    return send(res, 400, {
       success: false,
-      message: "E-posta ve şifre zorunludur."
+      message: "E-posta ve şifre gerekli."
     });
   }
 
-  const result = await supabaseRequest(
-    `players?select=id,username,email,password_hash&email=eq.${encodeURIComponent(email)}&limit=1`
+  const result = await supabase(
+    "players?select=id,username,email,password_hash&email=eq." +
+      encodeURIComponent(email) +
+      "&limit=1"
   );
 
   if (!result.ok) {
-    return json(res, 500, {
+    console.error("Login DB hatası:", result.data);
+
+    return send(res, 500, {
       success: false,
-      message: "Giriş sırasında veritabanı hatası oluştu."
+      message: "Veritabanına bağlanılamadı."
     });
   }
 
   if (!result.data || result.data.length === 0) {
-    return json(res, 401, {
+    return send(res, 401, {
       success: false,
       message: "E-posta veya şifre hatalı."
     });
@@ -317,26 +333,21 @@ async function login(req, res) {
 
   const player = result.data[0];
 
-  const validPassword = await verifyPassword(
+  const valid = await verifyPassword(
     password,
     player.password_hash
   );
 
-  if (!validPassword) {
-    return json(res, 401, {
+  if (!valid) {
+    return send(res, 401, {
       success: false,
       message: "E-posta veya şifre hatalı."
     });
   }
 
-  const token = createJWT({
-    id: player.id,
-    username: player.username,
-    email: player.email,
-    iat: Math.floor(Date.now() / 1000)
-  });
+  const token = createToken(player);
 
-  return json(res, 200, {
+  return send(res, 200, {
     success: true,
     message: "Giriş başarılı.",
     token,
@@ -348,23 +359,29 @@ async function login(req, res) {
   });
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
-    if (!SUPABASE_URL || !SUPABASE_SECRET_KEY || !JWT_SECRET) {
-      return json(res, 500, {
+    if (
+      !SUPABASE_URL ||
+      !SUPABASE_SECRET_KEY ||
+      !JWT_SECRET
+    ) {
+      return send(res, 500, {
         success: false,
         message: "Sunucu yapılandırması eksik."
       });
     }
 
     if (req.method !== "POST") {
-      return json(res, 405, {
+      return send(res, 405, {
         success: false,
         message: "Sadece POST isteği kabul edilir."
       });
     }
 
-    const action = String(req.query.action || "").toLowerCase();
+    const action = String(
+      req.query.action || ""
+    ).toLowerCase();
 
     if (action === "register") {
       return await register(req, res);
@@ -374,16 +391,17 @@ export default async function handler(req, res) {
       return await login(req, res);
     }
 
-    return json(res, 400, {
+    return send(res, 400, {
       success: false,
-      message: "Geçersiz işlem. register veya login kullanın."
+      message: "Geçersiz işlem."
     });
+
   } catch (error) {
     console.error("NEXORA AUTH ERROR:", error);
 
-    return json(res, 500, {
+    return send(res, 500, {
       success: false,
       message: "Sunucu hatası oluştu."
     });
   }
-}
+};
