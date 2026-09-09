@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXORA - Strateji Dünyası</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1020;
+      color: white;
+    }
+
+    header {
+      background: #111936;
+      padding: 20px 7%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #27345f;
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 3px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 25px;
+    }
+
+    .hero {
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 20px;
+      background:
+        radial-gradient(circle at center, #24376b 0%, #0b1020 65%);
+    }
+
+    .hero-content {
+      max-width: 800px;
+    }
+
+    .hero h1 {
+      font-size: 64px;
+      letter-spacing: 8px;
+      margin-bottom: 20px;
+    }
+
+    .hero p {
+      font-size: 21px;
+      line-height: 1.7;
+      color: #c5cbea;
+      margin-bottom: 35px;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 15px 35px;
+      background: #4d7cff;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .features {
+      padding: 60px 7%;
+      text-align: center;
+    }
+
+    .features h2 {
+      font-size: 34px;
+      margin-bottom: 40px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+    }
+
+    .card {
+      background: #131c3a;
+      padding: 35px 25px;
+      border: 1px solid #293761;
+      border-radius: 12px;
+    }
+
+    .card h3 {
+      margin-bottom: 15px;
+      font-size: 22px;
+    }
+
+    .card p {
+      color: #aeb7d5;
+      line-height: 1.6;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      background: #080c18;
+      color: #7f89a8;
+    }
+
+    @media (max-width: 700px) {
+      .hero h1 {
+        font-size: 42px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo">NEXORA</div>
+
+    <nav>
+      <a href="#">Ana Sayfa</a>
+      <a href="#">Dünya</a>
+      <a href="#">Savaş</a>
+      <a href="#">Giriş</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="hero-content">
+      <h1>NEXORA</h1>
+
+      <p>
+        Kendi kolonini kur. Kaynaklarını yönet.
+        Ordunu geliştir. Dünyayı fethet.
+      </p>
+
+      <a href="#" class="button">OYUNA BAŞLA</a>
+    </div>
+  </section>
+
+  <section class="features">
+
+    <h2>NEXORA DÜNYASI</h2>
+
+    <div class="cards">
+
+      <div class="card">
+        <h3>🏙️ Kolonini Kur</h3>
+        <p>
+          Şehrini geliştir, binalarını yükselt
+          ve güçlü bir medeniyet oluştur.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>⚔️ PvP Savaşları</h3>
+        <p>
+          Diğer oyuncularla savaş,
+          topraklarını genişlet ve rakiplerini yen.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>🌍 Büyük Dünya</h3>
+        <p>
+          Çöller, ormanlar, buzullar,
+          dağlar ve volkanik bölgeleri keşfet.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    © 2026 NEXORA — Strateji Dünyasına Hoş Geldin
+  </footer>
+
+</body>
+</html>
