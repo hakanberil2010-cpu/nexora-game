@@ -264,7 +264,53 @@ h1{
     <div id="allianceTitle"></div>
 
     <div id="members"></div>
+<div class="panel" style="margin-top:20px;">
 
+  <h2>💬 İttifak Sohbeti</h2>
+
+  <div
+    id="chatMessages"
+    style="
+      height:300px;
+      overflow-y:auto;
+      background:#071526;
+      border:1px solid #173e5d;
+      border-radius:8px;
+      padding:15px;
+      margin-bottom:15px;
+    "
+  >
+    Mesajlar yükleniyor...
+  </div>
+
+  <div style="display:flex; gap:10px;">
+
+    <input
+      type="text"
+      id="chatInput"
+      maxlength="500"
+      placeholder="Mesajını yaz..."
+      style="
+        flex:1;
+        padding:12px;
+        border-radius:8px;
+        border:1px solid #285476;
+        background:#071526;
+        color:#ffffff;
+        outline:none;
+      "
+    >
+
+    <button
+      class="button"
+      onclick="sendAllianceChat()"
+    >
+      Gönder
+    </button>
+
+  </div>
+
+</div>
     <button
       class="button danger"
       onclick="leaveAlliance()"
@@ -836,8 +882,180 @@ async function loadMyAlliance() {
     resetAllianceView();
   }
 }
+async function loadAllianceChat() {
+
+  const token =
+    localStorage.getItem("nexora_token");
+
+  if (!token) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/auth?action=alliancechat",
+        {
+          method: "POST",
+
+          headers: {
+            "Authorization":
+              "Bearer " + token
+          }
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      return;
+    }
+
+    const chat =
+      document.getElementById(
+        "chatMessages"
+      );
+
+    if (!chat) {
+      return;
+    }
+
+    chat.innerHTML = "";
+
+    if (
+      !data.messages ||
+      data.messages.length === 0
+    ) {
+
+      chat.innerHTML =
+        '<div style="color:#78b9e6;">Henüz mesaj yok.</div>';
+
+      return;
+    }
+
+    data.messages.forEach(
+      function(item) {
+
+        const message =
+          document.createElement("div");
+
+        message.style.marginBottom =
+          "12px";
+
+        message.innerHTML =
+          '<div style="font-weight:bold;color:#16b9ff;">' +
+            escapeHtml(item.username) +
+          '</div>' +
+
+          '<div style="color:#eaf4ff;margin-top:3px;">' +
+            escapeHtml(item.message) +
+          '</div>' +
+
+          '<div style="font-size:11px;color:#5f8aa8;margin-top:3px;">' +
+            new Date(
+              item.created_at
+            ).toLocaleString("tr-TR") +
+          '</div>';
+
+        chat.appendChild(message);
+      }
+    );
+
+    chat.scrollTop =
+      chat.scrollHeight;
+
+  } catch(error) {
+
+    console.error(
+      "İttifak sohbeti:",
+      error
+    );
+  }
+}
 
 
+async function sendAllianceChat() {
+
+  const token =
+    localStorage.getItem(
+      "nexora_token"
+    );
+
+  const input =
+    document.getElementById(
+      "chatInput"
+    );
+
+  if (!token || !input) {
+    return;
+  }
+
+  const message =
+    input.value.trim();
+
+  if (!message) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/auth?action=sendalliancechat",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              "Bearer " + token
+          },
+
+          body:JSON.stringify({
+            message:message
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      alert(
+        data.message ||
+        "Mesaj gönderilemedi."
+      );
+
+      return;
+    }
+
+    input.value = "";
+
+    await loadAllianceChat();
+
+  } catch(error) {
+
+    console.error(
+      "Mesaj gönderme:",
+      error
+    );
+
+    alert(
+      "Sunucu bağlantı hatası."
+    );
+  }
+}
 async function leaveAlliance() {
 
   const token =
@@ -925,7 +1143,12 @@ async function leaveAlliance() {
 
 loadAlliances();
 loadMyAlliance();
+loadAllianceChat();
 
+setInterval(
+  loadAllianceChat,
+  5000
+);
 </script>
 
 </body>
