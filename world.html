@@ -342,16 +342,80 @@ function selectColony(name, isMine, playerId = null) {
   attackButton.style.display = "inline-block";
 }
 
-function attack() {
+async function attack() {
 
-  if (!selectedPlayer) {
+  if (!selectedPlayerId) {
     return;
   }
 
-  alert(
-    selectedPlayer +
-    " hedefine saldırı hazırlığı başlatıldı."
-  );
+  const token =
+    localStorage.getItem("nexora_token");
+
+  if (!token) {
+    alert("Oturum bulunamadı.");
+    return;
+  }
+
+  const attackButton =
+    document.getElementById("attackButton");
+
+  attackButton.disabled = true;
+  attackButton.textContent = "⚔️ Saldırılıyor...";
+
+  try {
+
+    const response = await fetch(
+      "/api/auth?action=attack",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+          targetPlayerId: selectedPlayerId
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert(
+        data.message ||
+        "Saldırı gerçekleştirilemedi."
+      );
+
+      return;
+    }
+
+    alert(
+      "⚔️ Savaş Sonucu: " + data.result +
+      "\n\nSaldırı Gücü: " + data.attackPower +
+      "\nSavunma Gücü: " + data.defensePower +
+      "\n\nGanimet:" +
+      "\nMetal: " + data.loot.metal +
+      "\nEnerji: " + data.loot.energy +
+      "\nSu: " + data.loot.water +
+      "\nKristal: " + data.loot.crystal
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Saldırı hatası:",
+      error
+    );
+
+    alert(
+      "Saldırı sırasında bir hata oluştu."
+    );
+
+  } finally {
+
+    attackButton.disabled = false;
+    attackButton.textContent = "⚔️ Saldır";
+  }
 }
 
 function createPlayerColony(player, index) {
