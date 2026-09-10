@@ -743,7 +743,9 @@ module.exports = async function handler(req, res) {
     if (action === "city") {
   return await getCity(req, res);
 }
-
+if (action === "upgrade") {
+  return await upgradeBuilding(req, res);
+}
     return send(res, 400, {
       success: false,
       message: "Geçersiz işlem."
