@@ -2064,6 +2064,9 @@ if (action === "upgrade") {
     if (action === "research") {
   return await getResearch(req, res);
 }
+    if (action === "createalliance") {
+  return await createAlliance(req, res);
+}
     if (action === "upgraderesearch") {
   return await upgradeResearch(req, res);
 }
