@@ -497,6 +497,218 @@ async function getCity(req, res) {
     city: createResult.data[0]
   });
 }
+async function upgradeBuilding(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+
+  if (!Number.isInteger(playerId)) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oyuncu."
+    });
+  }
+
+  const body = await readBody(req);
+  const buildingType = String(body.building || "").trim();
+
+  const costs = {
+    "Metal Madeni": {
+      metal: 500,
+      energy: 100,
+      water: 50,
+      crystal: 25
+    },
+
+    "Enerji Santrali": {
+      metal: 400,
+      energy: 50,
+      water: 50,
+      crystal: 20
+    },
+
+    "Su Arıtma": {
+      metal: 350,
+      energy: 75,
+      water: 50,
+      crystal: 20
+    },
+
+    "Kışla": {
+      metal: 450,
+      energy: 100,
+      water: 50,
+      crystal: 25
+    },
+
+    "Merkez Bina": {
+      metal: 750,
+      energy: 150,
+      water: 100,
+      crystal: 50
+    }
+  };
+
+  if (!costs[buildingType]) {
+    return send(res, 400, {
+      success: false,
+      message: "Geçersiz bina."
+    });
+  }
+
+  const cityResult = await supabase(
+    "cities?select=*&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (
+    !cityResult.ok ||
+    !cityResult.data ||
+    cityResult.data.length === 0
+  ) {
+    return send(res, 404, {
+      success: false,
+      message: "Koloni bulunamadı."
+    });
+  }
+
+  const city = cityResult.data[0];
+  const cost = costs[buildingType];
+
+  if (
+    city.metal < cost.metal ||
+    city.energy < cost.energy ||
+    city.water < cost.water ||
+    city.crystal < cost.crystal
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Yeterli kaynak bulunmuyor."
+    });
+  }
+
+  const buildingResult = await supabase(
+    "buildings?select=*&city_id=eq." +
+      encodeURIComponent(city.id) +
+      "&building_type=eq." +
+      encodeURIComponent(buildingType) +
+      "&limit=1"
+  );
+
+  if (!buildingResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Bina verisi alınamadı."
+    });
+  }
+
+  let building;
+
+  if (
+    buildingResult.data &&
+    buildingResult.data.length > 0
+  ) {
+    building = buildingResult.data[0];
+
+    const updateBuilding = await supabase(
+      "buildings?id=eq." +
+        encodeURIComponent(building.id),
+      {
+        method: "PATCH",
+        headers: {
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          level: Number(building.level) + 1
+        })
+      }
+    );
+
+    if (!updateBuilding.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Bina geliştirilemedi."
+      });
+    }
+
+    building = updateBuilding.data[0];
+  } else {
+    const createBuilding = await supabase(
+      "buildings",
+      {
+        method: "POST",
+        headers: {
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          city_id: city.id,
+          building_type: buildingType,
+          level: 2
+        })
+      }
+    );
+
+    if (!createBuilding.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Bina oluşturulamadı."
+      });
+    }
+
+    building = createBuilding.data[0];
+  }
+
+  const updateCity = await supabase(
+    "cities?id=eq." +
+      encodeURIComponent(city.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        metal: city.metal - cost.metal,
+        energy: city.energy - cost.energy,
+        water: city.water - cost.water,
+        crystal: city.crystal - cost.crystal
+      })
+    }
+  );
+
+  if (!updateCity.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Kaynaklar güncellenemedi."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: buildingType + " geliştirildi.",
+    city: updateCity.data[0],
+    building: building
+  });
+}
 module.exports = async function handler(req, res) {
   try {
     if (
