@@ -492,7 +492,42 @@ if (savedUser) {
         document.getElementById("playerName").textContent = savedUser;
     }
 }
+async function loadCity() {
+  const token = localStorage.getItem("nexora_token");
 
+  if (!token) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth?action=city", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + token
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      console.error("Koloni alınamadı:", data.message);
+      return;
+    }
+
+    const city = data.city;
+
+    document.getElementById("metal").textContent = city.metal;
+    document.getElementById("energy").textContent = city.energy;
+    document.getElementById("water").textContent = city.water;
+    document.getElementById("crystal").textContent = city.crystal;
+
+  } catch (error) {
+    console.error("Koloni bağlantı hatası:", error);
+  }
+}
+
+loadCity();
 function logout() {
     localStorage.removeItem("nexora_token");
     localStorage.removeItem("nexora_user");
