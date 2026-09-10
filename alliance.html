@@ -1,1 +1,310 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>NEXORA - İttifak</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #050d18;
+  color: #eaf4ff;
+}
+
+.topbar {
+  height: 76px;
+  background: #071526;
+  border-bottom: 1px solid #173451;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 35px;
+}
+
+.logo {
+  font-size: 30px;
+  letter-spacing: 7px;
+  color: #16b9ff;
+  font-weight: bold;
+}
+
+.player {
+  color: #8fc9ef;
+}
+
+.player span {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 35px auto;
+  padding: 0 25px;
+}
+
+h1 {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #78b9e6;
+  margin-bottom: 30px;
+}
+
+.panel {
+  background: #091b2d;
+  border: 1px solid #173e5d;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.panel h2 {
+  margin-top: 0;
+  color: #16b9ff;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 7px;
+  color: #9cc6e2;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #285476;
+  background: #071526;
+  color: #ffffff;
+  outline: none;
+}
+
+.form-group input:focus {
+  border-color: #16b9ff;
+}
+
+.button {
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 8px;
+  background: #0d6284;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #1180aa;
+}
+
+.danger {
+  background: #a63333;
+}
+
+.danger:hover {
+  background: #c23c3c;
+}
+
+.message {
+  display: none;
+  margin-bottom: 20px;
+  padding: 13px 16px;
+  border-radius: 8px;
+  background: #091b2d;
+  border: 1px solid #173e5d;
+  color: #9cc6e2;
+}
+
+.alliance-name {
+  font-size: 28px;
+  font-weight: bold;
+  color: #16b9ff;
+}
+
+.alliance-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #123650;
+  color: #58ff9b;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.member {
+  padding: 13px;
+  margin-top: 10px;
+  border-radius: 8px;
+  background: #071526;
+  border: 1px solid #173e5d;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.member-name {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.member-role {
+  color: #78b9e6;
+  font-size: 13px;
+}
+
+.back {
+  display: inline-block;
+  margin-top: 10px;
+  color: #16b9ff;
+  text-decoration: none;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+
+  <div class="logo">NEXORA</div>
+
+  <div class="player">
+    Oyuncu:
+    <span id="playerName">Oyuncu</span>
+  </div>
+
+</div>
+
+<div class="container">
+
+  <h1>🤝 İttifak</h1>
+
+  <div class="subtitle">
+    Oyuncularla birleş, kolonilerini güçlendir ve galakside birlikte ilerle.
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <div class="panel" id="createPanel">
+
+    <h2>🏛️ İttifak Oluştur</h2>
+
+    <div class="form-group">
+      <label>İttifak Adı</label>
+      <input
+        type="text"
+        id="allianceName"
+        placeholder="Örn: Galaktik Birlik"
+      >
+    </div>
+
+    <div class="form-group">
+      <label>İttifak Etiketi</label>
+      <input
+        type="text"
+        id="allianceTag"
+        maxlength="5"
+        placeholder="Örn: NEX"
+      >
+    </div>
+
+    <button
+      class="button"
+      onclick="createAlliance()">
+      🤝 İttifak Oluştur
+    </button>
+
+  </div>
+
+  <div class="panel" id="alliancePanel" style="display:none;">
+
+    <h2>🤝 İttifakım</h2>
+
+    <div id="allianceTitle"></div>
+
+    <div id="members"></div>
+
+    <button
+      class="button danger"
+      onclick="leaveAlliance()"
+      style="margin-top:20px;">
+      İttifaktan Ayrıl
+    </button>
+
+  </div>
+
+  <a class="back" href="game.html">
+    ← Koloniye Dön
+  </a>
+
+</div>
+
+<script>
+
+const savedUser = JSON.parse(
+  localStorage.getItem("nexora_player") || "null"
+);
+
+if (savedUser && savedUser.username) {
+  document.getElementById("playerName").textContent =
+    savedUser.username;
+}
+
+function showMessage(text) {
+
+  const message =
+    document.getElementById("message");
+
+  message.textContent = text;
+  message.style.display = "block";
+}
+
+function createAlliance() {
+
+  const name =
+    document.getElementById("allianceName").value.trim();
+
+  const tag =
+    document.getElementById("allianceTag").value.trim();
+
+  if (!name || !tag) {
+    showMessage(
+      "İttifak adı ve etiketi gerekli."
+    );
+    return;
+  }
+
+  showMessage(
+    "İttifak sistemi birazdan aktif olacak."
+  );
+}
+
+function leaveAlliance() {
+
+  showMessage(
+    "İttifaktan ayrılma sistemi henüz aktif değil."
+  );
+}
+
+</script>
+
+</body>
+</html>
