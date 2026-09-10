@@ -1114,7 +1114,47 @@ async function attackPlayer(req, res) {
       });
     }
   }
+const battleReportResult = await supabase(
+  "battle_reports",
+  {
+    method: "POST",
+    headers: {
+      Prefer: "return=minimal"
+    },
+    body: JSON.stringify({
+      attacker_player_id: Number(decoded.id),
+      defender_player_id: targetPlayerId,
+      result: result,
+      attack_power: totalAttackPower,
+      defense_power: totalDefensePower,
+      attacker_losses: {
+        piyade: infantryLoss,
+        saldiri: attackUnitsLoss
+      },
+      defender_losses: {
+        savunma: defenseLoss
+      },
+      loot: {
+        metal: metalLoot,
+        energy: energyLoot,
+        water: waterLoot,
+        crystal: crystalLoot
+      }
+    })
+  }
+);
 
+if (!battleReportResult.ok) {
+  console.error(
+    "Savaş raporu kaydedilemedi:",
+    battleReportResult.data
+  );
+
+  return send(res, 500, {
+    success: false,
+    message: "Savaş raporu kaydedilemedi."
+  });
+}
   return send(res, 200, {
     success: true,
     result: result,
