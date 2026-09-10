@@ -777,7 +777,6 @@ async function attackPlayer(req, res) {
   }
 
   const body = await readBody(req);
-
   const targetPlayerId = Number(body.targetPlayerId);
 
   if (!Number.isInteger(targetPlayerId)) {
@@ -858,16 +857,36 @@ async function attackPlayer(req, res) {
   const attackerUnits = attackerUnitsResult.data || [];
   const targetUnits = targetUnitsResult.data || [];
 
-  function getUnitCount(units, type) {
-    const unit = units.find(function(item) {
+  function getUnit(units, type) {
+    return units.find(function(item) {
       return item.unit_type === type;
     });
+  }
 
+  function getUnitCount(units, type) {
+    const unit = getUnit(units, type);
     return unit ? Number(unit.quantity) : 0;
   }
 
-  const infantry = getUnitCount(attackerUnits, "piyade");
-  const attackUnits = getUnitCount(attackerUnits, "saldiri");
+  function calculateLoss(quantity, percent) {
+    if (quantity <= 0) {
+      return 0;
+    }
+
+    const loss = Math.ceil(quantity * percent);
+
+    return Math.min(quantity, Math.max(1, loss));
+  }
+
+  const infantry = getUnitCount(
+    attackerUnits,
+    "piyade"
+  );
+
+  const attackUnits = getUnitCount(
+    attackerUnits,
+    "saldiri"
+  );
 
   const defenseUnits = getUnitCount(
     targetUnits,
@@ -891,26 +910,138 @@ async function attackPlayer(req, res) {
   let result;
   let lootPercent = 0;
 
+  let attackerLossPercent = 0;
+  let defenderLossPercent = 0;
+
   if (totalAttackPower > totalDefensePower) {
     result = "Zafer";
     lootPercent = 0.10;
+
+    attackerLossPercent = 0.20;
+    defenderLossPercent = 0.60;
+
   } else if (totalAttackPower === totalDefensePower) {
     result = "Beraberlik";
+
+    attackerLossPercent = 0.40;
+    defenderLossPercent = 0.40;
+
   } else {
     result = "Yenilgi";
+
+    attackerLossPercent = 0.70;
+    defenderLossPercent = 0.20;
+  }
+
+  const infantryLoss = calculateLoss(
+    infantry,
+    attackerLossPercent
+  );
+
+  const attackUnitsLoss = calculateLoss(
+    attackUnits,
+    attackerLossPercent
+  );
+
+  const defenseLoss = calculateLoss(
+    defenseUnits,
+    defenderLossPercent
+  );
+
+  async function updateUnitLoss(units, type, loss) {
+    if (loss <= 0) {
+      return true;
+    }
+
+    const unit = getUnit(units, type);
+
+    if (!unit) {
+      return true;
+    }
+
+    const newQuantity = Math.max(
+      0,
+      Number(unit.quantity) - loss
+    );
+
+    const updateResult = await supabase(
+      "units?id=eq." +
+        encodeURIComponent(unit.id),
+      {
+        method: "PATCH",
+        headers: {
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify({
+          quantity: newQuantity
+        })
+      }
+    );
+
+    return updateResult.ok;
+  }
+
+  const attackerInfantryUpdated =
+    await updateUnitLoss(
+      attackerUnits,
+      "piyade",
+      infantryLoss
+    );
+
+  if (!attackerInfantryUpdated) {
+    return send(res, 500, {
+      success: false,
+      message: "Piyade kaybı kaydedilemedi."
+    });
+  }
+
+  const attackerUnitsUpdated =
+    await updateUnitLoss(
+      attackerUnits,
+      "saldiri",
+      attackUnitsLoss
+    );
+
+  if (!attackerUnitsUpdated) {
+    return send(res, 500, {
+      success: false,
+      message: "Saldırı birliği kaybı kaydedilemedi."
+    });
+  }
+
+  const defenderUpdated =
+    await updateUnitLoss(
+      targetUnits,
+      "savunma",
+      defenseLoss
+    );
+
+  if (!defenderUpdated) {
+    return send(res, 500, {
+      success: false,
+      message: "Savunma kaybı kaydedilemedi."
+    });
   }
 
   const metalLoot =
-    Math.floor(Number(targetCity.metal) * lootPercent);
+    Math.floor(
+      Number(targetCity.metal) * lootPercent
+    );
 
   const energyLoot =
-    Math.floor(Number(targetCity.energy) * lootPercent);
+    Math.floor(
+      Number(targetCity.energy) * lootPercent
+    );
 
   const waterLoot =
-    Math.floor(Number(targetCity.water) * lootPercent);
+    Math.floor(
+      Number(targetCity.water) * lootPercent
+    );
 
   const crystalLoot =
-    Math.floor(Number(targetCity.crystal) * lootPercent);
+    Math.floor(
+      Number(targetCity.crystal) * lootPercent
+    );
 
   if (result === "Zafer" && lootPercent > 0) {
 
@@ -978,7 +1109,8 @@ async function attackPlayer(req, res) {
     if (!attackerUpdate.ok) {
       return send(res, 500, {
         success: false,
-        message: "Ganimet saldıran koloniye aktarılamadı."
+        message:
+          "Ganimet saldıran koloniye aktarılamadı."
       });
     }
   }
@@ -986,8 +1118,21 @@ async function attackPlayer(req, res) {
   return send(res, 200, {
     success: true,
     result: result,
+
     attackPower: totalAttackPower,
     defensePower: totalDefensePower,
+
+    losses: {
+      attacker: {
+        piyade: infantryLoss,
+        saldiri: attackUnitsLoss
+      },
+
+      defender: {
+        savunma: defenseLoss
+      }
+    },
+
     loot: {
       metal: metalLoot,
       energy: energyLoot,
