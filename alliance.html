@@ -702,18 +702,9 @@ async function joinAlliance(allianceId) {
 
     showMyAlliance(
   data.alliance,
-  "member",
-  [
-    {
-      username:
-        savedUser && savedUser.username
-          ? savedUser.username
-          : "Oyuncu",
-      role: "member"
-    }
-  ]
+  data.member ? data.member.role : "member",
+  data.members || []
 );
-
     loadAlliances();
 
   } catch (error) {
