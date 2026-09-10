@@ -203,6 +203,7 @@ h1 {
 
   <div class="message" id="message"></div>
 
+  <!-- İTTİFAK OLUŞTUR -->
   <div class="panel" id="createPanel">
 
     <h2>🏛️ İttifak Oluştur</h2>
@@ -233,22 +234,24 @@ h1 {
     </button>
 
   </div>
-<div class="panel">
 
-  <h2>🌌 Mevcut İttifaklar</h2>
+  <!-- MEVCUT İTTİFAKLAR -->
+  <div class="panel">
 
-  <div id="allianceList">
-    İttifaklar yükleniyor...
+    <h2>🌌 Mevcut İttifaklar</h2>
+
+    <div id="allianceList">
+      İttifaklar yükleniyor...
+    </div>
+
   </div>
 
-</div>
-  <div class="panel" id="alliancePanel" style="display:none;">
-    <div class="panel">
-  <h2>🌌 Mevcut İttifaklar</h2>
-  <div id="allianceList">
-    İttifaklar yükleniyor...
-  </div>
-</div>
+  <!-- BENİM İTTİFAKIM -->
+  <div
+    class="panel"
+    id="alliancePanel"
+    style="display:none;"
+  >
 
     <h2>🤝 İttifakım</h2>
 
@@ -259,8 +262,9 @@ h1 {
     <button
       class="button danger"
       onclick="leaveAlliance()"
-      style="margin-top:20px;">
-      İttifaktan Ayrıl
+      style="margin-top:20px;"
+    >
+      🚪 İttifaktan Ayrıl
     </button>
 
   </div>
@@ -281,13 +285,14 @@ if (savedUser && savedUser.username) {
   document.getElementById("playerName").textContent =
     savedUser.username;
 }
+
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text || "";
   return div.innerHTML;
 }
-function showMessage(text) {
 
+function showMessage(text) {
   const message =
     document.getElementById("message");
 
@@ -295,13 +300,79 @@ function showMessage(text) {
   message.style.display = "block";
 }
 
+function showMyAlliance(alliance, role) {
+
+  document.getElementById(
+    "createPanel"
+  ).style.display = "none";
+
+  document.getElementById(
+    "alliancePanel"
+  ).style.display = "block";
+
+  document.getElementById(
+    "allianceTitle"
+  ).innerHTML =
+    '<div class="alliance-name">' +
+    escapeHtml(alliance.name) +
+    '<span class="alliance-tag">' +
+    escapeHtml(alliance.tag) +
+    '</span>' +
+    '</div>';
+
+  document.getElementById(
+    "members"
+  ).innerHTML =
+    '<div class="member">' +
+      '<div>' +
+        '<div class="member-name">' +
+          escapeHtml(
+            savedUser && savedUser.username
+              ? savedUser.username
+              : "Oyuncu"
+          ) +
+        '</div>' +
+        '<div class="member-role">' +
+          (role === "leader"
+            ? "Lider"
+            : "Üye") +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function resetAllianceView() {
+
+  document.getElementById(
+    "createPanel"
+  ).style.display = "block";
+
+  document.getElementById(
+    "alliancePanel"
+  ).style.display = "none";
+
+  document.getElementById(
+    "allianceTitle"
+  ).innerHTML = "";
+
+  document.getElementById(
+    "members"
+  ).innerHTML = "";
+}
+
 async function createAlliance() {
 
   const name =
-    document.getElementById("allianceName").value.trim();
+    document
+      .getElementById("allianceName")
+      .value
+      .trim();
 
   const tag =
-    document.getElementById("allianceTag").value.trim();
+    document
+      .getElementById("allianceTag")
+      .value
+      .trim();
 
   if (!name || !tag) {
     showMessage(
@@ -314,7 +385,9 @@ async function createAlliance() {
     localStorage.getItem("nexora_token");
 
   if (!token) {
-    showMessage("Oturum bulunamadı.");
+    showMessage(
+      "Oturum bulunamadı."
+    );
     return;
   }
 
@@ -325,10 +398,13 @@ async function createAlliance() {
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type":
+            "application/json",
+
           "Authorization":
             "Bearer " + token
         },
+
         body: JSON.stringify({
           name: name,
           tag: tag
@@ -339,7 +415,10 @@ async function createAlliance() {
     const data =
       await response.json();
 
-    if (!response.ok || !data.success) {
+    if (
+      !response.ok ||
+      !data.success
+    ) {
       showMessage(
         data.message ||
         "İttifak oluşturulamadı."
@@ -348,39 +427,23 @@ async function createAlliance() {
     }
 
     showMessage(
-      "✅ " +
-      data.message
+      "✅ " + data.message
+    );
+
+    showMyAlliance(
+      data.alliance,
+      "leader"
     );
 
     document.getElementById(
-      "createPanel"
-    ).style.display = "none";
+      "allianceName"
+    ).value = "";
 
     document.getElementById(
-      "alliancePanel"
-    ).style.display = "block";
+      "allianceTag"
+    ).value = "";
 
-    document.getElementById(
-      "allianceTitle"
-    ).innerHTML =
-      '<div class="alliance-name">' +
-      escapeHtml(data.alliance.name) +
-      '<span class="alliance-tag">' +
-      escapeHtml(data.alliance.tag) +
-      '</span>' +
-      '</div>';
-
-    document.getElementById(
-      "members"
-    ).innerHTML =
-      '<div class="member">' +
-      '<div>' +
-      '<div class="member-name">' +
-      escapeHtml(savedUser.username) +
-      '</div>' +
-      '<div class="member-role">Lider</div>' +
-      '</div>' +
-      '</div>';
+    loadAlliances();
 
   } catch (error) {
 
@@ -394,19 +457,26 @@ async function createAlliance() {
     );
   }
 }
+
 async function loadAlliances() {
+
   const token =
     localStorage.getItem("nexora_token");
 
   if (!token) {
+    showMessage(
+      "Oturum bulunamadı."
+    );
     return;
   }
 
   try {
+
     const response = await fetch(
       "/api/auth?action=alliances",
       {
         method: "POST",
+
         headers: {
           "Authorization":
             "Bearer " + token
@@ -417,7 +487,10 @@ async function loadAlliances() {
     const data =
       await response.json();
 
-    if (!response.ok || !data.success) {
+    if (
+      !response.ok ||
+      !data.success
+    ) {
       showMessage(
         data.message ||
         "İttifaklar alınamadı."
@@ -425,56 +498,78 @@ async function loadAlliances() {
       return;
     }
 
-    console.log(
-      "İttifaklar:",
-      data.alliances
-    );
     const list =
-  document.getElementById("allianceList");
+      document.getElementById(
+        "allianceList"
+      );
 
-if (!list) {
-  return;
-}
+    list.innerHTML = "";
 
-list.innerHTML = "";
+    if (
+      !data.alliances ||
+      data.alliances.length === 0
+    ) {
 
-if (!data.alliances || data.alliances.length === 0) {
-  list.innerHTML =
-    "Henüz oluşturulmuş bir ittifak yok.";
-  return;
-}
+      list.innerHTML =
+        "Henüz oluşturulmuş bir ittifak yok.";
 
-data.alliances.forEach(function(alliance) {
+      return;
+    }
 
-  const item =
-    document.createElement("div");
+    data.alliances.forEach(
+      function(alliance) {
 
-  item.className = "member";
+        const item =
+          document.createElement("div");
 
-  item.innerHTML =
-    '<div>' +
-      '<div class="member-name">' +
-        escapeHtml(alliance.name) +
-        ' <span class="alliance-tag">' +
-          escapeHtml(alliance.tag) +
-        '</span>' +
-      '</div>' +
-      '<div class="member-role">' +
-        "İttifak Lideri ID: " +
-        escapeHtml(
-          String(alliance.owner_player_id)
-        ) +
-      '</div>' +
-    '</div>' +
-    '<button class="button" ' +
-      'onclick="joinAlliance(' +
-        alliance.id +
-      ')">' +
-      "Katıl" +
-    '</button>';
+        item.className = "member";
 
-  list.appendChild(item);
-});
+        item.innerHTML =
+          '<div>' +
+
+            '<div class="member-name">' +
+
+              escapeHtml(
+                alliance.name
+              ) +
+
+              ' <span class="alliance-tag">' +
+
+                escapeHtml(
+                  alliance.tag
+                ) +
+
+              '</span>' +
+
+            '</div>' +
+
+            '<div class="member-role">' +
+
+              "İttifak Lideri ID: " +
+
+              escapeHtml(
+                String(
+                  alliance.owner_player_id
+                )
+              ) +
+
+            '</div>' +
+
+          '</div>' +
+
+          '<button class="button" ' +
+
+            'onclick="joinAlliance(' +
+              Number(alliance.id) +
+            ')">' +
+
+            "Katıl" +
+
+          '</button>';
+
+        list.appendChild(item);
+      }
+    );
 
   } catch (error) {
 
@@ -488,90 +583,170 @@ data.alliances.forEach(function(alliance) {
     );
   }
 }
-async function leaveAlliance() {
-  const token = localStorage.getItem("nexora_token");
+
+async function joinAlliance(allianceId) {
+
+  const token =
+    localStorage.getItem(
+      "nexora_token"
+    );
 
   if (!token) {
-    alert("Önce giriş yapmalısın.");
+    alert(
+      "Önce giriş yapmalısın."
+    );
     return;
   }
 
-  const confirmed = confirm(
-    "İttifaktan ayrılmak istediğine emin misin?"
-  );
+  try {
+
+    const response =
+      await fetch(
+        "/api/auth?action=joinalliance",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              "Bearer " + token
+          },
+
+          body: JSON.stringify({
+            allianceId:
+              Number(allianceId)
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      alert(
+        "❌ " +
+        (
+          data.message ||
+          "İttifaka katılınamadı."
+        )
+      );
+
+      return;
+    }
+
+    alert(
+      "✅ " + data.message
+    );
+
+    showMyAlliance(
+      data.alliance,
+      "member"
+    );
+
+    loadAlliances();
+
+  } catch (error) {
+
+    console.error(
+      "İttifaka katılma hatası:",
+      error
+    );
+
+    alert(
+      "❌ Sunucu bağlantı hatası."
+    );
+  }
+}
+
+async function leaveAlliance() {
+
+  const token =
+    localStorage.getItem(
+      "nexora_token"
+    );
+
+  if (!token) {
+    alert(
+      "Önce giriş yapmalısın."
+    );
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      "İttifaktan ayrılmak istediğine emin misin?"
+    );
 
   if (!confirmed) {
     return;
   }
 
   try {
-    const response = await fetch(
-      "/api/auth?action=leavealliance",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
+
+    const response =
+      await fetch(
+        "/api/auth?action=leavealliance",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              "Bearer " + token
+          }
         }
-      }
-    );
+      );
 
-    const data = await response.json();
+    const data =
+      await response.json();
 
-    if (!response.ok || !data.success) {
-      alert("❌ " + (data.message || "İttifaktan ayrılınamadı."));
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      alert(
+        "❌ " +
+        (
+          data.message ||
+          "İttifaktan ayrılınamadı."
+        )
+      );
+
       return;
     }
 
-    alert("✅ " + data.message);
+    alert(
+      "✅ " + data.message
+    );
+
+    resetAllianceView();
 
     loadAlliances();
 
   } catch (error) {
-    console.error(error);
-    alert("❌ Sunucu bağlantı hatası.");
+
+    console.error(
+      "İttifaktan ayrılma hatası:",
+      error
+    );
+
+    alert(
+      "❌ Sunucu bağlantı hatası."
+    );
   }
 }
+
 loadAlliances();
-  async function joinAlliance(allianceId) {
-  const token = localStorage.getItem("nexora_token");
 
-  if (!token) {
-    alert("Önce giriş yapmalısın.");
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      "/api/auth?action=joinalliance",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
-        },
-        body: JSON.stringify({
-          allianceId: Number(allianceId)
-        })
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      alert("❌ " + (data.message || "İttifaka katılınamadı."));
-      return;
-    }
-
-    alert("✅ " + data.message);
-
-    loadAlliances();
-
-  } catch (error) {
-    console.error(error);
-    alert("❌ Sunucu bağlantı hatası.");
-  }
-}
 </script>
 
 </body>
