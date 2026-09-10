@@ -1749,6 +1749,79 @@ async function getMyAlliance(req, res) {
     alliance: allianceResult.data[0]
   });
 }
+async function getMyAlliance(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+
+  const membershipResult = await supabase(
+    "alliance_members?select=id,alliance_id,role&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (!membershipResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifak üyeliği alınamadı."
+    });
+  }
+
+  if (
+    !membershipResult.data ||
+    membershipResult.data.length === 0
+  ) {
+    return send(res, 200, {
+      success: true,
+      alliance: null,
+      member: null
+    });
+  }
+
+  const member = membershipResult.data[0];
+
+  const allianceResult = await supabase(
+    "alliances?select=id,name,tag,owner_player_id,created_at&id=eq." +
+      encodeURIComponent(member.alliance_id) +
+      "&limit=1"
+  );
+
+  if (
+    !allianceResult.ok ||
+    !allianceResult.data ||
+    allianceResult.data.length === 0
+  ) {
+    return send(res, 404, {
+      success: false,
+      message: "İttifak bulunamadı."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    alliance: allianceResult.data[0],
+    member: member
+  });
+}
 async function leaveAlliance(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
