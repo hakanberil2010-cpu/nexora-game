@@ -1,1 +1,230 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>NEXORA - Araştırma</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #050d18;
+  color: #eaf4ff;
+}
+
+.topbar {
+  height: 76px;
+  background: #071526;
+  border-bottom: 1px solid #173451;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 35px;
+}
+
+.logo {
+  font-size: 30px;
+  letter-spacing: 7px;
+  color: #16b9ff;
+  font-weight: bold;
+}
+
+.player {
+  color: #8fc9ef;
+}
+
+.player span {
+  color: white;
+  font-weight: bold;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 35px auto;
+  padding: 0 25px;
+}
+
+h1 {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #78b9e6;
+  margin-bottom: 30px;
+}
+
+.research-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.research-card {
+  background: #091b2d;
+  border: 1px solid #173e5d;
+  border-radius: 14px;
+  padding: 22px;
+}
+
+.research-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.research-card h2 {
+  margin: 0 0 8px;
+  color: #16b9ff;
+}
+
+.research-card p {
+  color: #91bad5;
+  line-height: 1.5;
+}
+
+.level {
+  margin: 15px 0;
+  color: #58ff9b;
+  font-weight: bold;
+}
+
+.research-button {
+  width: 100%;
+  padding: 12px;
+  background: #0d6284;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.research-button:hover {
+  background: #1180aa;
+}
+
+.back {
+  display: inline-block;
+  margin-top: 25px;
+  color: #16b9ff;
+  text-decoration: none;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 700px) {
+  .research-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+
+  <div class="logo">NEXORA</div>
+
+  <div class="player">
+    Oyuncu:
+    <span id="playerName">Oyuncu</span>
+  </div>
+
+</div>
+
+<div class="container">
+
+  <h1>🔬 Araştırma</h1>
+
+  <div class="subtitle">
+    Teknolojilerini geliştir, kolonini güçlendir ve üstünlük sağla.
+  </div>
+
+  <div class="research-grid">
+
+    <div class="research-card">
+      <div class="research-icon">⚙️</div>
+      <h2>Üretim Teknolojisi</h2>
+      <p>
+        Maden ve enerji üretimini geliştirir.
+      </p>
+      <div class="level">
+        Seviye: 0
+      </div>
+      <button class="research-button">
+        Araştır
+      </button>
+    </div>
+
+    <div class="research-card">
+      <div class="research-icon">⚔️</div>
+      <h2>Savaş Teknolojisi</h2>
+      <p>
+        Saldırı birliklerinin savaş gücünü artırır.
+      </p>
+      <div class="level">
+        Seviye: 0
+      </div>
+      <button class="research-button">
+        Araştır
+      </button>
+    </div>
+
+    <div class="research-card">
+      <div class="research-icon">🛡️</div>
+      <h2>Savunma Teknolojisi</h2>
+      <p>
+        Savunma birliklerinin gücünü artırır.
+      </p>
+      <div class="level">
+        Seviye: 0
+      </div>
+      <button class="research-button">
+        Araştır
+      </button>
+    </div>
+
+    <div class="research-card">
+      <div class="research-icon">💎</div>
+      <h2>Kristal Teknolojisi</h2>
+      <p>
+        Kristal üretimini geliştirir.
+      </p>
+      <div class="level">
+        Seviye: 0
+      </div>
+      <button class="research-button">
+        Araştır
+      </button>
+    </div>
+
+  </div>
+
+  <a class="back" href="game.html">
+    ← Koloniye Dön
+  </a>
+
+</div>
+
+<script>
+const savedUser = JSON.parse(
+  localStorage.getItem("nexora_player") || "null"
+);
+
+if (savedUser && savedUser.username) {
+  document.getElementById("playerName").textContent =
+    savedUser.username;
+}
+</script>
+
+</body>
+</html>
