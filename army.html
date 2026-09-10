@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXORA - Ordu</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #050d18;
+  color: #eaf4ff;
+}
+
+.topbar {
+  height: 76px;
+  background: #071526;
+  border-bottom: 1px solid #173451;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+}
+
+.logo {
+  color: #18bfff;
+  font-size: 30px;
+  font-weight: bold;
+  letter-spacing: 6px;
+}
+
+.player {
+  color: #9fc0df;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+h1 {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #7196b8;
+  margin-bottom: 30px;
+}
+
+.army-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #091a2c;
+  border: 1px solid #173b5d;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.unit-icon {
+  font-size: 42px;
+  margin-bottom: 10px;
+}
+
+.quantity {
+  font-size: 30px;
+  font-weight: bold;
+  margin: 15px 0;
+}
+
+.cost {
+  color: #8db0cf;
+  margin-bottom: 18px;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #129bd3;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #18bfff;
+}
+
+.back {
+  display: inline-block;
+  margin-top: 30px;
+  color: #18bfff;
+  text-decoration: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <div class="logo">NEXORA</div>
+  <div class="player">
+    Oyuncu: <strong id="playerName">Oyuncu</strong>
+  </div>
+</div>
+
+<div class="container">
+
+  <h1>⚔️ Ordu</h1>
+  <p class="subtitle">
+    Askeri birliklerini üret ve kolonini savun.
+  </p>
+
+  <div class="army-grid">
+
+    <div class="card">
+      <div class="unit-icon">🪖</div>
+      <h2>Piyade</h2>
+      <p>Temel kara birlikleri.</p>
+
+      <div class="quantity">
+        Asker: <span id="infantry">0</span>
+      </div>
+
+      <div class="cost">
+        Üretim maliyeti: 100 Metal + 20 Enerji
+      </div>
+
+      <button onclick="produceUnit('Piyade')">
+        Piyade Üret
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="unit-icon">🛡️</div>
+      <h2>Savunma Birliği</h2>
+      <p>Koloniyi savunmak için güçlü birlikler.</p>
+
+      <div class="quantity">
+        Asker: <span id="defender">0</span>
+      </div>
+
+      <div class="cost">
+        Üretim maliyeti: 150 Metal + 40 Enerji
+      </div>
+
+      <button onclick="produceUnit('Savunma Birliği')">
+        Savunma Birliği Üret
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="unit-icon">🚀</div>
+      <h2>Saldırı Birliği</h2>
+      <p>Düşman kolonilerine saldırmak için.</p>
+
+      <div class="quantity">
+        Asker: <span id="attacker">0</span>
+      </div>
+
+      <div class="cost">
+        Üretim maliyeti: 200 Metal + 75 Enerji
+      </div>
+
+      <button onclick="produceUnit('Saldırı Birliği')">
+        Saldırı Birliği Üret
+      </button>
+    </div>
+
+  </div>
+
+  <a class="back" href="game.html">
+    ← Koloniye Dön
+  </a>
+
+</div>
+
+<script>
+
+const savedUser = localStorage.getItem("nexora_player");
+
+if (savedUser) {
+  try {
+    const player = JSON.parse(savedUser);
+    document.getElementById("playerName").textContent =
+      player.username || "Oyuncu";
+  } catch (error) {
+    document.getElementById("playerName").textContent = savedUser;
+  }
+}
+
+function produceUnit(unit) {
+  alert(unit + " üretim sistemi bir sonraki adımda aktif olacak.");
+}
+
+</script>
+
+</body>
+</html>
