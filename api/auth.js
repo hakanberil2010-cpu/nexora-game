@@ -1880,8 +1880,8 @@ if (action === "upgrade") {
     if (action === "research") {
   return await getResearch(req, res);
 }
-    if (action === "upgradeResearch") {
-  return await upgradeResearch(req, res);
+    if (action === "upgraderesearch") {
+  return await upgraderesearch(req, res);
 }
     return send(res, 400, {
       success: false,
