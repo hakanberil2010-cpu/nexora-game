@@ -226,43 +226,62 @@ function buildReport(report) {
   const attackerId =
     Number(report.attacker_player_id);
 
+  const defenderId =
+    Number(report.defender_player_id);
+
   const myId =
     savedUser ? Number(savedUser.id) : null;
 
   const attacker =
     attackerId === myId;
 
+  const resultClass =
+    getResultClass(report.result);
+
+  const attackerName =
+    report.attacker_username ||
+    "Bilinmeyen Oyuncu";
+
+  const defenderName =
+    report.defender_username ||
+    "Bilinmeyen Oyuncu";
+
   const role =
-    attacker ? "Saldıran" : "Savunan";
-  const opponentName =
-  attacker
-    ? report.defender_username
-    : report.attacker_username;
+    attacker
+      ? "⚔️ Yaptığım Saldırı"
+      : "🛡️ Gelen Saldırı";
 
   card.innerHTML =
 
     '<div class="report-title ' +
-getResultClass(report.result) +
-'">' +
-'⚔️ ' +
-escapeHtml(report.result) +
-' — ' +
-escapeHtml(role) +
-'</div>' +
+    resultClass +
+    '">' +
+    role +
+    '</div>' +
 
-'<p>' +
-'<strong>Rakip:</strong> ' +
-escapeHtml(opponentName || "Bilinmeyen Oyuncu") +
-'</p>' +
+    '<p>' +
+    '<strong>Saldıran:</strong> ' +
+    escapeHtml(attackerName) +
+    '</p>' +
+
+    '<p>' +
+    '<strong>Savunan:</strong> ' +
+    escapeHtml(defenderName) +
+    '</p>' +
+
+    '<p>' +
+    '<strong>Sonuç:</strong> ' +
+    escapeHtml(report.result) +
+    '</p>' +
 
     '<p>' +
     '<strong>Saldırı Gücü:</strong> ' +
-    escapeHtml(String(report.attack_power)) +
+    escapeHtml(String(report.attack_power || 0)) +
     '</p>' +
 
     '<p>' +
     '<strong>Savunma Gücü:</strong> ' +
-    escapeHtml(String(report.defense_power)) +
+    escapeHtml(String(report.defense_power || 0)) +
     '</p>' +
 
     '<div class="losses">' +
@@ -281,7 +300,7 @@ escapeHtml(opponentName || "Bilinmeyen Oyuncu") +
       )
     ) +
     '<br>' +
-    'Savunma Birliği: ' +
+    'Savunan Savunma Birliği: ' +
     escapeHtml(
       String(
         report.defender_losses?.savunma || 0
