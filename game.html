@@ -540,6 +540,7 @@ async function loadCity() {
         levelText.textContent =
           "Seviye " + building.level;
       }
+    
     });
 
   } catch (error) {
@@ -547,6 +548,7 @@ async function loadCity() {
   }
 }
 loadCity();
+    setInterval(loadCity, 60000);
 function logout() {
     localStorage.removeItem("nexora_token");
     localStorage.removeItem("nexora_user");
