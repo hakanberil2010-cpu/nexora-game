@@ -1181,6 +1181,80 @@ if (!battleReportResult.ok) {
     }
   });
 }
+async function getResearch(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+
+  const result = await supabase(
+    "research?select=*&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (!result.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Araştırma verileri alınamadı."
+    });
+  }
+
+  if (!result.data || result.data.length === 0) {
+    const createResult = await supabase(
+      "research",
+      {
+        method: "POST",
+        headers: {
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          player_id: playerId,
+          production_level: 0,
+          combat_level: 0,
+          defense_level: 0,
+          crystal_level: 0
+        })
+      }
+    );
+
+    if (!createResult.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Araştırma kaydı oluşturulamadı."
+      });
+    }
+
+    return send(res, 200, {
+      success: true,
+      research: createResult.data[0]
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    research: result.data[0]
+  });
+}
+
 async function getBattleReports(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
