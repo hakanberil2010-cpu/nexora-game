@@ -59,7 +59,16 @@ h1 {
   color: #78b9e6;
   margin-bottom: 25px;
 }
+.section-title {
+  margin-top: 30px;
+  margin-bottom: 15px;
+  color: #16b9ff;
+  font-size: 22px;
+}
 
+.section-title:first-child {
+  margin-top: 0;
+}
 .report {
   background: #091b2d;
   border: 1px solid #173e5d;
@@ -356,6 +365,15 @@ async function loadReports() {
     }
 
     container.innerHTML = "";
+    const myId = savedUser ? Number(savedUser.id) : null;
+
+const outgoingReports = reports.filter(function(report) {
+  return Number(report.attacker_player_id) === myId;
+});
+
+const incomingReports = reports.filter(function(report) {
+  return Number(report.defender_player_id) === myId;
+});
 
     const reports =
       data.reports || [];
@@ -370,13 +388,63 @@ async function loadReports() {
       return;
     }
 
-    reports.forEach(function(report) {
+    container.innerHTML = "";
 
-      container.appendChild(
-        buildReport(report)
-      );
+const myId = savedUser ? Number(savedUser.id) : null;
 
-    });
+const outgoingReports = reports.filter(function(report) {
+  return Number(report.attacker_player_id) === myId;
+});
+
+const incomingReports = reports.filter(function(report) {
+  return Number(report.defender_player_id) === myId;
+});
+
+if (outgoingReports.length > 0) {
+
+  const outgoingTitle = document.createElement("h2");
+
+  outgoingTitle.textContent =
+    "⚔️ Yaptığım Saldırılar";
+
+  outgoingTitle.className = "section-title";
+
+  container.appendChild(outgoingTitle);
+
+  outgoingReports.forEach(function(report) {
+    container.appendChild(
+      buildReport(report)
+    );
+  });
+}
+
+if (incomingReports.length > 0) {
+
+  const incomingTitle = document.createElement("h2");
+
+  incomingTitle.textContent =
+    "🛡️ Gelen Saldırılar";
+
+  incomingTitle.className = "section-title";
+
+  container.appendChild(incomingTitle);
+
+  incomingReports.forEach(function(report) {
+    container.appendChild(
+      buildReport(report)
+    );
+  });
+}
+
+if (
+  outgoingReports.length === 0 &&
+  incomingReports.length === 0
+) {
+  container.innerHTML =
+    '<div class="empty">' +
+    'Henüz savaş raporu bulunmuyor.' +
+    '</div>';
+}
 
   } catch (error) {
 
