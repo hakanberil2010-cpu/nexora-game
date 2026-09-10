@@ -1,4 +1,4 @@
-const SUPABASE_URL = process.env.SUPABASE_URL;async function joinAlliance
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
 
