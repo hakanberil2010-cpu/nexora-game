@@ -455,19 +455,76 @@ async function getCity(req, res) {
   }
 
  if (result.data && result.data.length > 0) {
-  const city = result.data[0];
+  let city = result.data[0];
 
   const buildingsResult = await supabase(
-    "buildings?select=*&city_id=eq." +
-      encodeURIComponent(city.id)
+  "buildings?select=*&city_id=eq." +
+    encodeURIComponent(city.id)
+);
+
+if (!buildingsResult.ok) {
+  return send(res, 500, {
+    success: false,
+    message: "Bina verileri alınamadı."
+  });
+}
+
+const buildings = buildingsResult.data || [];
+
+function getBuildingLevel(name) {
+  const building = buildings.find(function(item) {
+    return item.building_type === name;
+  });
+
+  return building ? Number(building.level) : 0;
+}
+
+const metalLevel = getBuildingLevel("Metal Madeni");
+const energyLevel = getBuildingLevel("Enerji Santrali");
+const waterLevel = getBuildingLevel("Su Arıtma");
+
+const now = Date.now();
+const lastProduction = new Date(
+  city.last_production_at
+).getTime();
+
+const elapsedMinutes = Math.floor(
+  (now - lastProduction) / 60000
+);
+
+if (elapsedMinutes > 0) {
+  const metalGain = metalLevel * 10 * elapsedMinutes;
+  const energyGain = energyLevel * 10 * elapsedMinutes;
+  const waterGain = waterLevel * 10 * elapsedMinutes;
+  const crystalGain = 2 * elapsedMinutes;
+
+  const updatedCityResult = await supabase(
+    "cities?id=eq." +
+      encodeURIComponent(city.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        metal: city.metal + metalGain,
+        energy: city.energy + energyGain,
+        water: city.water + waterGain,
+        crystal: city.crystal + crystalGain,
+        last_production_at: new Date().toISOString()
+      })
+    }
   );
 
-  if (!buildingsResult.ok) {
+  if (!updatedCityResult.ok) {
     return send(res, 500, {
       success: false,
-      message: "Bina verileri alınamadı."
+      message: "Kaynak üretimi kaydedilemedi."
     });
   }
+
+  city = updatedCityResult.data[0];
+}
 
   return send(res, 200, {
     success: true,
