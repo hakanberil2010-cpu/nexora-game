@@ -311,10 +311,13 @@ h1 {
 </div>
 
 <script>
-const savedUser = localStorage.getItem("nexora_player");
+const savedUser = JSON.parse(
+  localStorage.getItem("nexora_player") || "null"
+);
 
-if (savedUser) {
-  document.getElementById("playerName").textContent = savedUser;
+if (savedUser && savedUser.username) {
+  document.getElementById("playerName").textContent =
+    savedUser.username;
 }
 async function loadWorldPlayers() {
   const token = localStorage.getItem("nexora_token");
