@@ -210,7 +210,46 @@ if (savedUser) {
     document.getElementById("playerName").textContent = savedUser;
   }
 }
+async function loadResources() {
+  const token = localStorage.getItem("nexora_token");
 
+  if (!token) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth?action=city", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success || !data.city) {
+      return;
+    }
+
+    document.getElementById("metal").textContent =
+      data.city.metal;
+
+    document.getElementById("energy").textContent =
+      data.city.energy;
+
+    document.getElementById("water").textContent =
+      data.city.water;
+
+    document.getElementById("crystal").textContent =
+      data.city.crystal;
+
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+loadResources();
+setInterval(loadResources, 60000);
 async function produceUnit(unit) {
   const token = localStorage.getItem("nexora_token");
 
