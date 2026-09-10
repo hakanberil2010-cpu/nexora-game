@@ -989,22 +989,50 @@ async function getWorldPlayers(req, res) {
     });
   }
 
-  const result = await supabase(
+  const citiesResult = await supabase(
     "cities?select=id,player_id,name,level"
   );
 
-  if (!result.ok) {
+  if (!citiesResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Koloniler alınamadı."
+    });
+  }
+
+  const playersResult = await supabase(
+    "players?select=id,username"
+  );
+
+  if (!playersResult.ok) {
     return send(res, 500, {
       success: false,
       message: "Oyuncular alınamadı."
     });
   }
 
-  const cities = result.data || [];
+  const cities = citiesResult.data || [];
+  const playerRows = playersResult.data || [];
+
+  const playerMap = {};
+
+  for (const player of playerRows) {
+    playerMap[player.id] = player.username;
+  }
+
+  const players = cities.map(function(city) {
+    return {
+      id: city.id,
+      player_id: city.player_id,
+      username: playerMap[city.player_id] || "Oyuncu",
+      name: city.name,
+      level: city.level
+    };
+  });
 
   return send(res, 200, {
     success: true,
-    players: cities
+    players: players
   });
 }
 module.exports = async function handler(req, res) {
