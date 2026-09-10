@@ -389,21 +389,33 @@ function createPlayerColony(player, index) {
     escapeHtml(player.username) +
     '</div>';
 
-  colony.onclick = function() {
-  document.getElementById("info").style.display = "block";
-  document.getElementById("selectedName").textContent =
-    player.username;
+  colony.addEventListener("click", function(event) {
+  event.stopPropagation();
 
-  document.getElementById("selectedText").textContent =
-    player.username +
-    " kolonisini seçtin. Saldırı gönderebilirsin.";
-
-  document.getElementById("attackButton").style.display =
-    "inline-block";
+  const info = document.getElementById("info");
+  const selectedName = document.getElementById("selectedName");
+  const selectedText = document.getElementById("selectedText");
+  const attackButton = document.getElementById("attackButton");
 
   selectedPlayer = player.username;
   selectedPlayerId = player.player_id;
-};
+
+  selectedName.textContent = player.username;
+
+  selectedText.textContent =
+    player.username +
+    " kolonisini seçtin. Saldırı gönderebilirsin.";
+
+  attackButton.style.display = "inline-block";
+  info.style.display = "block";
+
+  setTimeout(function() {
+    info.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }, 50);
+});
 
   return colony;
 }
