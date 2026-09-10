@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL;async function joinAlliance
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -1677,7 +1677,83 @@ async function joinAlliance(req, res) {
     member: memberResult.data[0]
   });
 }
+async function leaveAlliance(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
 
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+
+  const membershipResult = await supabase(
+    "alliance_members?select=id,alliance_id,role&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (!membershipResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifak üyeliği kontrol edilemedi."
+    });
+  }
+
+  if (
+    !membershipResult.data ||
+    membershipResult.data.length === 0
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Herhangi bir ittifaka üye değilsin."
+    });
+  }
+
+  const membership = membershipResult.data[0];
+
+  if (membership.role === "leader") {
+    return send(res, 400, {
+      success: false,
+      message:
+        "İttifak lideri doğrudan ayrılamaz. Önce liderliği devretmelisin."
+    });
+  }
+
+  const deleteResult = await supabase(
+    "alliance_members?id=eq." +
+      encodeURIComponent(membership.id),
+    {
+      method: "DELETE"
+    }
+  );
+
+  if (!deleteResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifaktan ayrılma işlemi başarısız."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: "İttifaktan başarıyla ayrıldın."
+  });
+}
 async function getAlliances(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -2234,6 +2310,9 @@ module.exports = async function handler(req, res) {
     if (action === "joinalliance") {
       return await joinAlliance(req, res);
     }
+    if (action === "leavealliance") {
+  return await leaveAlliance(req, res);
+}
 
     if (action === "upgraderesearch") {
       return await upgradeResearch(req, res);
