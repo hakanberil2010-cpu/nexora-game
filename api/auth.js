@@ -1557,6 +1557,9 @@ if (action === "upgrade") {
     if (action === "attack") {
   return await attackPlayer(req, res);
 }
+    if (action === "reports") {
+  return await getBattleReports(req, res);
+}
     return send(res, 400, {
       success: false,
       message: "Geçersiz işlem."
