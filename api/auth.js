@@ -2055,6 +2055,208 @@ async function leaveAlliance(req, res) {
       "İttifaktan ayrıldın. Liderlik başka bir üyeye devredildi."
   });
 }
+async function sendAllianceMessage(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+  const body = await readBody(req);
+
+  const message = String(
+    body.message || ""
+  ).trim();
+
+  if (!message) {
+    return send(res, 400, {
+      success: false,
+      message: "Mesaj boş olamaz."
+    });
+  }
+
+  if (message.length > 500) {
+    return send(res, 400, {
+      success: false,
+      message: "Mesaj en fazla 500 karakter olabilir."
+    });
+  }
+
+  const membershipResult = await supabase(
+    "alliance_members?select=id,alliance_id&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (!membershipResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifak üyeliği kontrol edilemedi."
+    });
+  }
+
+  if (
+    !membershipResult.data ||
+    membershipResult.data.length === 0
+  ) {
+    return send(res, 403, {
+      success: false,
+      message: "Bir ittifaka üye değilsin."
+    });
+  }
+
+  const allianceId =
+    membershipResult.data[0].alliance_id;
+
+  const messageResult = await supabase(
+    "alliance_messages",
+    {
+      method: "POST",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        alliance_id: allianceId,
+        player_id: playerId,
+        message: message
+      })
+    }
+  );
+
+  if (!messageResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Mesaj gönderilemedi."
+    });
+  }
+
+  return send(res, 201, {
+    success: true,
+    message: "Mesaj gönderildi.",
+    chatMessage: messageResult.data[0]
+  });
+}
+
+
+async function getAllianceMessages(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+
+  const membershipResult = await supabase(
+    "alliance_members?select=id,alliance_id&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (!membershipResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifak üyeliği kontrol edilemedi."
+    });
+  }
+
+  if (
+    !membershipResult.data ||
+    membershipResult.data.length === 0
+  ) {
+    return send(res, 403, {
+      success: false,
+      message: "Bir ittifaka üye değilsin."
+    });
+  }
+
+  const allianceId =
+    membershipResult.data[0].alliance_id;
+
+  const messagesResult = await supabase(
+    "alliance_messages?select=id,alliance_id,player_id,message,created_at&alliance_id=eq." +
+      encodeURIComponent(allianceId) +
+      "&order=created_at.asc&limit=100"
+  );
+
+  if (!messagesResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Sohbet mesajları alınamadı."
+    });
+  }
+
+  const playersResult = await supabase(
+    "players?select=id,username"
+  );
+
+  if (!playersResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Oyuncu isimleri alınamadı."
+    });
+  }
+
+  const playerMap = {};
+
+  (playersResult.data || []).forEach(
+    function(player) {
+      playerMap[player.id] = player.username;
+    }
+  );
+
+  const messages =
+    (messagesResult.data || []).map(
+      function(item) {
+        return {
+          id: item.id,
+          alliance_id: item.alliance_id,
+          player_id: item.player_id,
+          username:
+            playerMap[item.player_id] ||
+            "Bilinmeyen Oyuncu",
+          message: item.message,
+          created_at: item.created_at
+        };
+      }
+    );
+
+  return send(res, 200, {
+    success: true,
+    messages: messages
+  });
+}
 async function getAlliances(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
