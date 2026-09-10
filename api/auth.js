@@ -470,7 +470,19 @@ if (!buildingsResult.ok) {
 }
 
 const buildings = buildingsResult.data || [];
+const unitsResult = await supabase(
+  "units?select=*&city_id=eq." +
+  encodeURIComponent(city.id)
+);
 
+if (!unitsResult.ok) {
+  return send(res, 500, {
+    success: false,
+    message: "Ordu verileri alınamadı."
+  });
+}
+
+const units = unitsResult.data || [];
 function getBuildingLevel(name) {
   const building = buildings.find(function(item) {
     return item.building_type === name;
@@ -529,7 +541,8 @@ if (elapsedMinutes > 0) {
   return send(res, 200, {
     success: true,
     city: city,
-    buildings: buildingsResult.data || []
+    buildings: buildingsResult.data || [],
+    units:units
   });
 }
 
