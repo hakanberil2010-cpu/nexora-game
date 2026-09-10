@@ -936,14 +936,14 @@ const attackMultiplier =
 const defenseMultiplier =
   1 + defenderDefenseLevel * 0.10;
 
-const totalAttackPower = Math.floor(
+const totalAttackPower = Math.round(
   (
     infantry * 1 +
     attackUnits * 3
   ) * attackMultiplier
 );
 
-const totalDefensePower = Math.floor(
+const totalDefensePower = Math.round(
   defenseUnits * 2 * defenseMultiplier
 );
 
