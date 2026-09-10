@@ -2211,10 +2211,9 @@ if (action === "upgrade") {
     if (action === "alliances") {
   return await getAlliances(req, res);
 }
-    async function joinAlliance(req, res) {
-  const authHeader = String(
-    req.headers.authorization || ""
-  );
+  if (action === "joinalliance") {
+  return await joinAlliance(req, res);
+}
 
   if (!authHeader.startsWith("Bearer ")) {
     return send(res, 401, {
