@@ -316,7 +316,35 @@ const savedUser = localStorage.getItem("nexora_player");
 if (savedUser) {
   document.getElementById("playerName").textContent = savedUser;
 }
+async function loadWorldPlayers() {
+  const token = localStorage.getItem("nexora_token");
 
+  if (!token) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth?action=world", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      return;
+    }
+
+    console.log("Dünya oyuncuları:", data.players);
+
+  } catch (error) {
+    console.error("Dünya haritası hatası:", error);
+  }
+}
+
+loadWorldPlayers();
 let selectedPlayer = null;
 
 function selectColony(name, isMine) {
