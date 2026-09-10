@@ -1,1 +1,358 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXORA - Dünya Haritası</title>
 
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #050d18;
+  color: #eaf4ff;
+}
+
+.topbar {
+  height: 76px;
+  background: #071526;
+  border-bottom: 1px solid #173451;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 35px;
+}
+
+.logo {
+  font-size: 30px;
+  letter-spacing: 7px;
+  color: #16b9ff;
+  font-weight: bold;
+}
+
+.player {
+  color: #8fc9ef;
+}
+
+.player span {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.container {
+  max-width: 1250px;
+  margin: 35px auto;
+  padding: 0 25px;
+}
+
+h1 {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #78b9e6;
+  margin-bottom: 25px;
+}
+
+.world {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  overflow: hidden;
+  border: 1px solid #1d5278;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 20% 25%, #164b38 0 12%, transparent 13%),
+    radial-gradient(circle at 75% 20%, #315b39 0 14%, transparent 15%),
+    radial-gradient(circle at 45% 70%, #51462c 0 15%, transparent 16%),
+    radial-gradient(circle at 85% 75%, #344e6d 0 16%, transparent 17%),
+    linear-gradient(135deg, #08213a, #071526 60%, #0b2635);
+  box-shadow: inset 0 0 80px rgba(0,0,0,0.5);
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(100,180,220,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100,180,220,0.08) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+.region {
+  position: absolute;
+  padding: 10px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.desert {
+  left: 10%;
+  top: 18%;
+  color: #e8d59b;
+}
+
+.forest {
+  left: 42%;
+  top: 12%;
+  color: #75d695;
+}
+
+.ice {
+  right: 9%;
+  top: 17%;
+  color: #9fe7ff;
+}
+
+.mountain {
+  left: 30%;
+  bottom: 17%;
+  color: #c6b8a2;
+}
+
+.volcanic {
+  right: 28%;
+  bottom: 15%;
+  color: #ff9b72;
+}
+
+.ocean {
+  right: 5%;
+  bottom: 45%;
+  color: #62cfff;
+}
+
+.colony {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 92px;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.colony:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.colony-icon {
+  width: 48px;
+  height: 48px;
+  margin: auto;
+  border-radius: 50%;
+  background: #102d48;
+  border: 2px solid #16b9ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 23px;
+  box-shadow: 0 0 18px rgba(22,185,255,0.35);
+}
+
+.colony-name {
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.you .colony-icon {
+  border-color: #58ff9b;
+  box-shadow: 0 0 22px rgba(88,255,155,0.5);
+}
+
+.you .colony-name {
+  color: #58ff9b;
+}
+
+.c1 {
+  left: 25%;
+  top: 35%;
+}
+
+.c2 {
+  left: 55%;
+  top: 30%;
+}
+
+.c3 {
+  left: 72%;
+  top: 50%;
+}
+
+.c4 {
+  left: 38%;
+  top: 65%;
+}
+
+.c5 {
+  left: 82%;
+  top: 78%;
+}
+
+.info {
+  margin-top: 20px;
+  padding: 20px;
+  background: #091b2d;
+  border: 1px solid #173e5d;
+  border-radius: 14px;
+  display: none;
+}
+
+.info h2 {
+  margin-top: 0;
+  color: #16b9ff;
+}
+
+.info p {
+  color: #9cc6e2;
+}
+
+.attack {
+  background: #e33b3b;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.attack:hover {
+  background: #ff4d4d;
+}
+
+.back {
+  display: inline-block;
+  margin-top: 25px;
+  color: #16b9ff;
+  text-decoration: none;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <div class="logo">NEXORA</div>
+  <div class="player">
+    Oyuncu: <span id="playerName">Oyuncu</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <h1>🗺️ Dünya Haritası</h1>
+  <div class="subtitle">
+    Galaksideki kolonileri keşfet, rakiplerini seç ve saldır.
+  </div>
+
+  <div class="world">
+
+    <div class="grid"></div>
+
+    <div class="region desert">🏜️ Çöl Bölgesi</div>
+    <div class="region forest">🌲 Orman Bölgesi</div>
+    <div class="region ice">❄️ Buz Bölgesi</div>
+    <div class="region mountain">⛰️ Dağ Bölgesi</div>
+    <div class="region volcanic">🌋 Volkanik Bölge</div>
+    <div class="region ocean">🌊 Okyanus</div>
+
+    <div class="colony you c1" onclick="selectColony('Senin Kolonin', true)">
+      <div class="colony-icon">🏰</div>
+      <div class="colony-name">Senin Kolonin</div>
+    </div>
+
+    <div class="colony c2" onclick="selectColony('Nova Prime', false)">
+      <div class="colony-icon">🏠</div>
+      <div class="colony-name">Nova Prime</div>
+    </div>
+
+    <div class="colony c3" onclick="selectColony('Astra', false)">
+      <div class="colony-icon">🏠</div>
+      <div class="colony-name">Astra</div>
+    </div>
+
+    <div class="colony c4" onclick="selectColony('Orion', false)">
+      <div class="colony-icon">🏠</div>
+      <div class="colony-name">Orion</div>
+    </div>
+
+    <div class="colony c5" onclick="selectColony('Titan', false)">
+      <div class="colony-icon">🏠</div>
+      <div class="colony-name">Titan</div>
+    </div>
+
+  </div>
+
+  <div class="info" id="info">
+    <h2 id="selectedName">Koloni</h2>
+    <p id="selectedText"></p>
+    <button class="attack" id="attackButton" onclick="attack()">
+      ⚔️ Saldır
+    </button>
+  </div>
+
+  <a class="back" href="game.html">← Koloniye Dön</a>
+
+</div>
+
+<script>
+const savedUser = localStorage.getItem("nexora_player");
+
+if (savedUser) {
+  document.getElementById("playerName").textContent = savedUser;
+}
+
+let selectedPlayer = null;
+
+function selectColony(name, isMine) {
+
+  if (isMine) {
+    document.getElementById("info").style.display = "block";
+    document.getElementById("selectedName").textContent = name;
+    document.getElementById("selectedText").textContent =
+      "Bu senin kolonin. Kendi kolonine saldıramazsın.";
+    document.getElementById("attackButton").style.display = "none";
+    selectedPlayer = null;
+    return;
+  }
+
+  selectedPlayer = name;
+
+  document.getElementById("info").style.display = "block";
+  document.getElementById("selectedName").textContent = name;
+  document.getElementById("selectedText").textContent =
+    name + " kolonisini seçtin. Saldırı gönderebilirsin.";
+
+  document.getElementById("attackButton").style.display = "inline-block";
+}
+
+function attack() {
+
+  if (!selectedPlayer) {
+    return;
+  }
+
+  alert(
+    selectedPlayer +
+    " hedefine saldırı hazırlığı başlatıldı."
+  );
+}
+</script>
+
+</body>
+</html>
