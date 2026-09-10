@@ -490,6 +490,45 @@ data.alliances.forEach(function(alliance) {
 }
 
 loadAlliances();
+  async function joinAlliance(allianceId) {
+  const token = localStorage.getItem("nexora_token");
+
+  if (!token) {
+    alert("Önce giriş yapmalısın.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "/api/auth?action=joinalliance",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+          allianceId: Number(allianceId)
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert("❌ " + (data.message || "İttifaka katılınamadı."));
+      return;
+    }
+
+    alert("✅ " + data.message);
+
+    loadAlliances();
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ Sunucu bağlantı hatası.");
+  }
+}
 </script>
 
 </body>
