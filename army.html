@@ -206,8 +206,67 @@ if (savedUser) {
   }
 }
 
-function produceUnit(unit) {
-  alert(unit + " üretim sistemi bir sonraki adımda aktif olacak.");
+async function produceUnit(unit) {
+  const token = localStorage.getItem("nexora_token");
+
+  if (!token) {
+    alert("Oturum bulunamadı. Lütfen tekrar giriş yap.");
+    return;
+  }
+
+  const unitMap = {
+    "Piyade": "piyade",
+    "Savunma Birliği": "savunma",
+    "Saldırı Birliği": "saldiri"
+  };
+
+  const unitType = unitMap[unit];
+
+  if (!unitType) {
+    alert("Geçersiz birlik türü.");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth?action=army", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({
+        unitType: unitType
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert(data.message || "Birlik üretilemedi.");
+      return;
+    }
+
+    alert(unit + " üretildi!");
+
+    if (unitType === "piyade") {
+      document.getElementById("infantry").textContent =
+        data.unit.quantity;
+    }
+
+    if (unitType === "savunma") {
+      document.getElementById("defender").textContent =
+        data.unit.quantity;
+    }
+
+    if (unitType === "saldiri") {
+      document.getElementById("attacker").textContent =
+        data.unit.quantity;
+    }
+
+  } catch (error) {
+    console.error(error);
+    alert("Sunucuya bağlanırken hata oluştu.");
+  }
 }
 
 </script>
