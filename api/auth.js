@@ -1880,6 +1880,9 @@ if (action === "upgrade") {
     if (action === "research") {
   return await getResearch(req, res);
 }
+    if (action === "upgradeResearch") {
+  return await upgradeResearch(req, res);
+}
     return send(res, 400, {
       success: false,
       message: "Geçersiz işlem."
