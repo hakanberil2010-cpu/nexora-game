@@ -551,13 +551,41 @@ async function loadWorldPlayers() {
 
     otherPlayers.forEach(function(player, index) {
 
-      const colony =
-        createPlayerColony(player, index);
+  const colony =
+    createPlayerColony(player, index);
 
-      if (colony) {
-        playersContainer.appendChild(colony);
-      }
-    });
+  if (colony) {
+
+    const mapPositions = [
+      { x: 18, y: 22 },
+      { x: 42, y: 18 },
+      { x: 68, y: 25 },
+      { x: 82, y: 42 },
+      { x: 60, y: 58 },
+      { x: 32, y: 64 },
+      { x: 15, y: 48 },
+      { x: 45, y: 40 },
+      { x: 75, y: 70 },
+      { x: 25, y: 78 }
+    ];
+
+    const position =
+      mapPositions[index % mapPositions.length];
+
+    colony.style.left =
+      position.x + "%";
+
+    colony.style.top =
+      position.y + "%";
+
+    colony.style.position =
+      "absolute";
+
+    playersContainer.appendChild(
+      colony
+    );
+  }
+});
 
   } catch (error) {
 
