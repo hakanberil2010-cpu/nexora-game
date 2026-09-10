@@ -225,17 +225,26 @@ function buildReport(report) {
 
   const role =
     attacker ? "Saldıran" : "Savunan";
+  const opponentName =
+  attacker
+    ? report.defender_username
+    : report.attacker_username;
 
   card.innerHTML =
 
     '<div class="report-title ' +
-    getResultClass(report.result) +
-    '">' +
-    '⚔️ ' +
-    escapeHtml(report.result) +
-    ' — ' +
-    escapeHtml(role) +
-    '</div>' +
+getResultClass(report.result) +
+'">' +
+'⚔️ ' +
+escapeHtml(report.result) +
+' — ' +
+escapeHtml(role) +
+'</div>' +
+
+'<p>' +
+'<strong>Rakip:</strong> ' +
+escapeHtml(opponentName || "Bilinmeyen Oyuncu") +
+'</p>' +
 
     '<p>' +
     '<strong>Saldırı Gücü:</strong> ' +
