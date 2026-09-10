@@ -1846,6 +1846,7 @@ async function leaveAlliance(req, res) {
 
   const playerId = Number(decoded.id);
 
+  // Oyuncunun mevcut üyeliğini bul
   const membershipResult = await supabase(
     "alliance_members?select=id,alliance_id,role&player_id=eq." +
       encodeURIComponent(playerId) +
@@ -1870,16 +1871,122 @@ async function leaveAlliance(req, res) {
   }
 
   const membership = membershipResult.data[0];
+  const allianceId = Number(membership.alliance_id);
 
-  if (membership.role === "leader") {
-    return send(res, 400, {
-      success: false,
-      message:
-        "İttifak lideri doğrudan ayrılamaz. Önce liderliği devretmelisin."
+  // Eğer lider değilse doğrudan ayrıl
+  if (membership.role !== "leader") {
+    const deleteMember = await supabase(
+      "alliance_members?id=eq." +
+        encodeURIComponent(membership.id),
+      {
+        method: "DELETE"
+      }
+    );
+
+    if (!deleteMember.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "İttifaktan ayrılma işlemi başarısız."
+      });
+    }
+
+    return send(res, 200, {
+      success: true,
+      message: "İttifaktan başarıyla ayrıldın."
     });
   }
 
-  const deleteResult = await supabase(
+  // Liderin dışındaki üyeleri bul
+  const otherMembersResult = await supabase(
+    "alliance_members?select=id,player_id,role&alliance_id=eq." +
+      encodeURIComponent(allianceId) +
+      "&player_id=neq." +
+      encodeURIComponent(playerId) +
+      "&order=id.asc"
+  );
+
+  if (!otherMembersResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifak üyeleri alınamadı."
+    });
+  }
+
+  const otherMembers =
+    otherMembersResult.data || [];
+
+  // Başka üye yoksa ittifakı tamamen sil
+  if (otherMembers.length === 0) {
+    const deleteAlliance = await supabase(
+      "alliances?id=eq." +
+        encodeURIComponent(allianceId),
+      {
+        method: "DELETE"
+      }
+    );
+
+    if (!deleteAlliance.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "İttifak silinemedi."
+      });
+    }
+
+    return send(res, 200, {
+      success: true,
+      message:
+        "İttifakın son üyesiydin. İttifak tamamen kapatıldı."
+    });
+  }
+
+  // İlk diğer üyeyi yeni lider yap
+  const newLeader = otherMembers[0];
+
+  const promoteResult = await supabase(
+    "alliance_members?id=eq." +
+      encodeURIComponent(newLeader.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({
+        role: "leader"
+      })
+    }
+  );
+
+  if (!promoteResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Yeni lider atanamadı."
+    });
+  }
+
+  // İttifak sahibini yeni lidere geçir
+  const ownerUpdate = await supabase(
+    "alliances?id=eq." +
+      encodeURIComponent(allianceId),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({
+        owner_player_id: newLeader.player_id
+      })
+    }
+  );
+
+  if (!ownerUpdate.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifak liderliği güncellenemedi."
+    });
+  }
+
+  // Eski lideri üyelikten çıkar
+  const deleteLeader = await supabase(
     "alliance_members?id=eq." +
       encodeURIComponent(membership.id),
     {
@@ -1887,16 +1994,17 @@ async function leaveAlliance(req, res) {
     }
   );
 
-  if (!deleteResult.ok) {
+  if (!deleteLeader.ok) {
     return send(res, 500, {
       success: false,
-      message: "İttifaktan ayrılma işlemi başarısız."
+      message: "Eski lider ittifaktan çıkarılamadı."
     });
   }
 
   return send(res, 200, {
     success: true,
-    message: "İttifaktan başarıyla ayrıldın."
+    message:
+      "İttifaktan ayrıldın. Liderlik başka bir üyeye devredildi."
   });
 }
 async function getAlliances(req, res) {
