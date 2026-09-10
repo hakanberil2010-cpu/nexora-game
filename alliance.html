@@ -267,7 +267,11 @@ if (savedUser && savedUser.username) {
   document.getElementById("playerName").textContent =
     savedUser.username;
 }
-
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text || "";
+  return div.innerHTML;
+}
 function showMessage(text) {
 
   const message =
