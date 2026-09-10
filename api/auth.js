@@ -892,13 +892,60 @@ async function attackPlayer(req, res) {
     targetUnits,
     "savunma"
   );
+const attackerResearchResult = await supabase(
+  "research?select=combat_level&player_id=eq." +
+    encodeURIComponent(decoded.id) +
+    "&limit=1"
+);
 
-  const totalAttackPower =
+const defenderResearchResult = await supabase(
+  "research?select=defense_level&player_id=eq." +
+    encodeURIComponent(targetPlayerId) +
+    "&limit=1"
+);
+
+if (
+  !attackerResearchResult.ok ||
+  !defenderResearchResult.ok
+) {
+  return send(res, 500, {
+    success: false,
+    message: "Araştırma seviyeleri alınamadı."
+  });
+}
+
+const attackerCombatLevel =
+  attackerResearchResult.data &&
+  attackerResearchResult.data[0]
+    ? Number(
+        attackerResearchResult.data[0].combat_level || 0
+      )
+    : 0;
+
+const defenderDefenseLevel =
+  defenderResearchResult.data &&
+  defenderResearchResult.data[0]
+    ? Number(
+        defenderResearchResult.data[0].defense_level || 0
+      )
+    : 0;
+
+const attackMultiplier =
+  1 + attackerCombatLevel * 0.10;
+
+const defenseMultiplier =
+  1 + defenderDefenseLevel * 0.10;
+
+const totalAttackPower = Math.floor(
+  (
     infantry * 1 +
-    attackUnits * 3;
+    attackUnits * 3
+  ) * attackMultiplier
+);
 
-  const totalDefensePower =
-    defenseUnits * 2;
+const totalDefensePower = Math.floor(
+  defenseUnits * 2 * defenseMultiplier
+);
 
   if (totalAttackPower <= 0) {
     return send(res, 400, {
