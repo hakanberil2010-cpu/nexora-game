@@ -390,12 +390,13 @@ function createPlayerColony(player, index) {
     '</div>';
 
   colony.onclick = function() {
-    selectColony(
-      player.username,
-      false,
-      player.player_id
-    );
-  };
+  alert("Oyuncu: " + player.username);
+  selectColony(
+    player.username,
+    false,
+    player.player_id
+  );
+};
 
   return colony;
 }
