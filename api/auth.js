@@ -2805,7 +2805,13 @@ module.exports = async function handler(req, res) {
     if (action === "createalliance") {
       return await createAlliance(req, res);
     }
+if (action === "alliancechat") {
+  return await getAllianceMessages(req, res);
+}
 
+if (action === "sendalliancechat") {
+  return await sendAllianceMessage(req, res);
+}
     if (action === "alliances") {
       return await getAlliances(req, res);
     }
