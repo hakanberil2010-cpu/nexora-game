@@ -1774,7 +1774,7 @@ async function getMyAlliance(req, res) {
   const playerId = Number(decoded.id);
 
   const membershipResult = await supabase(
-    "alliance_members?select=id,alliance_id,role&player_id=eq." +
+    "alliance_members?select=id,alliance_id,player_id,role,joined_at&player_id=eq." +
       encodeURIComponent(playerId) +
       "&limit=1"
   );
@@ -1793,15 +1793,17 @@ async function getMyAlliance(req, res) {
     return send(res, 200, {
       success: true,
       alliance: null,
-      member: null
+      member: null,
+      members: []
     });
   }
 
   const member = membershipResult.data[0];
+  const allianceId = Number(member.alliance_id);
 
   const allianceResult = await supabase(
     "alliances?select=id,name,tag,owner_player_id,created_at&id=eq." +
-      encodeURIComponent(member.alliance_id) +
+      encodeURIComponent(allianceId) +
       "&limit=1"
   );
 
@@ -1816,10 +1818,56 @@ async function getMyAlliance(req, res) {
     });
   }
 
+  const membersResult = await supabase(
+    "alliance_members?select=id,alliance_id,player_id,role,joined_at&alliance_id=eq." +
+      encodeURIComponent(allianceId) +
+      "&order=role.asc,id.asc"
+  );
+
+  if (!membersResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifak üyeleri alınamadı."
+    });
+  }
+
+  const playersResult = await supabase(
+    "players?select=id,username"
+  );
+
+  if (!playersResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Oyuncu isimleri alınamadı."
+    });
+  }
+
+  const players = playersResult.data || [];
+  const playerMap = {};
+
+  players.forEach(function(player) {
+    playerMap[player.id] = player.username;
+  });
+
+  const members = (membersResult.data || []).map(
+    function(item) {
+      return {
+        id: item.id,
+        player_id: item.player_id,
+        username:
+          playerMap[item.player_id] ||
+          "Bilinmeyen Oyuncu",
+        role: item.role,
+        joined_at: item.joined_at
+      };
+    }
+  );
+
   return send(res, 200, {
     success: true,
     alliance: allianceResult.data[0],
-    member: member
+    member: member,
+    members: members
   });
 }
 async function leaveAlliance(req, res) {
