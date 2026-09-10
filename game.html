@@ -534,8 +534,59 @@ function logout() {
     window.location.href = "login.html";
 }
 
-function upgrade(building) {
-    alert(building + " geliştirme sistemi bir sonraki aşamada aktif olacak.");
+async function upgrade(building) {
+  const token = localStorage.getItem("nexora_token");
+
+  if (!token) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth?action=upgrade", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({
+        building: building
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert(data.message || "Bina geliştirilemedi.");
+      return;
+    }
+
+    const city = data.city;
+
+    document.getElementById("metal").textContent = city.metal;
+    document.getElementById("energy").textContent = city.energy;
+    document.getElementById("water").textContent = city.water;
+    document.getElementById("crystal").textContent = city.crystal;
+
+    document.querySelectorAll(".building").forEach(function(card) {
+      const title = card.querySelector("strong");
+
+      if (title && title.textContent.trim() === building) {
+        const levelText = card.querySelector(".building-info span");
+
+        if (levelText) {
+          levelText.textContent =
+            "Seviye " + data.building.level;
+        }
+      }
+    });
+
+    alert(data.message);
+
+  } catch (error) {
+    console.error("Bina geliştirme hatası:", error);
+    alert("Sunucuya bağlanırken bir hata oluştu.");
+  }
 }
 
 function comingSoon() {
