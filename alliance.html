@@ -37,7 +37,7 @@ body{
 }
 
 .player span{
-  color:#ffffff;
+  color:#fff;
   font-weight:bold;
 }
 
@@ -86,12 +86,8 @@ h1{
   border-radius:8px;
   border:1px solid #285476;
   background:#071526;
-  color:#ffffff;
+  color:#fff;
   outline:none;
-}
-
-.form-group input:focus{
-  border-color:#16b9ff;
 }
 
 .button{
@@ -99,7 +95,7 @@ h1{
   border:0;
   border-radius:8px;
   background:#0d6284;
-  color:white;
+  color:#fff;
   font-weight:bold;
   cursor:pointer;
 }
@@ -114,6 +110,11 @@ h1{
 
 .danger:hover{
   background:#c23c3c;
+}
+
+.small-button{
+  padding:8px 12px;
+  font-size:12px;
 }
 
 .message{
@@ -153,10 +154,11 @@ h1{
   display:flex;
   justify-content:space-between;
   align-items:center;
+  gap:15px;
 }
 
 .member-name{
-  color:#ffffff;
+  color:#fff;
   font-weight:bold;
 }
 
@@ -164,6 +166,60 @@ h1{
   color:#78b9e6;
   font-size:13px;
   margin-top:4px;
+}
+
+.member-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.chat-box{
+  height:300px;
+  overflow-y:auto;
+  background:#071526;
+  border:1px solid #173e5d;
+  border-radius:8px;
+  padding:15px;
+  margin-bottom:15px;
+}
+
+.chat-row{
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:1px solid #12304a;
+}
+
+.chat-user{
+  color:#16b9ff;
+  font-weight:bold;
+}
+
+.chat-text{
+  color:#eaf4ff;
+  margin-top:3px;
+}
+
+.chat-time{
+  color:#5f8aa8;
+  font-size:11px;
+  margin-top:3px;
+}
+
+.chat-input-row{
+  display:flex;
+  gap:10px;
+}
+
+.chat-input{
+  flex:1;
+  padding:12px;
+  border-radius:8px;
+  border:1px solid #285476;
+  background:#071526;
+  color:#fff;
+  outline:none;
 }
 
 .back{
@@ -200,15 +256,19 @@ h1{
     Oyuncularla birleş, kolonilerini güçlendir ve galakside birlikte ilerle.
   </div>
 
-  <div class="message" id="message"></div>
+  <div
+    class="message"
+    id="message"
+  ></div>
 
-  <!-- İTTİFAK OLUŞTUR -->
-  <div class="panel" id="createPanel">
+  <div
+    class="panel"
+    id="createPanel"
+  >
 
     <h2>🏛️ İttifak Oluştur</h2>
 
     <div class="form-group">
-
       <label>İttifak Adı</label>
 
       <input
@@ -216,11 +276,9 @@ h1{
         id="allianceName"
         placeholder="Örn: Galaktik Birlik"
       >
-
     </div>
 
     <div class="form-group">
-
       <label>İttifak Etiketi</label>
 
       <input
@@ -229,7 +287,6 @@ h1{
         maxlength="5"
         placeholder="Örn: NEX"
       >
-
     </div>
 
     <button
@@ -241,7 +298,6 @@ h1{
 
   </div>
 
-  <!-- MEVCUT İTTİFAKLAR -->
   <div class="panel">
 
     <h2>🌌 Mevcut İttifaklar</h2>
@@ -252,7 +308,6 @@ h1{
 
   </div>
 
-  <!-- BENİM İTTİFAKIM -->
   <div
     class="panel"
     id="alliancePanel"
@@ -264,57 +319,47 @@ h1{
     <div id="allianceTitle"></div>
 
     <div id="members"></div>
-<div class="panel" style="margin-top:20px;">
 
-  <h2>💬 İttifak Sohbeti</h2>
-
-  <div
-    id="chatMessages"
-    style="
-      height:300px;
-      overflow-y:auto;
-      background:#071526;
-      border:1px solid #173e5d;
-      border-radius:8px;
-      padding:15px;
-      margin-bottom:15px;
-    "
-  >
-    Mesajlar yükleniyor...
-  </div>
-
-  <div style="display:flex; gap:10px;">
-
-    <input
-      type="text"
-      id="chatInput"
-      maxlength="500"
-      placeholder="Mesajını yaz..."
-      style="
-        flex:1;
-        padding:12px;
-        border-radius:8px;
-        border:1px solid #285476;
-        background:#071526;
-        color:#ffffff;
-        outline:none;
-      "
+    <div
+      class="panel"
+      style="margin-top:20px;"
     >
 
-    <button
-      class="button"
-      onclick="sendAllianceChat()"
-    >
-      Gönder
-    </button>
+      <h2>💬 İttifak Sohbeti</h2>
 
-  </div>
+      <div
+        id="chatMessages"
+        class="chat-box"
+      >
+        Mesajlar yükleniyor...
+      </div>
 
-</div>
+      <div class="chat-input-row">
+
+        <input
+          type="text"
+          id="chatInput"
+          class="chat-input"
+          maxlength="500"
+          placeholder="Mesajını yaz..."
+          onkeydown="handleChatKey(event)"
+        >
+
+        <button
+          class="button"
+          onclick="sendAllianceChat()"
+        >
+          Gönder
+        </button>
+
+      </div>
+
+    </div>
+
     <button
       class="button danger"
       onclick="leaveAlliance()"
-      style="margin-top:20px;"
+      style="margin-top:5px;"
     >
       🚪 İttifaktan Ayrıl
     </button>
@@ -372,9 +417,26 @@ function showMessage(text) {
     );
 
   message.textContent = text;
+  message.style.display = "block";
+}
 
-  message.style.display =
-    "block";
+function resetAllianceView() {
+
+  document.getElementById(
+    "createPanel"
+  ).style.display = "block";
+
+  document.getElementById(
+    "alliancePanel"
+  ).style.display = "none";
+
+  document.getElementById(
+    "allianceTitle"
+  ).innerHTML = "";
+
+  document.getElementById(
+    "members"
+  ).innerHTML = "";
 }
 
 function showMyAlliance(
@@ -395,13 +457,9 @@ function showMyAlliance(
     "allianceTitle"
   ).innerHTML =
     '<div class="alliance-name">' +
-      escapeHtml(
-        alliance.name
-      ) +
+      escapeHtml(alliance.name) +
       '<span class="alliance-tag">' +
-        escapeHtml(
-          alliance.tag
-        ) +
+        escapeHtml(alliance.tag) +
       '</span>' +
     '</div>';
 
@@ -420,24 +478,9 @@ function showMyAlliance(
     memberList.innerHTML =
       '<div class="member">' +
         '<div>' +
-
           '<div class="member-name">' +
-            escapeHtml(
-              savedUser &&
-              savedUser.username
-                ? savedUser.username
-                : "Oyuncu"
-            ) +
+            "Henüz üye yok." +
           '</div>' +
-
-          '<div class="member-role">' +
-            (
-              role === "leader"
-                ? "👑 Lider"
-                : "🛡️ Üye"
-            ) +
-          '</div>' +
-
         '</div>' +
       '</div>';
 
@@ -454,6 +497,37 @@ function showMyAlliance(
 
       item.className =
         "member";
+
+      let actions = "";
+
+      if (
+        role === "leader" &&
+        member.role !== "leader"
+      ) {
+
+        actions =
+          '<div class="member-actions">' +
+
+            '<button ' +
+              'class="button small-button" ' +
+              'onclick="transferLeadership(' +
+                Number(member.player_id) +
+              ')"' +
+            '>' +
+              '👑 Liderliği Devret' +
+            '</button>' +
+
+            '<button ' +
+              'class="button danger small-button" ' +
+              'onclick="removeMember(' +
+                Number(member.player_id) +
+              ')"' +
+            '>' +
+              '🚫 Çıkar' +
+            '</button>' +
+
+          '</div>';
+      }
 
       item.innerHTML =
         '<div>' +
@@ -472,32 +546,15 @@ function showMyAlliance(
             ) +
           '</div>' +
 
-        '</div>';
+        '</div>' +
+
+        actions;
 
       memberList.appendChild(
         item
       );
     }
   );
-}
-
-function resetAllianceView() {
-
-  document.getElementById(
-    "createPanel"
-  ).style.display = "block";
-
-  document.getElementById(
-    "alliancePanel"
-  ).style.display = "none";
-
-  document.getElementById(
-    "allianceTitle"
-  ).innerHTML = "";
-
-  document.getElementById(
-    "members"
-  ).innerHTML = "";
 }
 
 async function createAlliance() {
@@ -716,9 +773,7 @@ async function loadAlliances() {
             "Katıl" +
           '</button>';
 
-        list.appendChild(
-          item
-        );
+        list.appendChild(item);
       }
     );
 
@@ -734,7 +789,10 @@ async function loadAlliances() {
     );
   }
 }
-async function joinAlliance(allianceId) {
+
+async function joinAlliance(
+  allianceId
+) {
 
   const token =
     localStorage.getItem(
@@ -756,9 +814,9 @@ async function joinAlliance(allianceId) {
       await fetch(
         "/api/auth?action=joinalliance",
         {
-          method: "POST",
+          method:"POST",
 
-          headers: {
+          headers:{
             "Content-Type":
               "application/json",
 
@@ -766,7 +824,7 @@ async function joinAlliance(allianceId) {
               "Bearer " + token
           },
 
-          body: JSON.stringify({
+          body:JSON.stringify({
             allianceId:
               Number(allianceId)
           })
@@ -812,7 +870,6 @@ async function joinAlliance(allianceId) {
   }
 }
 
-
 async function loadMyAlliance() {
 
   const token =
@@ -830,9 +887,9 @@ async function loadMyAlliance() {
       await fetch(
         "/api/auth?action=myalliance",
         {
-          method: "POST",
+          method:"POST",
 
-          headers: {
+          headers:{
             "Authorization":
               "Bearer " + token
           }
@@ -846,11 +903,6 @@ async function loadMyAlliance() {
       !response.ok ||
       !data.success
     ) {
-
-      console.error(
-        "Mevcut ittifak hatası:",
-        data
-      );
 
       resetAllianceView();
 
@@ -872,6 +924,8 @@ async function loadMyAlliance() {
       data.members || []
     );
 
+    loadAllianceChat();
+
   } catch(error) {
 
     console.error(
@@ -882,12 +936,189 @@ async function loadMyAlliance() {
     resetAllianceView();
   }
 }
+async function transferLeadership(targetPlayerId) {
+
+  const token =
+    localStorage.getItem(
+      "nexora_token"
+    );
+
+  if (!token) {
+    alert("Önce giriş yapmalısın.");
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      "Bu oyuncuya liderliği devretmek istediğine emin misin?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/auth?action=transferleadership",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              "Bearer " + token
+          },
+
+          body:JSON.stringify({
+            targetPlayerId:
+              Number(targetPlayerId)
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      alert(
+        "❌ " +
+        (
+          data.message ||
+          "Liderlik devredilemedi."
+        )
+      );
+
+      return;
+    }
+
+    alert(
+      "✅ " + data.message
+    );
+
+    await loadMyAlliance();
+
+  } catch(error) {
+
+    console.error(
+      "Liderlik devri:",
+      error
+    );
+
+    alert(
+      "❌ Sunucu bağlantı hatası."
+    );
+  }
+}
+
+
+async function removeMember(targetPlayerId) {
+
+  const token =
+    localStorage.getItem(
+      "nexora_token"
+    );
+
+  if (!token) {
+    alert("Önce giriş yapmalısın.");
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      "Bu üyeyi ittifaktan çıkarmak istediğine emin misin?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/auth?action=removealliance",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              "Bearer " + token
+          },
+
+          body:JSON.stringify({
+            targetPlayerId:
+              Number(targetPlayerId)
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      alert(
+        "❌ " +
+        (
+          data.message ||
+          "Üye çıkarılamadı."
+        )
+      );
+
+      return;
+    }
+
+    alert(
+      "✅ " + data.message
+    );
+
+    await loadMyAlliance();
+
+  } catch(error) {
+
+    console.error(
+      "Üye çıkarma:",
+      error
+    );
+
+    alert(
+      "❌ Sunucu bağlantı hatası."
+    );
+  }
+}
+
+
 async function loadAllianceChat() {
 
   const token =
-    localStorage.getItem("nexora_token");
+    localStorage.getItem(
+      "nexora_token"
+    );
 
   if (!token) {
+    return;
+  }
+
+  const chat =
+    document.getElementById(
+      "chatMessages"
+    );
+
+  if (!chat) {
     return;
   }
 
@@ -897,9 +1128,9 @@ async function loadAllianceChat() {
       await fetch(
         "/api/auth?action=alliancechat",
         {
-          method: "POST",
+          method:"POST",
 
-          headers: {
+          headers:{
             "Authorization":
               "Bearer " + token
           }
@@ -913,15 +1144,6 @@ async function loadAllianceChat() {
       !response.ok ||
       !data.success
     ) {
-      return;
-    }
-
-    const chat =
-      document.getElementById(
-        "chatMessages"
-      );
-
-    if (!chat) {
       return;
     }
 
@@ -941,28 +1163,36 @@ async function loadAllianceChat() {
     data.messages.forEach(
       function(item) {
 
-        const message =
-          document.createElement("div");
+        const row =
+          document.createElement(
+            "div"
+          );
 
-        message.style.marginBottom =
-          "12px";
+        row.className =
+          "chat-row";
 
-        message.innerHTML =
-          '<div style="font-weight:bold;color:#16b9ff;">' +
-            escapeHtml(item.username) +
+        row.innerHTML =
+          '<div class="chat-user">' +
+            escapeHtml(
+              item.username
+            ) +
           '</div>' +
 
-          '<div style="color:#eaf4ff;margin-top:3px;">' +
-            escapeHtml(item.message) +
+          '<div class="chat-text">' +
+            escapeHtml(
+              item.message
+            ) +
           '</div>' +
 
-          '<div style="font-size:11px;color:#5f8aa8;margin-top:3px;">' +
+          '<div class="chat-time">' +
             new Date(
               item.created_at
-            ).toLocaleString("tr-TR") +
+            ).toLocaleString(
+              "tr-TR"
+            ) +
           '</div>';
 
-        chat.appendChild(message);
+        chat.appendChild(row);
       }
     );
 
@@ -1033,8 +1263,11 @@ async function sendAllianceChat() {
     ) {
 
       alert(
-        data.message ||
-        "Mesaj gönderilemedi."
+        "❌ " +
+        (
+          data.message ||
+          "Mesaj gönderilemedi."
+        )
       );
 
       return;
@@ -1052,10 +1285,25 @@ async function sendAllianceChat() {
     );
 
     alert(
-      "Sunucu bağlantı hatası."
+      "❌ Sunucu bağlantı hatası."
     );
   }
 }
+
+
+function handleChatKey(event) {
+
+  if (
+    event.key === "Enter"
+  ) {
+
+    event.preventDefault();
+
+    sendAllianceChat();
+  }
+}
+
+
 async function leaveAlliance() {
 
   const token =
@@ -1087,9 +1335,9 @@ async function leaveAlliance() {
       await fetch(
         "/api/auth?action=leavealliance",
         {
-          method: "POST",
+          method:"POST",
 
-          headers: {
+          headers:{
             "Content-Type":
               "application/json",
 
@@ -1125,12 +1373,13 @@ async function leaveAlliance() {
     resetAllianceView();
 
     await loadAlliances();
+
     await loadMyAlliance();
 
   } catch(error) {
 
     console.error(
-      "İttifaktan ayrılma hatası:",
+      "İttifattan ayrılma:",
       error
     );
 
@@ -1149,6 +1398,7 @@ setInterval(
   loadAllianceChat,
   5000
 );
+
 </script>
 
 </body>
