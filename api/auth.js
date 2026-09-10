@@ -967,6 +967,46 @@ async function upgradeBuilding(req, res) {
     building: building
   });
 }
+async function getWorldPlayers(req, res) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : "";
+
+  if (!token) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum gerekli."
+    });
+  }
+
+  const payload = verifyToken(token);
+
+  if (!payload || !payload.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const result = await supabase(
+    "cities?select=id,player_id,name,level"
+  );
+
+  if (!result.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Oyuncular alınamadı."
+    });
+  }
+
+  const cities = result.data || [];
+
+  return send(res, 200, {
+    success: true,
+    players: cities
+  });
+}
 module.exports = async function handler(req, res) {
   try {
     if (
@@ -1000,6 +1040,9 @@ module.exports = async function handler(req, res) {
     }
     if (action === "city") {
   return await getCity(req, res);
+}
+    if (action === "world") {
+  return await getWorldPlayers(req, res);
 }
 if (action === "upgrade") {
   return await upgradeBuilding(req, res);
