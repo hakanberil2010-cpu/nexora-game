@@ -1181,6 +1181,56 @@ if (!battleReportResult.ok) {
     }
   });
 }
+async function getBattleReports(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+
+  const reportsResult = await supabase(
+    "battle_reports?select=*&or=(attacker_player_id.eq." +
+      encodeURIComponent(playerId) +
+      ",defender_player_id.eq." +
+      encodeURIComponent(playerId) +
+      ")&order=created_at.desc"
+  );
+
+  if (!reportsResult.ok) {
+    console.error(
+      "Savaş raporları alınamadı:",
+      reportsResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Savaş raporları alınamadı."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    reports: reportsResult.data || []
+  });
+}
+
 async function upgradeBuilding(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
