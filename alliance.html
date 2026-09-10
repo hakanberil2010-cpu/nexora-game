@@ -287,9 +287,10 @@ h1 {
 
     if (data.alliance) {
       showMyAlliance(
-        data.alliance,
-        data.member ? data.member.role : "member"
-      );
+  data.alliance,
+  data.member ? data.member.role : "member",
+  data.members || []
+);
     } else {
       resetAllianceView();
     }
@@ -340,7 +341,7 @@ function showMessage(text) {
   message.style.display = "block";
 }
 
-function showMyAlliance(alliance, role) {
+function showMyAlliance(alliance, role, members) {
 
   document.getElementById(
     "createPanel"
@@ -360,25 +361,40 @@ function showMyAlliance(alliance, role) {
     '</span>' +
     '</div>';
 
-  document.getElementById(
-    "members"
-  ).innerHTML =
-    '<div class="member">' +
+  const memberList =
+    document.getElementById("members");
+
+  memberList.innerHTML = "";
+
+  if (!members || members.length === 0) {
+    memberList.innerHTML =
+      '<div class="member">Henüz üye yok.</div>';
+    return;
+  }
+
+  members.forEach(function(member) {
+
+    const item =
+      document.createElement("div");
+
+    item.className = "member";
+
+    item.innerHTML =
       '<div>' +
         '<div class="member-name">' +
-          escapeHtml(
-            savedUser && savedUser.username
-              ? savedUser.username
-              : "Oyuncu"
-          ) +
+          escapeHtml(member.username) +
         '</div>' +
         '<div class="member-role">' +
-          (role === "leader"
-            ? "Lider"
-            : "Üye") +
+          (
+            member.role === "leader"
+              ? "👑 Lider"
+              : "🛡️ Üye"
+          ) +
         '</div>' +
-      '</div>' +
-    '</div>';
+      '</div>';
+
+    memberList.appendChild(item);
+  });
 }
 
 function resetAllianceView() {
@@ -685,9 +701,18 @@ async function joinAlliance(allianceId) {
     );
 
     showMyAlliance(
-      data.alliance,
-      "member"
-    );
+  data.alliance,
+  "member",
+  [
+    {
+      username:
+        savedUser && savedUser.username
+          ? savedUser.username
+          : "Oyuncu",
+      role: "member"
+    }
+  ]
+);
 
     loadAlliances();
 
