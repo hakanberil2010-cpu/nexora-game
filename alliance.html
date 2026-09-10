@@ -488,7 +488,50 @@ data.alliances.forEach(function(alliance) {
     );
   }
 }
+async function leaveAlliance() {
+  const token = localStorage.getItem("nexora_token");
 
+  if (!token) {
+    alert("Önce giriş yapmalısın.");
+    return;
+  }
+
+  const confirmed = confirm(
+    "İttifaktan ayrılmak istediğine emin misin?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "/api/auth?action=leavealliance",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert("❌ " + (data.message || "İttifaktan ayrılınamadı."));
+      return;
+    }
+
+    alert("✅ " + data.message);
+
+    loadAlliances();
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ Sunucu bağlantı hatası.");
+  }
+}
 loadAlliances();
   async function joinAlliance(allianceId) {
   const token = localStorage.getItem("nexora_token");
