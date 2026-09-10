@@ -261,6 +261,47 @@ h1 {
 
     <button
       class="button danger"
+      async function loadMyAlliance() {
+  const token =
+    localStorage.getItem("nexora_token");
+
+  if (!token) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "/api/auth?action=myalliance",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      return;
+    }
+
+    if (data.alliance) {
+      showMyAlliance(
+        data.alliance,
+        data.member ? data.member.role : "member"
+      );
+    } else {
+      resetAllianceView();
+    }
+
+  } catch (error) {
+    console.error(
+      "Mevcut ittifak alınamadı:",
+      error
+    );
+  }
+}
       onclick="leaveAlliance()"
       style="margin-top:20px;"
     >
@@ -746,6 +787,7 @@ async function leaveAlliance() {
 }
 
 loadAlliances();
+  loadMyAlliance();
 
 </script>
 
