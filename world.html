@@ -261,7 +261,7 @@ h1 {
   </div>
 
   <div class="world">
-
+<div id="realPlayers"></div>
     <div class="grid"></div>
 
     <div class="region desert">🏜️ Çöl Bölgesi</div>
@@ -276,25 +276,7 @@ h1 {
       <div class="colony-name">Senin Kolonin</div>
     </div>
 
-    <div class="colony c2" onclick="selectColony('Nova Prime', false)">
-      <div class="colony-icon">🏠</div>
-      <div class="colony-name">Nova Prime</div>
-    </div>
-
-    <div class="colony c3" onclick="selectColony('Astra', false)">
-      <div class="colony-icon">🏠</div>
-      <div class="colony-name">Astra</div>
-    </div>
-
-    <div class="colony c4" onclick="selectColony('Orion', false)">
-      <div class="colony-icon">🏠</div>
-      <div class="colony-name">Orion</div>
-    </div>
-
-    <div class="colony c5" onclick="selectColony('Titan', false)">
-      <div class="colony-icon">🏠</div>
-      <div class="colony-name">Titan</div>
-    </div>
+    
 
   </div>
 
@@ -341,7 +323,34 @@ async function loadWorldPlayers() {
     }
 
     console.log("Dünya oyuncuları:", data.players);
+const playersContainer = document.getElementById("realPlayers");
 
+if (playersContainer) {
+  playersContainer.innerHTML = "";
+
+  data.players.forEach(function(player, index) {
+    const colony = document.createElement("div");
+
+    colony.className = "colony";
+    colony.style.left = (10 + (index * 13) % 80) + "%";
+    colony.style.top = (15 + (index * 19) % 70) + "%";
+
+    colony.innerHTML =
+      '<div class="colony-icon">🏠</div>' +
+      '<div class="colony-name">' +
+      player.username +
+      '</div>';
+
+    colony.onclick = function() {
+      selectColony(
+        player.username,
+        player.player_id === savedUser.id
+      );
+    };
+
+    playersContainer.appendChild(colony);
+  });
+}
   } catch (error) {
     console.error("Dünya haritası hatası:", error);
   }
