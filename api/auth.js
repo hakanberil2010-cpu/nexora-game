@@ -2257,6 +2257,281 @@ async function getAllianceMessages(req, res) {
     messages: messages
   });
 }
+async function transferAllianceLeadership(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+  const body = await readBody(req);
+  const targetPlayerId = Number(body.targetPlayerId);
+
+  if (!Number.isInteger(targetPlayerId)) {
+    return send(res, 400, {
+      success: false,
+      message: "Geçersiz oyuncu."
+    });
+  }
+
+  const currentMemberResult = await supabase(
+    "alliance_members?select=id,alliance_id,role" +
+      "&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (
+    !currentMemberResult.ok ||
+    !currentMemberResult.data ||
+    currentMemberResult.data.length === 0
+  ) {
+    return send(res, 403, {
+      success: false,
+      message: "Bir ittifaka üye değilsin."
+    });
+  }
+
+  const currentMember = currentMemberResult.data[0];
+
+  if (currentMember.role !== "leader") {
+    return send(res, 403, {
+      success: false,
+      message: "Sadece ittifak lideri liderlik devredebilir."
+    });
+  }
+
+  const targetMemberResult = await supabase(
+    "alliance_members?select=id,player_id,role" +
+      "&alliance_id=eq." +
+      encodeURIComponent(currentMember.alliance_id) +
+      "&player_id=eq." +
+      encodeURIComponent(targetPlayerId) +
+      "&limit=1"
+  );
+
+  if (
+    !targetMemberResult.ok ||
+    !targetMemberResult.data ||
+    targetMemberResult.data.length === 0
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Seçilen oyuncu bu ittifakta değil."
+    });
+  }
+
+  const targetMember = targetMemberResult.data[0];
+
+  if (targetPlayerId === playerId) {
+    return send(res, 400, {
+      success: false,
+      message: "Kendine liderlik devredemezsin."
+    });
+  }
+
+  const demoteResult = await supabase(
+    "alliance_members?id=eq." +
+      encodeURIComponent(currentMember.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({
+        role: "member"
+      })
+    }
+  );
+
+  if (!demoteResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Mevcut liderlik değiştirilemedi."
+    });
+  }
+
+  const promoteResult = await supabase(
+    "alliance_members?id=eq." +
+      encodeURIComponent(targetMember.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({
+        role: "leader"
+      })
+    }
+  );
+
+  if (!promoteResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Yeni lider atanamadı."
+    });
+  }
+
+  const allianceUpdate = await supabase(
+    "alliances?id=eq." +
+      encodeURIComponent(currentMember.alliance_id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({
+        owner_player_id: targetPlayerId
+      })
+    }
+  );
+
+  if (!allianceUpdate.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifak sahibi güncellenemedi."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: "Liderlik başarıyla devredildi."
+  });
+}
+
+
+async function removeAllianceMember(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+  const body = await readBody(req);
+  const targetPlayerId = Number(body.targetPlayerId);
+
+  if (!Number.isInteger(targetPlayerId)) {
+    return send(res, 400, {
+      success: false,
+      message: "Geçersiz oyuncu."
+    });
+  }
+
+  const leaderResult = await supabase(
+    "alliance_members?select=id,alliance_id,role" +
+      "&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (
+    !leaderResult.ok ||
+    !leaderResult.data ||
+    leaderResult.data.length === 0
+  ) {
+    return send(res, 403, {
+      success: false,
+      message: "Bir ittifaka üye değilsin."
+    });
+  }
+
+  const leader = leaderResult.data[0];
+
+  if (leader.role !== "leader") {
+    return send(res, 403, {
+      success: false,
+      message: "Sadece ittifak lideri üye çıkarabilir."
+    });
+  }
+
+  if (targetPlayerId === playerId) {
+    return send(res, 400, {
+      success: false,
+      message: "Lider kendisini çıkaramaz."
+    });
+  }
+
+  const targetResult = await supabase(
+    "alliance_members?select=id,player_id,role" +
+      "&alliance_id=eq." +
+      encodeURIComponent(leader.alliance_id) +
+      "&player_id=eq." +
+      encodeURIComponent(targetPlayerId) +
+      "&limit=1"
+  );
+
+  if (
+    !targetResult.ok ||
+    !targetResult.data ||
+    targetResult.data.length === 0
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Oyuncu bu ittifakta değil."
+    });
+  }
+
+  const target = targetResult.data[0];
+
+  if (target.role === "leader") {
+    return send(res, 400, {
+      success: false,
+      message: "Lider çıkarılamaz."
+    });
+  }
+
+  const deleteResult = await supabase(
+    "alliance_members?id=eq." +
+      encodeURIComponent(target.id),
+    {
+      method: "DELETE"
+    }
+  );
+
+  if (!deleteResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Üye ittifaktan çıkarılamadı."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: "Üye ittifaktan çıkarıldı."
+  });
+}
 async function getAlliances(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -2821,9 +3096,14 @@ if (action === "myalliance") {
     if (action === "joinalliance") {
       return await joinAlliance(req, res);
     }
-    if (action === "myalliance") {
-  return await getMyAlliance(req, res);
+if (action === "transferleadership") {
+  return await transferAllianceLeadership(req, res);
 }
+
+if (action === "removealliance") {
+  return await removeAllianceMember(req, res);
+}
+
     if (action === "leavealliance") {
   return await leaveAlliance(req, res);
 }
