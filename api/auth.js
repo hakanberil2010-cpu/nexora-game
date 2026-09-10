@@ -119,7 +119,57 @@ function createToken(player) {
 
   return data + "." + base64url(signature);
 }
+function verifyToken(token) {
+  try {
+    const parts = String(token || "").split(".");
 
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    const [header, payload, signature] = parts;
+
+    const data = header + "." + payload;
+
+    const expectedSignature = crypto
+      .createHmac("sha256", JWT_SECRET)
+      .update(data)
+      .digest();
+
+    const actualSignature = Buffer.from(
+      signature
+        .replace(/-/g, "+")
+        .replace(/_/g, "/"),
+      "base64"
+    );
+
+    if (expectedSignature.length !== actualSignature.length) {
+      return null;
+    }
+
+    if (
+      !crypto.timingSafeEqual(
+        expectedSignature,
+        actualSignature
+      )
+    ) {
+      return null;
+    }
+
+    const decoded = JSON.parse(
+      Buffer.from(
+        payload
+          .replace(/-/g, "+")
+          .replace(/_/g, "/"),
+        "base64"
+      ).toString("utf8")
+    );
+
+    return decoded;
+  } catch (error) {
+    return null;
+  }
+}
 async function supabase(path, options = {}) {
   const response = await fetch(
     SUPABASE_URL + "/rest/v1/" + path,
@@ -358,7 +408,95 @@ async function login(req, res) {
     }
   });
 }
+async function getCity(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
 
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+
+  if (!Number.isInteger(playerId)) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oyuncu."
+    });
+  }
+
+  const result = await supabase(
+    "cities?select=*&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (!result.ok) {
+    console.error("City DB hatası:", result.data);
+
+    return send(res, 500, {
+      success: false,
+      message: "Koloni veritabanından alınamadı."
+    });
+  }
+
+  if (result.data && result.data.length > 0) {
+    return send(res, 200, {
+      success: true,
+      city: result.data[0]
+    });
+  }
+
+  const createResult = await supabase(
+    "cities",
+    {
+      method: "POST",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        player_id: playerId,
+        name: "Yeni Koloni",
+        level: 1,
+        metal: 1000,
+        energy: 500,
+        water: 500,
+        crystal: 250
+      })
+    }
+  );
+
+  if (!createResult.ok) {
+    console.error(
+      "City oluşturma hatası:",
+      createResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Koloni oluşturulamadı."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    city: createResult.data[0]
+  });
+}
 module.exports = async function handler(req, res) {
   try {
     if (
@@ -390,6 +528,9 @@ module.exports = async function handler(req, res) {
     if (action === "login") {
       return await login(req, res);
     }
+    if (action === "city") {
+  return await getCity(req, res);
+}
 
     return send(res, 400, {
       success: false,
