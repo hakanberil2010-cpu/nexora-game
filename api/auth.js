@@ -569,6 +569,179 @@ if (elapsedMinutes > 0) {
     city: createResult.data[0]
   });
 }
+async function produceArmy(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const body = await readBody(req);
+  const unitType = String(body.unitType || "").trim();
+
+  const armyCosts = {
+    piyade: {
+      metal: 100,
+      energy: 20
+    },
+    savunma: {
+      metal: 150,
+      energy: 40
+    },
+    saldiri: {
+      metal: 200,
+      energy: 75
+    }
+  };
+
+  const cost = armyCosts[unitType];
+
+  if (!cost) {
+    return send(res, 400, {
+      success: false,
+      message: "Geçersiz birlik türü."
+    });
+  }
+
+  const cityResult = await supabase(
+    "cities?select=*&player_id=eq." +
+      encodeURIComponent(decoded.id) +
+      "&limit=1"
+  );
+
+  if (!cityResult.ok || !cityResult.data || !cityResult.data[0]) {
+    return send(res, 404, {
+      success: false,
+      message: "Koloni bulunamadı."
+    });
+  }
+
+  const city = cityResult.data[0];
+
+  if (
+    Number(city.metal) < cost.metal ||
+    Number(city.energy) < cost.energy
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Yeterli kaynak yok."
+    });
+  }
+
+  const newMetal = Number(city.metal) - cost.metal;
+  const newEnergy = Number(city.energy) - cost.energy;
+
+  const updatedCityResult = await supabase(
+    "cities?id=eq." + encodeURIComponent(city.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        metal: newMetal,
+        energy: newEnergy
+      })
+    }
+  );
+
+  if (!updatedCityResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Kaynaklar güncellenemedi."
+    });
+  }
+
+  const unitsResult = await supabase(
+    "units?select=*&city_id=eq." +
+      encodeURIComponent(city.id) +
+      "&unit_type=eq." +
+      encodeURIComponent(unitType) +
+      "&limit=1"
+  );
+
+  if (!unitsResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Ordu verisi alınamadı."
+    });
+  }
+
+  let unit;
+
+  if (unitsResult.data && unitsResult.data[0]) {
+    unit = unitsResult.data[0];
+
+    const updatedUnitResult = await supabase(
+      "units?id=eq." + encodeURIComponent(unit.id),
+      {
+        method: "PATCH",
+        headers: {
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          quantity: Number(unit.quantity) + 1
+        })
+      }
+    );
+
+    if (!updatedUnitResult.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Birlik üretilemedi."
+      });
+    }
+
+    unit = updatedUnitResult.data[0];
+  } else {
+    const createUnitResult = await supabase(
+      "units",
+      {
+        method: "POST",
+        headers: {
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          city_id: city.id,
+          unit_type: unitType,
+          quantity: 1
+        })
+      }
+    );
+
+    if (!createUnitResult.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Birlik oluşturulamadı."
+      });
+    }
+
+    unit = createUnitResult.data[0];
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: "Birlik üretildi.",
+    city: updatedCityResult.data[0],
+    unit: unit
+  });
+}
+
 async function upgradeBuilding(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -817,6 +990,9 @@ module.exports = async function handler(req, res) {
 }
 if (action === "upgrade") {
   return await upgradeBuilding(req, res);
+}
+    if (action === "army") {
+  return await produceArmy(req, res);
 }
     return send(res, 400, {
       success: false,
