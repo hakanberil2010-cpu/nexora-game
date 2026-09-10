@@ -1181,6 +1181,209 @@ if (!battleReportResult.ok) {
     }
   });
 }
+async function upgradeResearch(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const playerId = Number(decoded.id);
+  const body = await readBody(req);
+
+  const researchType = String(
+    body.researchType || ""
+  ).trim();
+
+  const researchMap = {
+    production: "production_level",
+    combat: "combat_level",
+    defense: "defense_level",
+    crystal: "crystal_level"
+  };
+
+  const column = researchMap[researchType];
+
+  if (!column) {
+    return send(res, 400, {
+      success: false,
+      message: "Geçersiz araştırma türü."
+    });
+  }
+
+  const costs = {
+    production: {
+      metal: 500,
+      energy: 150,
+      crystal: 25
+    },
+    combat: {
+      metal: 700,
+      energy: 200,
+      crystal: 40
+    },
+    defense: {
+      metal: 600,
+      energy: 180,
+      crystal: 35
+    },
+    crystal: {
+      metal: 800,
+      energy: 250,
+      crystal: 60
+    }
+  };
+
+  const cost = costs[researchType];
+
+  const cityResult = await supabase(
+    "cities?select=*&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (
+    !cityResult.ok ||
+    !cityResult.data ||
+    !cityResult.data[0]
+  ) {
+    return send(res, 404, {
+      success: false,
+      message: "Koloni bulunamadı."
+    });
+  }
+
+  const city = cityResult.data[0];
+
+  if (
+    Number(city.metal) < cost.metal ||
+    Number(city.energy) < cost.energy ||
+    Number(city.crystal) < cost.crystal
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Yeterli kaynak yok."
+    });
+  }
+
+  const researchResult = await supabase(
+    "research?select=*&player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&limit=1"
+  );
+
+  if (!researchResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Araştırma verisi alınamadı."
+    });
+  }
+
+  let research;
+
+  if (
+    !researchResult.data ||
+    researchResult.data.length === 0
+  ) {
+    const createResearch = await supabase(
+      "research",
+      {
+        method: "POST",
+        headers: {
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          player_id: playerId
+        })
+      }
+    );
+
+    if (!createResearch.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Araştırma kaydı oluşturulamadı."
+      });
+    }
+
+    research = createResearch.data[0];
+  } else {
+    research = researchResult.data[0];
+  }
+
+  const currentLevel =
+    Number(research[column] || 0);
+
+  const newLevel = currentLevel + 1;
+
+  const updateCity = await supabase(
+    "cities?id=eq." +
+      encodeURIComponent(city.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        metal:
+          Number(city.metal) - cost.metal,
+        energy:
+          Number(city.energy) - cost.energy,
+        crystal:
+          Number(city.crystal) - cost.crystal
+      })
+    }
+  );
+
+  if (!updateCity.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Kaynaklar güncellenemedi."
+    });
+  }
+
+  const updateResearch = await supabase(
+    "research?id=eq." +
+      encodeURIComponent(research.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        [column]: newLevel
+      })
+    }
+  );
+
+  if (!updateResearch.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Araştırma seviyesi güncellenemedi."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: "Araştırma tamamlandı.",
+    research: updateResearch.data[0],
+    city: updateCity.data[0]
+  });
+}
 async function getResearch(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
