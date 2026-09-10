@@ -754,7 +754,248 @@ async function produceArmy(req, res) {
     unit: unit
   });
 }
+async function attackPlayer(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
 
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const body = await readBody(req);
+
+  const targetPlayerId = Number(body.targetPlayerId);
+
+  if (!Number.isInteger(targetPlayerId)) {
+    return send(res, 400, {
+      success: false,
+      message: "Geçersiz hedef oyuncu."
+    });
+  }
+
+  if (targetPlayerId === Number(decoded.id)) {
+    return send(res, 400, {
+      success: false,
+      message: "Kendi kolonine saldıramazsın."
+    });
+  }
+
+  const attackerCityResult = await supabase(
+    "cities?select=*&player_id=eq." +
+      encodeURIComponent(decoded.id) +
+      "&limit=1"
+  );
+
+  if (
+    !attackerCityResult.ok ||
+    !attackerCityResult.data ||
+    !attackerCityResult.data[0]
+  ) {
+    return send(res, 404, {
+      success: false,
+      message: "Saldıran koloninin verisi bulunamadı."
+    });
+  }
+
+  const targetCityResult = await supabase(
+    "cities?select=*&player_id=eq." +
+      encodeURIComponent(targetPlayerId) +
+      "&limit=1"
+  );
+
+  if (
+    !targetCityResult.ok ||
+    !targetCityResult.data ||
+    !targetCityResult.data[0]
+  ) {
+    return send(res, 404, {
+      success: false,
+      message: "Hedef koloni bulunamadı."
+    });
+  }
+
+  const attackerCity = attackerCityResult.data[0];
+  const targetCity = targetCityResult.data[0];
+
+  const attackerUnitsResult = await supabase(
+    "units?select=*&city_id=eq." +
+      encodeURIComponent(attackerCity.id)
+  );
+
+  if (!attackerUnitsResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Saldırı ordusu alınamadı."
+    });
+  }
+
+  const targetUnitsResult = await supabase(
+    "units?select=*&city_id=eq." +
+      encodeURIComponent(targetCity.id)
+  );
+
+  if (!targetUnitsResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Hedef savunması alınamadı."
+    });
+  }
+
+  const attackerUnits = attackerUnitsResult.data || [];
+  const targetUnits = targetUnitsResult.data || [];
+
+  function getUnitCount(units, type) {
+    const unit = units.find(function(item) {
+      return item.unit_type === type;
+    });
+
+    return unit ? Number(unit.quantity) : 0;
+  }
+
+  const infantry = getUnitCount(attackerUnits, "piyade");
+  const attackUnits = getUnitCount(attackerUnits, "saldiri");
+
+  const defenseUnits = getUnitCount(
+    targetUnits,
+    "savunma"
+  );
+
+  const totalAttackPower =
+    infantry * 1 +
+    attackUnits * 3;
+
+  const totalDefensePower =
+    defenseUnits * 2;
+
+  if (totalAttackPower <= 0) {
+    return send(res, 400, {
+      success: false,
+      message: "Saldırı için yeterli asker yok."
+    });
+  }
+
+  let result;
+  let lootPercent = 0;
+
+  if (totalAttackPower > totalDefensePower) {
+    result = "Zafer";
+    lootPercent = 0.10;
+  } else if (totalAttackPower === totalDefensePower) {
+    result = "Beraberlik";
+  } else {
+    result = "Yenilgi";
+  }
+
+  const metalLoot =
+    Math.floor(Number(targetCity.metal) * lootPercent);
+
+  const energyLoot =
+    Math.floor(Number(targetCity.energy) * lootPercent);
+
+  const waterLoot =
+    Math.floor(Number(targetCity.water) * lootPercent);
+
+  const crystalLoot =
+    Math.floor(Number(targetCity.crystal) * lootPercent);
+
+  if (result === "Zafer" && lootPercent > 0) {
+
+    const targetUpdate = await supabase(
+      "cities?id=eq." +
+        encodeURIComponent(targetCity.id),
+      {
+        method: "PATCH",
+        headers: {
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          metal: Math.max(
+            0,
+            Number(targetCity.metal) - metalLoot
+          ),
+          energy: Math.max(
+            0,
+            Number(targetCity.energy) - energyLoot
+          ),
+          water: Math.max(
+            0,
+            Number(targetCity.water) - waterLoot
+          ),
+          crystal: Math.max(
+            0,
+            Number(targetCity.crystal) - crystalLoot
+          )
+        })
+      }
+    );
+
+    if (!targetUpdate.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Ganimet kaydedilemedi."
+      });
+    }
+
+    const attackerUpdate = await supabase(
+      "cities?id=eq." +
+        encodeURIComponent(attackerCity.id),
+      {
+        method: "PATCH",
+        headers: {
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          metal:
+            Number(attackerCity.metal) +
+            metalLoot,
+          energy:
+            Number(attackerCity.energy) +
+            energyLoot,
+          water:
+            Number(attackerCity.water) +
+            waterLoot,
+          crystal:
+            Number(attackerCity.crystal) +
+            crystalLoot
+        })
+      }
+    );
+
+    if (!attackerUpdate.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Ganimet saldıran koloniye aktarılamadı."
+      });
+    }
+  }
+
+  return send(res, 200, {
+    success: true,
+    result: result,
+    attackPower: totalAttackPower,
+    defensePower: totalDefensePower,
+    loot: {
+      metal: metalLoot,
+      energy: energyLoot,
+      water: waterLoot,
+      crystal: crystalLoot
+    }
+  });
+}
 async function upgradeBuilding(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
