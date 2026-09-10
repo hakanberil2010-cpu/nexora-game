@@ -421,6 +421,52 @@ async function loadAlliances() {
       "İttifaklar:",
       data.alliances
     );
+    const list =
+  document.getElementById("allianceList");
+
+if (!list) {
+  return;
+}
+
+list.innerHTML = "";
+
+if (!data.alliances || data.alliances.length === 0) {
+  list.innerHTML =
+    "Henüz oluşturulmuş bir ittifak yok.";
+  return;
+}
+
+data.alliances.forEach(function(alliance) {
+
+  const item =
+    document.createElement("div");
+
+  item.className = "member";
+
+  item.innerHTML =
+    '<div>' +
+      '<div class="member-name">' +
+        escapeHtml(alliance.name) +
+        ' <span class="alliance-tag">' +
+          escapeHtml(alliance.tag) +
+        '</span>' +
+      '</div>' +
+      '<div class="member-role">' +
+        "İttifak Lideri ID: " +
+        escapeHtml(
+          String(alliance.owner_player_id)
+        ) +
+      '</div>' +
+    '</div>' +
+    '<button class="button" ' +
+      'onclick="joinAlliance(' +
+        alliance.id +
+      ')">' +
+      "Katıl" +
+    '</button>';
+
+  list.appendChild(item);
+});
 
   } catch (error) {
 
