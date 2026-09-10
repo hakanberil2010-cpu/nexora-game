@@ -390,12 +390,19 @@ function createPlayerColony(player, index) {
     '</div>';
 
   colony.onclick = function() {
-  alert("Oyuncu: " + player.username);
-  selectColony(
-    player.username,
-    false,
-    player.player_id
-  );
+  document.getElementById("info").style.display = "block";
+  document.getElementById("selectedName").textContent =
+    player.username;
+
+  document.getElementById("selectedText").textContent =
+    player.username +
+    " kolonisini seçtin. Saldırı gönderebilirsin.";
+
+  document.getElementById("attackButton").style.display =
+    "inline-block";
+
+  selectedPlayer = player.username;
+  selectedPlayerId = player.player_id;
 };
 
   return colony;
