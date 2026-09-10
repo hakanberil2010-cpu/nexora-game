@@ -119,6 +119,7 @@ function createToken(player) {
 
   return data + "." + base64url(signature);
 }
+
 function verifyToken(token) {
   try {
     const parts = String(token || "").split(".");
@@ -170,6 +171,7 @@ function verifyToken(token) {
     return null;
   }
 }
+
 async function supabase(path, options = {}) {
   const response = await fetch(
     SUPABASE_URL + "/rest/v1/" + path,
@@ -408,6 +410,7 @@ async function login(req, res) {
     }
   });
 }
+
 async function getCity(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -454,97 +457,99 @@ async function getCity(req, res) {
     });
   }
 
- if (result.data && result.data.length > 0) {
-  let city = result.data[0];
+  if (result.data && result.data.length > 0) {
+    let city = result.data[0];
 
-  const buildingsResult = await supabase(
-  "buildings?select=*&city_id=eq." +
-    encodeURIComponent(city.id)
-);
+    const buildingsResult = await supabase(
+      "buildings?select=*&city_id=eq." +
+        encodeURIComponent(city.id)
+    );
 
-if (!buildingsResult.ok) {
-  return send(res, 500, {
-    success: false,
-    message: "Bina verileri alınamadı."
-  });
-}
-
-const buildings = buildingsResult.data || [];
-const unitsResult = await supabase(
-  "units?select=*&city_id=eq." +
-  encodeURIComponent(city.id)
-);
-
-if (!unitsResult.ok) {
-  return send(res, 500, {
-    success: false,
-    message: "Ordu verileri alınamadı."
-  });
-}
-
-const units = unitsResult.data || [];
-function getBuildingLevel(name) {
-  const building = buildings.find(function(item) {
-    return item.building_type === name;
-  });
-
-  return building ? Number(building.level) : 0;
-}
-
-const metalLevel = getBuildingLevel("Metal Madeni");
-const energyLevel = getBuildingLevel("Enerji Santrali");
-const waterLevel = getBuildingLevel("Su Arıtma");
-
-const now = Date.now();
-const lastProduction = new Date(
-  city.last_production_at
-).getTime();
-
-const elapsedMinutes = Math.floor(
-  (now - lastProduction) / 60000
-);
-
-if (elapsedMinutes > 0) {
-  const metalGain = metalLevel * 10 * elapsedMinutes;
-  const energyGain = energyLevel * 10 * elapsedMinutes;
-  const waterGain = waterLevel * 10 * elapsedMinutes;
-  const crystalGain = 2 * elapsedMinutes;
-
-  const updatedCityResult = await supabase(
-    "cities?id=eq." +
-      encodeURIComponent(city.id),
-    {
-      method: "PATCH",
-      headers: {
-        Prefer: "return=representation"
-      },
-      body: JSON.stringify({
-        metal: city.metal + metalGain,
-        energy: city.energy + energyGain,
-        water: city.water + waterGain,
-        crystal: city.crystal + crystalGain,
-        last_production_at: new Date().toISOString()
-      })
+    if (!buildingsResult.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Bina verileri alınamadı."
+      });
     }
-  );
 
-  if (!updatedCityResult.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "Kaynak üretimi kaydedilemedi."
+    const buildings = buildingsResult.data || [];
+
+    const unitsResult = await supabase(
+      "units?select=*&city_id=eq." +
+        encodeURIComponent(city.id)
+    );
+
+    if (!unitsResult.ok) {
+      return send(res, 500, {
+        success: false,
+        message: "Ordu verileri alınamadı."
+      });
+    }
+
+    const units = unitsResult.data || [];
+
+    function getBuildingLevel(name) {
+      const building = buildings.find(function(item) {
+        return item.building_type === name;
+      });
+
+      return building ? Number(building.level) : 0;
+    }
+
+    const metalLevel = getBuildingLevel("Metal Madeni");
+    const energyLevel = getBuildingLevel("Enerji Santrali");
+    const waterLevel = getBuildingLevel("Su Arıtma");
+
+    const now = Date.now();
+    const lastProduction = new Date(
+      city.last_production_at
+    ).getTime();
+
+    const elapsedMinutes = Math.floor(
+      (now - lastProduction) / 60000
+    );
+
+    if (elapsedMinutes > 0) {
+      const metalGain = metalLevel * 10 * elapsedMinutes;
+      const energyGain = energyLevel * 10 * elapsedMinutes;
+      const waterGain = waterLevel * 10 * elapsedMinutes;
+      const crystalGain = 2 * elapsedMinutes;
+
+      const updatedCityResult = await supabase(
+        "cities?id=eq." +
+          encodeURIComponent(city.id),
+        {
+          method: "PATCH",
+          headers: {
+            Prefer: "return=representation"
+          },
+          body: JSON.stringify({
+            metal: city.metal + metalGain,
+            energy: city.energy + energyGain,
+            water: city.water + waterGain,
+            crystal: city.crystal + crystalGain,
+            last_production_at: new Date().toISOString()
+          })
+        }
+      );
+
+      if (!updatedCityResult.ok) {
+        return send(res, 500, {
+          success: false,
+          message: "Kaynak üretimi kaydedilemedi."
+        });
+      }
+
+      city = updatedCityResult.data[0];
+    }
+
+    return send(res, 200, {
+      success: true,
+      city: city,
+      buildings: buildingsResult.data || [],
+      units: units
     });
   }
-
-  city = updatedCityResult.data[0];
-}
-
-  return send(res, 200, {
-    success: true,
-    city: city,
-    buildings: buildingsResult.data || [],
-    units:units
-  });
-}
 
   const createResult = await supabase(
     "cities",
@@ -582,6 +587,7 @@ if (elapsedMinutes > 0) {
     city: createResult.data[0]
   });
 }
+
 async function produceArmy(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -754,6 +760,7 @@ async function produceArmy(req, res) {
     unit: unit
   });
 }
+
 async function attackPlayer(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -892,60 +899,61 @@ async function attackPlayer(req, res) {
     targetUnits,
     "savunma"
   );
-const attackerResearchResult = await supabase(
-  "research?select=combat_level&player_id=eq." +
-    encodeURIComponent(decoded.id) +
-    "&limit=1"
-);
 
-const defenderResearchResult = await supabase(
-  "research?select=defense_level&player_id=eq." +
-    encodeURIComponent(targetPlayerId) +
-    "&limit=1"
-);
+  const attackerResearchResult = await supabase(
+    "research?select=combat_level&player_id=eq." +
+      encodeURIComponent(decoded.id) +
+      "&limit=1"
+  );
 
-if (
-  !attackerResearchResult.ok ||
-  !defenderResearchResult.ok
-) {
-  return send(res, 500, {
-    success: false,
-    message: "Araştırma seviyeleri alınamadı."
-  });
-}
+  const defenderResearchResult = await supabase(
+    "research?select=defense_level&player_id=eq." +
+      encodeURIComponent(targetPlayerId) +
+      "&limit=1"
+  );
 
-const attackerCombatLevel =
-  attackerResearchResult.data &&
-  attackerResearchResult.data[0]
-    ? Number(
-        attackerResearchResult.data[0].combat_level || 0
-      )
-    : 0;
+  if (
+    !attackerResearchResult.ok ||
+    !defenderResearchResult.ok
+  ) {
+    return send(res, 500, {
+      success: false,
+      message: "Araştırma seviyeleri alınamadı."
+    });
+  }
 
-const defenderDefenseLevel =
-  defenderResearchResult.data &&
-  defenderResearchResult.data[0]
-    ? Number(
-        defenderResearchResult.data[0].defense_level || 0
-      )
-    : 0;
+  const attackerCombatLevel =
+    attackerResearchResult.data &&
+    attackerResearchResult.data[0]
+      ? Number(
+          attackerResearchResult.data[0].combat_level || 0
+        )
+      : 0;
 
-const attackMultiplier =
-  1 + attackerCombatLevel * 0.10;
+  const defenderDefenseLevel =
+    defenderResearchResult.data &&
+    defenderResearchResult.data[0]
+      ? Number(
+          defenderResearchResult.data[0].defense_level || 0
+        )
+      : 0;
 
-const defenseMultiplier =
-  1 + defenderDefenseLevel * 0.10;
+  const attackMultiplier =
+    1 + attackerCombatLevel * 0.10;
 
-const totalAttackPower = Math.round(
-  (
-    infantry * 1 +
-    attackUnits * 3
-  ) * attackMultiplier
-);
+  const defenseMultiplier =
+    1 + defenderDefenseLevel * 0.10;
 
-const totalDefensePower = Math.round(
-  defenseUnits * 2 * defenseMultiplier
-);
+  const totalAttackPower = Math.round(
+    (
+      infantry * 1 +
+      attackUnits * 3
+    ) * attackMultiplier
+  );
+
+  const totalDefensePower = Math.round(
+    defenseUnits * 2 * defenseMultiplier
+  );
 
   if (totalAttackPower <= 0) {
     return send(res, 400, {
@@ -1091,7 +1099,6 @@ const totalDefensePower = Math.round(
     );
 
   if (result === "Zafer" && lootPercent > 0) {
-
     const targetUpdate = await supabase(
       "cities?id=eq." +
         encodeURIComponent(targetCity.id),
@@ -1161,65 +1168,63 @@ const totalDefensePower = Math.round(
       });
     }
   }
-const battleReportResult = await supabase(
-  "battle_reports",
-  {
-    method: "POST",
-    headers: {
-      Prefer: "return=minimal"
-    },
-    body: JSON.stringify({
-      attacker_player_id: Number(decoded.id),
-      defender_player_id: targetPlayerId,
-      result: result,
-      attack_power: totalAttackPower,
-      defense_power: totalDefensePower,
-      attacker_losses: {
-        piyade: infantryLoss,
-        saldiri: attackUnitsLoss
-      },
-      defender_losses: {
-        savunma: defenseLoss
-      },
-      loot: {
-        metal: metalLoot,
-        energy: energyLoot,
-        water: waterLoot,
-        crystal: crystalLoot
-      }
-    })
-  }
-);
 
-if (!battleReportResult.ok) {
-  console.error(
-    "Savaş raporu kaydedilemedi:",
-    battleReportResult.data
+  const battleReportResult = await supabase(
+    "battle_reports",
+    {
+      method: "POST",
+      headers: {
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({
+        attacker_player_id: Number(decoded.id),
+        defender_player_id: targetPlayerId,
+        result: result,
+        attack_power: totalAttackPower,
+        defense_power: totalDefensePower,
+        attacker_losses: {
+          piyade: infantryLoss,
+          saldiri: attackUnitsLoss
+        },
+        defender_losses: {
+          savunma: defenseLoss
+        },
+        loot: {
+          metal: metalLoot,
+          energy: energyLoot,
+          water: waterLoot,
+          crystal: crystalLoot
+        }
+      })
+    }
   );
 
-  return send(res, 500, {
-    success: false,
-    message: "Savaş raporu kaydedilemedi."
-  });
-}
+  if (!battleReportResult.ok) {
+    console.error(
+      "Savaş raporu kaydedilemedi:",
+      battleReportResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Savaş raporu kaydedilemedi."
+    });
+  }
+
   return send(res, 200, {
     success: true,
     result: result,
-
     attackPower: totalAttackPower,
     defensePower: totalDefensePower,
-
     losses: {
       attacker: {
         piyade: infantryLoss,
         saldiri: attackUnitsLoss
       },
-
       defender: {
         savunma: defenseLoss
       }
     },
-
     loot: {
       metal: metalLoot,
       energy: energyLoot,
@@ -1228,6 +1233,7 @@ if (!battleReportResult.ok) {
     }
   });
 }
+
 async function upgradeResearch(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -1431,6 +1437,7 @@ async function upgradeResearch(req, res) {
     city: updateCity.data[0]
   });
 }
+
 async function createAlliance(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -1486,9 +1493,7 @@ async function createAlliance(req, res) {
       "&limit=1"
   );
 
-  if (
-    !existingMembership.ok
-  ) {
+  if (!existingMembership.ok) {
     return send(res, 500, {
       success: false,
       message: "İttifak üyeliği kontrol edilemedi."
@@ -1568,6 +1573,7 @@ async function createAlliance(req, res) {
     member: memberResult.data[0]
   });
 }
+
 async function joinAlliance(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -1671,6 +1677,7 @@ async function joinAlliance(req, res) {
     member: memberResult.data[0]
   });
 }
+
 async function getAlliances(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -1709,6 +1716,7 @@ async function getAlliances(req, res) {
     alliances: result.data || []
   });
 }
+
 async function getResearch(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
@@ -1852,7 +1860,6 @@ async function getBattleReports(req, res) {
 
   const reports = (reportsResult.data || []).map(
     function(report) {
-
       return {
         ...report,
 
@@ -2085,8 +2092,10 @@ async function upgradeBuilding(req, res) {
     building: building
   });
 }
+
 async function getWorldPlayers(req, res) {
   const authHeader = req.headers.authorization || "";
+
   const token = authHeader.startsWith("Bearer ")
     ? authHeader.slice(7)
     : "";
@@ -2153,6 +2162,7 @@ async function getWorldPlayers(req, res) {
     players: players
   });
 }
+
 module.exports = async function handler(req, res) {
   try {
     if (
@@ -2184,138 +2194,51 @@ module.exports = async function handler(req, res) {
     if (action === "login") {
       return await login(req, res);
     }
+
     if (action === "city") {
-  return await getCity(req, res);
-}
-    if (action === "world") {
-  return await getWorldPlayers(req, res);
-}
-if (action === "upgrade") {
-  return await upgradeBuilding(req, res);
-}
-    if (action === "army") {
-  return await produceArmy(req, res);
-}
-    if (action === "attack") {
-  return await attackPlayer(req, res);
-}
-    if (action === "reports") {
-  return await getBattleReports(req, res);
-}
-    if (action === "research") {
-  return await getResearch(req, res);
-}
-    if (action === "createalliance") {
-  return await createAlliance(req, res);
-}
-    if (action === "alliances") {
-  return await getAlliances(req, res);
-}
-  if (action === "joinalliance") {
-  return await joinAlliance(req, res);
-}
-
-  if (!authHeader.startsWith("Bearer ")) {
-    return send(res, 401, {
-      success: false,
-      message: "Oturum bulunamadı."
-    });
-  }
-
-  const token = authHeader.slice(7).trim();
-  const decoded = verifyToken(token);
-
-  if (!decoded || !decoded.id) {
-    return send(res, 401, {
-      success: false,
-      message: "Geçersiz oturum."
-    });
-  }
-
-  const playerId = Number(decoded.id);
-  const body = await readBody(req);
-  const allianceId = Number(body.allianceId);
-
-  if (!Number.isInteger(allianceId)) {
-    return send(res, 400, {
-      success: false,
-      message: "Geçersiz ittifak."
-    });
-  }
-
-  const membershipResult = await supabase(
-    "alliance_members?select=id,alliance_id,role" +
-      "&player_id=eq." +
-      encodeURIComponent(playerId) +
-      "&limit=1"
-  );
-
-  if (!membershipResult.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "İttifak üyeliği kontrol edilemedi."
-    });
-  }
-
-  if (
-    membershipResult.data &&
-    membershipResult.data.length > 0
-  ) {
-    return send(res, 400, {
-      success: false,
-      message: "Zaten bir ittifaka üyesin."
-    });
-  }
-
-  const allianceResult = await supabase(
-    "alliances?select=*&id=eq." +
-      encodeURIComponent(allianceId) +
-      "&limit=1"
-  );
-
-  if (
-    !allianceResult.ok ||
-    !allianceResult.data ||
-    allianceResult.data.length === 0
-  ) {
-    return send(res, 404, {
-      success: false,
-      message: "İttifak bulunamadı."
-    });
-  }
-
-  const memberResult = await supabase(
-    "alliance_members",
-    {
-      method: "POST",
-      headers: {
-        Prefer: "return=representation"
-      },
-      body: JSON.stringify({
-        alliance_id: allianceId,
-        player_id: playerId,
-        role: "member"
-      })
+      return await getCity(req, res);
     }
-  );
 
-  if (!memberResult.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "İttifaka katılım başarısız."
-    });
-  }
+    if (action === "world") {
+      return await getWorldPlayers(req, res);
+    }
 
-  return send(res, 201, {
-    success: true,
-    message: "İttifaka başarıyla katıldın.",
-    alliance: allianceResult.data[0],
-    member: memberResult.data[0]
-  });
-}
+    if (action === "upgrade") {
+      return await upgradeBuilding(req, res);
+    }
+
+    if (action === "army") {
+      return await produceArmy(req, res);
+    }
+
+    if (action === "attack") {
+      return await attackPlayer(req, res);
+    }
+
+    if (action === "reports") {
+      return await getBattleReports(req, res);
+    }
+
+    if (action === "research") {
+      return await getResearch(req, res);
+    }
+
+    if (action === "createalliance") {
+      return await createAlliance(req, res);
+    }
+
+    if (action === "alliances") {
+      return await getAlliances(req, res);
+    }
+
+    if (action === "joinalliance") {
+      return await joinAlliance(req, res);
+    }
+
     if (action === "upgraderesearch") {
-  return await upgradeResearch(req, res);
-}
+      return await upgradeResearch(req, res);
+    }
+
     return send(res, 400, {
       success: false,
       message: "Geçersiz işlem."
