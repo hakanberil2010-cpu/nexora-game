@@ -454,12 +454,27 @@ async function getCity(req, res) {
     });
   }
 
-  if (result.data && result.data.length > 0) {
-    return send(res, 200, {
-      success: true,
-      city: result.data[0]
+ if (result.data && result.data.length > 0) {
+  const city = result.data[0];
+
+  const buildingsResult = await supabase(
+    "buildings?select=*&city_id=eq." +
+      encodeURIComponent(city.id)
+  );
+
+  if (!buildingsResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Bina verileri alınamadı."
     });
   }
+
+  return send(res, 200, {
+    success: true,
+    city: city,
+    buildings: buildingsResult.data || []
+  });
+}
 
   const createResult = await supabase(
     "cities",
