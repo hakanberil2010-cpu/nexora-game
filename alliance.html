@@ -380,7 +380,56 @@ async function createAlliance() {
     );
   }
 }
+async function loadAlliances() {
+  const token =
+    localStorage.getItem("nexora_token");
 
+  if (!token) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "/api/auth?action=alliances",
+      {
+        method: "POST",
+        headers: {
+          "Authorization":
+            "Bearer " + token
+        }
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok || !data.success) {
+      showMessage(
+        data.message ||
+        "İttifaklar alınamadı."
+      );
+      return;
+    }
+
+    console.log(
+      "İttifaklar:",
+      data.alliances
+    );
+
+  } catch (error) {
+
+    console.error(
+      "İttifak listesi hatası:",
+      error
+    );
+
+    showMessage(
+      "İttifaklar yüklenirken hata oluştu."
+    );
+  }
+}
+
+loadAlliances();
 </script>
 
 </body>
