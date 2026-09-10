@@ -1319,6 +1319,9 @@ if (action === "upgrade") {
     if (action === "army") {
   return await produceArmy(req, res);
 }
+    if (action === "attack") {
+  return await attackPlayer(req, res);
+}
     return send(res, 400, {
       success: false,
       message: "Geçersiz işlem."
