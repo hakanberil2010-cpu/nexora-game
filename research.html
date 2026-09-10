@@ -94,6 +94,12 @@ h1 {
   font-weight: bold;
 }
 
+.cost {
+  color: #8caec7;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
 .research-button {
   width: 100%;
   padding: 12px;
@@ -107,6 +113,21 @@ h1 {
 
 .research-button:hover {
   background: #1180aa;
+}
+
+.research-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.status {
+  margin-bottom: 20px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  background: #091b2d;
+  border: 1px solid #173e5d;
+  color: #9cc6e2;
+  display: none;
 }
 
 .back {
@@ -123,6 +144,14 @@ h1 {
 @media (max-width: 700px) {
   .research-grid {
     grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    padding: 0 18px;
+  }
+
+  .logo {
+    font-size: 24px;
   }
 }
 </style>
@@ -149,62 +178,112 @@ h1 {
     Teknolojilerini geliştir, kolonini güçlendir ve üstünlük sağla.
   </div>
 
+  <div class="status" id="status"></div>
+
   <div class="research-grid">
 
     <div class="research-card">
+
       <div class="research-icon">⚙️</div>
+
       <h2>Üretim Teknolojisi</h2>
+
       <p>
         Maden ve enerji üretimini geliştirir.
       </p>
-      <div class="level">
+
+      <div class="level" id="productionLevel">
         Seviye: 0
       </div>
-      <button class="research-button">
+
+      <div class="cost">
+        Maliyet: 500 Metal + 150 Enerji + 25 Kristal
+      </div>
+
+      <button
+        class="research-button"
+        onclick="researchTechnology('production')">
         Araştır
       </button>
+
     </div>
 
     <div class="research-card">
+
       <div class="research-icon">⚔️</div>
+
       <h2>Savaş Teknolojisi</h2>
+
       <p>
         Saldırı birliklerinin savaş gücünü artırır.
       </p>
-      <div class="level">
+
+      <div class="level" id="combatLevel">
         Seviye: 0
       </div>
-      <button class="research-button">
+
+      <div class="cost">
+        Maliyet: 700 Metal + 200 Enerji + 40 Kristal
+      </div>
+
+      <button
+        class="research-button"
+        onclick="researchTechnology('combat')">
         Araştır
       </button>
+
     </div>
 
     <div class="research-card">
+
       <div class="research-icon">🛡️</div>
+
       <h2>Savunma Teknolojisi</h2>
+
       <p>
         Savunma birliklerinin gücünü artırır.
       </p>
-      <div class="level">
+
+      <div class="level" id="defenseLevel">
         Seviye: 0
       </div>
-      <button class="research-button">
+
+      <div class="cost">
+        Maliyet: 600 Metal + 180 Enerji + 35 Kristal
+      </div>
+
+      <button
+        class="research-button"
+        onclick="researchTechnology('defense')">
         Araştır
       </button>
+
     </div>
 
     <div class="research-card">
+
       <div class="research-icon">💎</div>
+
       <h2>Kristal Teknolojisi</h2>
+
       <p>
         Kristal üretimini geliştirir.
       </p>
-      <div class="level">
+
+      <div class="level" id="crystalLevel">
         Seviye: 0
       </div>
-      <button class="research-button">
+
+      <div class="cost">
+        Maliyet: 800 Metal + 250 Enerji + 60 Kristal
+      </div>
+
+      <button
+        class="research-button"
+        onclick="researchTechnology('crystal')">
         Araştır
       </button>
+
     </div>
 
   </div>
@@ -216,6 +295,7 @@ h1 {
 </div>
 
 <script>
+
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
 );
@@ -224,12 +304,52 @@ if (savedUser && savedUser.username) {
   document.getElementById("playerName").textContent =
     savedUser.username;
 }
-  async function loadResearch() {
+
+function showStatus(message) {
+
+  const status =
+    document.getElementById("status");
+
+  status.textContent = message;
+  status.style.display = "block";
+
+}
+
+function updateLevels(research) {
+
+  document.getElementById(
+    "productionLevel"
+  ).textContent =
+    "Seviye: " +
+    Number(research.production_level || 0);
+
+  document.getElementById(
+    "combatLevel"
+  ).textContent =
+    "Seviye: " +
+    Number(research.combat_level || 0);
+
+  document.getElementById(
+    "defenseLevel"
+  ).textContent =
+    "Seviye: " +
+    Number(research.defense_level || 0);
+
+  document.getElementById(
+    "crystalLevel"
+  ).textContent =
+    "Seviye: " +
+    Number(research.crystal_level || 0);
+
+}
+
+async function loadResearch() {
 
   const token =
     localStorage.getItem("nexora_token");
 
   if (!token) {
+    showStatus("Oturum bulunamadı.");
     return;
   }
 
@@ -250,32 +370,14 @@ if (savedUser && savedUser.username) {
       await response.json();
 
     if (!response.ok || !data.success) {
+      showStatus(
+        data.message ||
+        "Araştırma verileri alınamadı."
+      );
       return;
     }
 
-    const research = data.research;
-
-    const levels =
-      document.querySelectorAll(".level");
-
-    if (levels.length >= 4) {
-
-      levels[0].textContent =
-        "Seviye: " +
-        research.production_level;
-
-      levels[1].textContent =
-        "Seviye: " +
-        research.combat_level;
-
-      levels[2].textContent =
-        "Seviye: " +
-        research.defense_level;
-
-      levels[3].textContent =
-        "Seviye: " +
-        research.crystal_level;
-    }
+    updateLevels(data.research);
 
   } catch (error) {
 
@@ -283,10 +385,92 @@ if (savedUser && savedUser.username) {
       "Araştırma yükleme hatası:",
       error
     );
+
+    showStatus(
+      "Araştırma verileri yüklenemedi."
+    );
+  }
+}
+
+async function researchTechnology(type) {
+
+  const token =
+    localStorage.getItem("nexora_token");
+
+  if (!token) {
+    showStatus("Oturum bulunamadı.");
+    return;
+  }
+
+  const buttons =
+    document.querySelectorAll(
+      ".research-button"
+    );
+
+  buttons.forEach(function(button) {
+    button.disabled = true;
+  });
+
+  showStatus("Araştırma yapılıyor...");
+
+  try {
+
+    const response = await fetch(
+      "/api/auth?action=upgradeResearch",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+          "Authorization":
+            "Bearer " + token
+        },
+        body: JSON.stringify({
+          researchType: type
+        })
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok || !data.success) {
+
+      showStatus(
+        data.message ||
+        "Araştırma gerçekleştirilemedi."
+      );
+
+      return;
+    }
+
+    updateLevels(data.research);
+
+    showStatus(
+      "✅ Araştırma tamamlandı. Seviye yükseltildi."
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Araştırma hatası:",
+      error
+    );
+
+    showStatus(
+      "Araştırma sırasında bir hata oluştu."
+    );
+
+  } finally {
+
+    buttons.forEach(function(button) {
+      button.disabled = false;
+    });
   }
 }
 
 loadResearch();
+
 </script>
 
 </body>
