@@ -1225,9 +1225,49 @@ async function getBattleReports(req, res) {
     });
   }
 
+  const playersResult = await supabase(
+    "players?select=id,username"
+  );
+
+  if (!playersResult.ok) {
+    console.error(
+      "Oyuncular alınamadı:",
+      playersResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Oyuncu bilgileri alınamadı."
+    });
+  }
+
+  const players = playersResult.data || [];
+  const playerMap = {};
+
+  players.forEach(function(player) {
+    playerMap[player.id] = player.username;
+  });
+
+  const reports = (reportsResult.data || []).map(
+    function(report) {
+
+      return {
+        ...report,
+
+        attacker_username:
+          playerMap[report.attacker_player_id] ||
+          "Bilinmeyen Oyuncu",
+
+        defender_username:
+          playerMap[report.defender_player_id] ||
+          "Bilinmeyen Oyuncu"
+      };
+    }
+  );
+
   return send(res, 200, {
     success: true,
-    reports: reportsResult.data || []
+    reports: reports
   });
 }
 
