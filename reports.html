@@ -318,137 +318,99 @@ escapeHtml(opponentName || "Bilinmeyen Oyuncu") +
 }
 
 async function loadReports() {
-
-  const token =
-    localStorage.getItem("nexora_token");
-
-  const container =
-    document.getElementById("reports");
+  const token = localStorage.getItem("nexora_token");
+  const container = document.getElementById("reports");
 
   if (!token) {
-
     container.innerHTML =
-      '<div class="empty">' +
-      'Oturum bulunamadı.' +
-      '</div>';
-
+      '<div class="empty">Oturum bulunamadı.</div>';
     return;
   }
 
   try {
-
     const response = await fetch(
       "/api/auth?action=reports",
       {
         method: "POST",
         headers: {
-          "Authorization":
-            "Bearer " + token
+          "Authorization": "Bearer " + token
         }
       }
     );
 
-    const data =
-      await response.json();
+    const data = await response.json();
 
     if (!response.ok || !data.success) {
-
       container.innerHTML =
         '<div class="empty">' +
         escapeHtml(
           data.message ||
           "Savaş raporları alınamadı."
         ) +
-        '</div>';
-
+        "</div>";
       return;
     }
 
+    const reports = data.reports || [];
+    const myId = savedUser
+      ? Number(savedUser.id)
+      : null;
+
+    const outgoingReports = reports.filter(function(report) {
+      return Number(report.attacker_player_id) === myId;
+    });
+
+    const incomingReports = reports.filter(function(report) {
+      return Number(report.defender_player_id) === myId;
+    });
+
     container.innerHTML = "";
-    const myId = savedUser ? Number(savedUser.id) : null;
 
-const outgoingReports = reports.filter(function(report) {
-  return Number(report.attacker_player_id) === myId;
-});
+    if (outgoingReports.length > 0) {
+      const outgoingTitle =
+        document.createElement("h2");
 
-const incomingReports = reports.filter(function(report) {
-  return Number(report.defender_player_id) === myId;
-});
+      outgoingTitle.className = "section-title";
+      outgoingTitle.textContent =
+        "⚔️ Yaptığım Saldırılar";
 
-    const reports =
-      data.reports || [];
+      container.appendChild(outgoingTitle);
 
-    if (reports.length === 0) {
+      outgoingReports.forEach(function(report) {
+        container.appendChild(
+          buildReport(report)
+        );
+      });
+    }
 
+    if (incomingReports.length > 0) {
+      const incomingTitle =
+        document.createElement("h2");
+
+      incomingTitle.className = "section-title";
+      incomingTitle.textContent =
+        "🛡️ Gelen Saldırılar";
+
+      container.appendChild(incomingTitle);
+
+      incomingReports.forEach(function(report) {
+        container.appendChild(
+          buildReport(report)
+        );
+      });
+    }
+
+    if (
+      outgoingReports.length === 0 &&
+      incomingReports.length === 0
+    ) {
       container.innerHTML =
         '<div class="empty">' +
-        'Henüz savaş raporu bulunmuyor.' +
-        '</div>';
-
-      return;
+        "Henüz savaş raporu bulunmuyor." +
+        "</div>";
     }
 
-    container.innerHTML = "";
-    const reports = data.reports || [];
-
-const myId = savedUser ? Number(savedUser.id) : null;
-
-const outgoingReports = reports.filter(function(report) {
-  return Number(report.attacker_player_id) === myId;
-});
-
-const incomingReports = reports.filter(function(report) {
-  return Number(report.defender_player_id) === myId;
-});
-
-if (outgoingReports.length > 0) {
-
-  const outgoingTitle = document.createElement("h2");
-
-  outgoingTitle.textContent =
-    "⚔️ Yaptığım Saldırılar";
-
-  outgoingTitle.className = "section-title";
-
-  container.appendChild(outgoingTitle);
-
-  outgoingReports.forEach(function(report) {
-    container.appendChild(
-      buildReport(report)
-    );
-  });
-}
-
-if (incomingReports.length > 0) {
-
-  const incomingTitle = document.createElement("h2");
-
-  incomingTitle.textContent =
-    "🛡️ Gelen Saldırılar";
-
-  incomingTitle.className = "section-title";
-
-  container.appendChild(incomingTitle);
-
-  incomingReports.forEach(function(report) {
-    container.appendChild(
-      buildReport(report)
-    );
-  });
-}
-
-if (
-  outgoingReports.length === 0 &&
-  incomingReports.length === 0
-) {
-  container.innerHTML =
-    '<div class="empty">' +
-    'Henüz savaş raporu bulunmuyor.' +
-    '</div>';
-}
-
   } catch (error) {
-
     console.error(
       "Rapor yükleme hatası:",
       error
@@ -456,11 +418,10 @@ if (
 
     container.innerHTML =
       '<div class="empty">' +
-      'Savaş raporları yüklenirken hata oluştu.' +
-      '</div>';
+      "Savaş raporları yüklenirken hata oluştu." +
+      "</div>";
   }
 }
-
 loadReports();
 
 </script>
