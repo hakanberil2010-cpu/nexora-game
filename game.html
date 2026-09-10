@@ -522,11 +522,30 @@ async function loadCity() {
     document.getElementById("water").textContent = city.water;
     document.getElementById("crystal").textContent = city.crystal;
 
+    const buildings = data.buildings || [];
+
+    document.querySelectorAll(".building").forEach(function(card) {
+      const title = card.querySelector("strong");
+      const levelText = card.querySelector(".building-info span");
+
+      if (!title || !levelText) {
+        return;
+      }
+
+      const building = buildings.find(function(item) {
+        return item.building_type === title.textContent.trim();
+      });
+
+      if (building) {
+        levelText.textContent =
+          "Seviye " + building.level;
+      }
+    });
+
   } catch (error) {
     console.error("Koloni bağlantı hatası:", error);
   }
 }
-
 loadCity();
 function logout() {
     localStorage.removeItem("nexora_token");
