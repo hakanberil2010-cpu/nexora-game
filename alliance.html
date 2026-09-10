@@ -277,7 +277,7 @@ function showMessage(text) {
   message.style.display = "block";
 }
 
-function createAlliance() {
+async function createAlliance() {
 
   const name =
     document.getElementById("allianceName").value.trim();
@@ -292,16 +292,89 @@ function createAlliance() {
     return;
   }
 
-  showMessage(
-    "İttifak sistemi birazdan aktif olacak."
-  );
-}
+  const token =
+    localStorage.getItem("nexora_token");
 
-function leaveAlliance() {
+  if (!token) {
+    showMessage("Oturum bulunamadı.");
+    return;
+  }
 
-  showMessage(
-    "İttifaktan ayrılma sistemi henüz aktif değil."
-  );
+  try {
+
+    const response = await fetch(
+      "/api/auth?action=createalliance",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization":
+            "Bearer " + token
+        },
+        body: JSON.stringify({
+          name: name,
+          tag: tag
+        })
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok || !data.success) {
+      showMessage(
+        data.message ||
+        "İttifak oluşturulamadı."
+      );
+      return;
+    }
+
+    showMessage(
+      "✅ " +
+      data.message
+    );
+
+    document.getElementById(
+      "createPanel"
+    ).style.display = "none";
+
+    document.getElementById(
+      "alliancePanel"
+    ).style.display = "block";
+
+    document.getElementById(
+      "allianceTitle"
+    ).innerHTML =
+      '<div class="alliance-name">' +
+      escapeHtml(data.alliance.name) +
+      '<span class="alliance-tag">' +
+      escapeHtml(data.alliance.tag) +
+      '</span>' +
+      '</div>';
+
+    document.getElementById(
+      "members"
+    ).innerHTML =
+      '<div class="member">' +
+      '<div>' +
+      '<div class="member-name">' +
+      escapeHtml(savedUser.username) +
+      '</div>' +
+      '<div class="member-role">Lider</div>' +
+      '</div>' +
+      '</div>';
+
+  } catch (error) {
+
+    console.error(
+      "İttifak oluşturma hatası:",
+      error
+    );
+
+    showMessage(
+      "İttifak oluşturulurken hata oluştu."
+    );
+  }
 }
 
 </script>
