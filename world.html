@@ -92,6 +92,7 @@ h1 {
   font-weight: bold;
   background: rgba(0,0,0,0.35);
   border: 1px solid rgba(255,255,255,0.15);
+  z-index: 2;
 }
 
 .desert {
@@ -130,10 +131,16 @@ h1 {
   color: #62cfff;
 }
 
+#realPlayers {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+
 .colony {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 92px;
+  width: 105px;
   text-align: center;
   cursor: pointer;
   transition: 0.2s;
@@ -165,6 +172,10 @@ h1 {
   white-space: nowrap;
 }
 
+.you {
+  z-index: 10;
+}
+
 .you .colony-icon {
   border-color: #58ff9b;
   box-shadow: 0 0 22px rgba(88,255,155,0.5);
@@ -177,26 +188,7 @@ h1 {
 .c1 {
   left: 25%;
   top: 35%;
-}
-
-.c2 {
-  left: 55%;
-  top: 30%;
-}
-
-.c3 {
-  left: 72%;
-  top: 50%;
-}
-
-.c4 {
-  left: 38%;
-  top: 65%;
-}
-
-.c5 {
-  left: 82%;
-  top: 78%;
+  z-index: 10;
 }
 
 .info {
@@ -248,6 +240,7 @@ h1 {
 
 <div class="topbar">
   <div class="logo">NEXORA</div>
+
   <div class="player">
     Oyuncu: <span id="playerName">Oyuncu</span>
   </div>
@@ -256,12 +249,13 @@ h1 {
 <div class="container">
 
   <h1>🗺️ Dünya Haritası</h1>
+
   <div class="subtitle">
     Galaksideki kolonileri keşfet, rakiplerini seç ve saldır.
   </div>
 
   <div class="world">
-<div id="realPlayers"></div>
+
     <div class="grid"></div>
 
     <div class="region desert">🏜️ Çöl Bölgesi</div>
@@ -271,24 +265,33 @@ h1 {
     <div class="region volcanic">🌋 Volkanik Bölge</div>
     <div class="region ocean">🌊 Okyanus</div>
 
-    <div class="colony you c1" onclick="selectColony('Senin Kolonin', true)">
+    <div class="colony you c1"
+         onclick="selectColony('Senin Kolonin', true)">
       <div class="colony-icon">🏰</div>
       <div class="colony-name">Senin Kolonin</div>
     </div>
 
-    
+    <div id="realPlayers"></div>
 
   </div>
 
   <div class="info" id="info">
     <h2 id="selectedName">Koloni</h2>
+
     <p id="selectedText"></p>
-    <button class="attack" id="attackButton" onclick="attack()">
+
+    <button
+      class="attack"
+      id="attackButton"
+      onclick="attack()"
+    >
       ⚔️ Saldır
     </button>
   </div>
 
-  <a class="back" href="game.html">← Koloniye Dön</a>
+  <a class="back" href="game.html">
+    ← Koloniye Dön
+  </a>
 
 </div>
 
@@ -301,84 +304,40 @@ if (savedUser && savedUser.username) {
   document.getElementById("playerName").textContent =
     savedUser.username;
 }
-async function loadWorldPlayers() {
-  const token = localStorage.getItem("nexora_token");
 
-  if (!token) {
-    return;
-  }
-
-  try {
-    const response = await fetch("/api/auth?action=world", {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + token
-      }
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      return;
-    }
-
-    console.log("Dünya oyuncuları:", data.players);
-const playersContainer = document.getElementById("realPlayers");
-
-if (playersContainer) {
-  playersContainer.innerHTML = "";
-
-  data.players.forEach(function(player, index) {
-    const colony = document.createElement("div");
-
-    colony.className = "colony";
-    colony.style.left = (10 + (index * 13) % 80) + "%";
-    colony.style.top = (15 + (index * 19) % 70) + "%";
-
-    colony.innerHTML =
-      '<div class="colony-icon">🏠</div>' +
-      '<div class="colony-name">' +
-      player.username +
-      '</div>';
-
-    colony.onclick = function() {
-      selectColony(
-        player.username,
-        player.player_id === savedUser.id
-      );
-    };
-
-    playersContainer.appendChild(colony);
-  });
-}
-  } catch (error) {
-    console.error("Dünya haritası hatası:", error);
-  }
-}
-
-loadWorldPlayers();
 let selectedPlayer = null;
+let selectedPlayerId = null;
 
-function selectColony(name, isMine) {
+function selectColony(name, isMine, playerId = null) {
+
+  const info = document.getElementById("info");
+  const selectedName = document.getElementById("selectedName");
+  const selectedText = document.getElementById("selectedText");
+  const attackButton = document.getElementById("attackButton");
+
+  info.style.display = "block";
+  selectedName.textContent = name;
 
   if (isMine) {
-    document.getElementById("info").style.display = "block";
-    document.getElementById("selectedName").textContent = name;
-    document.getElementById("selectedText").textContent =
+
+    selectedText.textContent =
       "Bu senin kolonin. Kendi kolonine saldıramazsın.";
-    document.getElementById("attackButton").style.display = "none";
+
+    attackButton.style.display = "none";
+
     selectedPlayer = null;
+    selectedPlayerId = null;
+
     return;
   }
 
   selectedPlayer = name;
+  selectedPlayerId = playerId;
 
-  document.getElementById("info").style.display = "block";
-  document.getElementById("selectedName").textContent = name;
-  document.getElementById("selectedText").textContent =
+  selectedText.textContent =
     name + " kolonisini seçtin. Saldırı gönderebilirsin.";
 
-  document.getElementById("attackButton").style.display = "inline-block";
+  attackButton.style.display = "inline-block";
 }
 
 function attack() {
@@ -392,6 +351,138 @@ function attack() {
     " hedefine saldırı hazırlığı başlatıldı."
   );
 }
+
+function createPlayerColony(player, index) {
+
+  const colony = document.createElement("div");
+
+  const positions = [
+    { left: "52%", top: "25%" },
+    { left: "72%", top: "32%" },
+    { left: "58%", top: "50%" },
+    { left: "35%", top: "48%" },
+    { left: "78%", top: "65%" },
+    { left: "18%", top: "55%" },
+    { left: "42%", top: "78%" },
+    { left: "68%", top: "80%" }
+  ];
+
+  const position =
+    positions[index % positions.length];
+
+  colony.className = "colony";
+
+  colony.style.left = position.left;
+  colony.style.top = position.top;
+
+  const isMine =
+    savedUser &&
+    Number(player.player_id) === Number(savedUser.id);
+
+  if (isMine) {
+    return;
+  }
+
+  colony.innerHTML =
+    '<div class="colony-icon">🏠</div>' +
+    '<div class="colony-name">' +
+    escapeHtml(player.username) +
+    '</div>';
+
+  colony.onclick = function() {
+    selectColony(
+      player.username,
+      false,
+      player.player_id
+    );
+  };
+
+  return colony;
+}
+
+function escapeHtml(text) {
+
+  const div = document.createElement("div");
+
+  div.textContent = text || "Oyuncu";
+
+  return div.innerHTML;
+}
+
+async function loadWorldPlayers() {
+
+  const token =
+    localStorage.getItem("nexora_token");
+
+  if (!token) {
+    return;
+  }
+
+  try {
+
+    const response = await fetch(
+      "/api/auth?action=world",
+      {
+        method: "POST",
+        headers: {
+          "Authorization":
+            "Bearer " + token
+        }
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok || !data.success) {
+      return;
+    }
+
+    console.log(
+      "Dünya oyuncuları:",
+      data.players
+    );
+
+    const playersContainer =
+      document.getElementById("realPlayers");
+
+    if (!playersContainer) {
+      return;
+    }
+
+    playersContainer.innerHTML = "";
+
+    const otherPlayers =
+      (data.players || []).filter(function(player) {
+
+        if (!savedUser) {
+          return true;
+        }
+
+        return Number(player.player_id) !==
+          Number(savedUser.id);
+      });
+
+    otherPlayers.forEach(function(player, index) {
+
+      const colony =
+        createPlayerColony(player, index);
+
+      if (colony) {
+        playersContainer.appendChild(colony);
+      }
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Dünya haritası hatası:",
+      error
+    );
+  }
+}
+
+loadWorldPlayers();
 </script>
 
 </body>
