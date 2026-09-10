@@ -1568,6 +1568,44 @@ async function createAlliance(req, res) {
     member: memberResult.data[0]
   });
 }
+async function getAlliances(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const result = await supabase(
+    "alliances?select=id,name,tag,owner_player_id,created_at&order=name.asc"
+  );
+
+  if (!result.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "İttifaklar alınamadı."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    alliances: result.data || []
+  });
+}
 async function getResearch(req, res) {
   const authHeader = String(
     req.headers.authorization || ""
