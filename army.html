@@ -242,7 +242,28 @@ async function loadResources() {
 
     document.getElementById("crystal").textContent =
       data.city.crystal;
+const units = data.units || [];
 
+const infantry = units.find(function(item) {
+  return item.unit_type === "piyade";
+});
+
+const defender = units.find(function(item) {
+  return item.unit_type === "savunma";
+});
+
+const attacker = units.find(function(item) {
+  return item.unit_type === "saldiri";
+});
+
+document.getElementById("infantry").textContent =
+  infantry ? infantry.quantity : 0;
+
+document.getElementById("defender").textContent =
+  defender ? defender.quantity : 0;
+
+document.getElementById("attacker").textContent =
+  attacker ? attacker.quantity : 0;
   } catch (error) {
     console.error(error);
   }
