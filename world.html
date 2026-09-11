@@ -183,6 +183,16 @@ h1 {
   pointer-events: none;
 }
 
+.mission-panel { position: fixed; top: 82px; right: 22px; width: 320px; max-height: 62vh; overflow-y: auto; z-index: 100; background: rgba(8,14,28,.96); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; box-shadow: 0 14px 40px rgba(0,0,0,.35); padding: 14px; backdrop-filter: blur(8px); }
+.mission-panel h3 { margin: 0 0 10px; font-size: 17px; }
+.mission-empty { opacity: .7; font-size: 13px; padding: 8px 2px; }
+.mission-card { padding: 11px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); margin-top: 8px; }
+.mission-card strong { display:block; margin-bottom:5px; }
+.mission-time { font-size:20px; font-weight:800; margin-top:7px; }
+.mission-meta { font-size:12px; opacity:.72; line-height:1.45; }
+.mission-result { margin-top:8px; font-weight:700; }
+@media (max-width:800px) { .mission-panel { top:auto; bottom:14px; left:14px; right:14px; width:auto; max-height:42vh; } }
+
 .attack-fleet {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -411,6 +421,11 @@ h1 {
 
     <div id="realPlayers"></div>
 <div id="attackFleet"></div>
+  </div>
+
+  <div class="mission-panel" id="missionPanel">
+    <h3>🚀 Seferlerim</h3>
+    <div id="missionList" class="mission-empty">Aktif sefer bulunmuyor.</div>
   </div>
 
   <div class="info" id="info">
@@ -999,6 +1014,80 @@ async function changeCoordinates() {
   }
 }
 
+
+function getSavedMissions() {
+  try {
+    const raw = localStorage.getItem("nexora_missions");
+    const missions = raw ? JSON.parse(raw) : [];
+    return Array.isArray(missions) ? missions : [];
+  } catch (error) { return []; }
+}
+
+function saveMissions(missions) { localStorage.setItem("nexora_missions", JSON.stringify(missions)); }
+
+function upsertSavedMission(mission) {
+  const missions = getSavedMissions();
+  const index = missions.findIndex(function(item) { return String(item.id) === String(mission.id); });
+  if (index >= 0) missions[index] = { ...missions[index], ...mission };
+  else missions.push(mission);
+  saveMissions(missions);
+  renderMissionPanel(missions);
+}
+
+function formatMissionTime(seconds) {
+  const total = Math.max(0, Number(seconds) || 0);
+  const minutes = Math.floor(total / 60);
+  const secs = total % 60;
+  return String(minutes).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
+}
+
+function renderMissionPanel(missions) {
+  const list = document.getElementById("missionList");
+  if (!list) return;
+  if (!missions.length) { list.className = "mission-empty"; list.innerHTML = "Aktif sefer bulunmuyor."; return; }
+  list.className = "";
+  list.innerHTML = missions.map(function(mission) {
+    const title = escapeHtml(mission.targetName || "Hedef Koloni");
+    const coords = "X:" + (mission.targetX ?? "-") + " Y:" + (mission.targetY ?? "-");
+    if (mission.status === "completed") {
+      const result = mission.result || {};
+      return '<div class="mission-card"><strong>⚔️ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-result">' + escapeHtml(result.result || "Savaş tamamlandı") + '</div><div class="mission-meta">Sefer tamamlandı.</div></div>';
+    }
+    return '<div class="mission-card"><strong>🚀 ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-time">' + formatMissionTime(mission.remainingSeconds) + '</div><div class="mission-meta">Hedefe ilerliyor...</div></div>';
+  }).join("");
+}
+
+async function refreshMissionPanel() {
+  const token = localStorage.getItem("nexora_token");
+  if (!token) return;
+  const missions = getSavedMissions();
+  if (!missions.length) { renderMissionPanel([]); return; }
+  const updated = [];
+  for (const saved of missions) {
+    try {
+      const response = await fetch("/api/auth?action=missionstatus&id=" + encodeURIComponent(saved.id), { method: "POST", headers: { "Authorization": "Bearer " + token } });
+      const data = await response.json();
+      if (!response.ok || !data.success || !data.mission) continue;
+      const serverMission = data.mission;
+      const merged = { ...saved, id: serverMission.id || saved.id, status: serverMission.status || "traveling", remainingSeconds: Number(serverMission.remainingSeconds ?? saved.remainingSeconds ?? 0), arriveAt: serverMission.arriveAt || saved.arriveAt, result: serverMission.result || saved.result };
+      if (merged.status === "completed") {
+        const completedAt = Number(saved.completedAt || Date.now());
+        merged.completedAt = completedAt;
+        if (Date.now() - completedAt > 15000) continue;
+      }
+      updated.push(merged);
+    } catch (error) { updated.push(saved); }
+  }
+  saveMissions(updated);
+  renderMissionPanel(updated);
+}
+
+function startMissionPanel() {
+  renderMissionPanel(getSavedMissions());
+  refreshMissionPanel();
+  setInterval(refreshMissionPanel, 1000);
+}
+
 async function attack() {
   if (!selectedPlayerId) {
     return;
@@ -1037,6 +1126,15 @@ async function attack() {
 
     const missionId = data.mission.id;
     const arriveAt = new Date(data.mission.arriveAt).getTime();
+    upsertSavedMission({
+      id: missionId,
+      status: "traveling",
+      remainingSeconds: Number(data.mission.travelSeconds || 0),
+      arriveAt: data.mission.arriveAt,
+      targetName: (document.getElementById("selectedName") || {}).textContent || "Hedef Koloni",
+      targetX: selectedPlayerX,
+      targetY: selectedPlayerY
+    });
     const startX = myCoordinateX;
     const startY = myCoordinateY;
     const targetX = Number.isFinite(selectedPlayerX) ? selectedPlayerX : getPlayerPosition(selectedPlayerId).x;
@@ -1087,24 +1185,26 @@ async function attack() {
           fleetContainer.innerHTML = "";
         }
 
+        upsertSavedMission({
+          id: missionId,
+          status: "completed",
+          remainingSeconds: 0,
+          targetName: (document.getElementById("selectedName") || {}).textContent || "Hedef Koloni",
+          targetX: targetX,
+          targetY: targetY,
+          result: result,
+          completedAt: Date.now()
+        });
+
         alert(
-          "⚔️ Savaş Sonucu: " + (result.result || "Tamamlandı") +
-          "
-
-Saldırı Gücü: " + (result.attackPower || statusData.mission.attack_power || 0) +
-          "
-Savunma Gücü: " + (result.defensePower || 0) +
-          "
-
-Ganimet:" +
-          "
-Metal: " + (loot.metal || 0) +
-          "
-Enerji: " + (loot.energy || 0) +
-          "
-Su: " + (loot.water || 0) +
-          "
-Kristal: " + (loot.crystal || 0)
+          "⚔️ Savaş Sonucu: " + (result.result || "Tamamlandı") + "\n\n" +
+          "Saldırı Gücü: " + (result.attackPower || statusData.mission.attack_power || 0) + "\n" +
+          "Savunma Gücü: " + (result.defensePower || 0) + "\n\n" +
+          "Ganimet:\n" +
+          "Metal: " + (loot.metal || 0) + "\n" +
+          "Enerji: " + (loot.energy || 0) + "\n" +
+          "Su: " + (loot.water || 0) + "\n" +
+          "Kristal: " + (loot.crystal || 0)
         );
         return;
       }
@@ -1272,6 +1372,7 @@ async function loadWorldPlayers() {
 
 loadMyCoordinates().then(function() {
   loadWorldPlayers();
+  startMissionPanel();
 });
 </script>
 </body>
