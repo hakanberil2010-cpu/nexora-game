@@ -1049,74 +1049,84 @@ async function attackPlayer(req, res) {
     return Math.min(quantity, Math.max(1, loss));
   }
 
-  const infantry = getUnitCount(
-    attackerUnits,
-    "piyade"
+  const infantryUnit = getUnit(attackerUnits, "piyade");
+  const attackUnit = getUnit(attackerUnits, "saldiri");
+  const defenseUnit = getUnit(targetUnits, "savunma");
+
+  const infantry = infantryUnit ? Number(infantryUnit.quantity) : 0;
+  const attackUnits = attackUnit ? Number(attackUnit.quantity) : 0;
+  const defenseUnits = defenseUnit ? Number(defenseUnit.quantity) : 0;
+
+  const attackerResearchResult = await supabase(
+    "research?select=combat_level&player_id=eq." +
+      encodeURIComponent(decoded.id) +
+      "&limit=1"
   );
 
-  const attackUnits = getUnitCount(
-    attackerUnits,
-    "saldiri"
+  const defenderResearchResult = await supabase(
+    "research?select=defense_level&player_id=eq." +
+      encodeURIComponent(targetPlayerId) +
+      "&limit=1"
   );
 
-  const defenseUnits = getUnitCount(
-    targetUnits,
-    "savunma"
+  if (!attackerResearchResult.ok || !defenderResearchResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Araştırma seviyeleri alınamadı."
+    });
+  }
+
+  const attackerCombatLevel =
+    attackerResearchResult.data && attackerResearchResult.data[0]
+      ? Number(attackerResearchResult.data[0].combat_level || 0)
+      : 0;
+
+  const defenderDefenseLevel =
+    defenderResearchResult.data && defenderResearchResult.data[0]
+      ? Number(defenderResearchResult.data[0].defense_level || 0)
+      : 0;
+
+  const attackMultiplier = 1 + attackerCombatLevel * 0.10;
+  const defenseMultiplier = 1 + defenderDefenseLevel * 0.10;
+
+  function getAttackPower(unit) {
+    if (!unit) {
+      return 0;
+    }
+
+    const quantity = Number(unit.quantity) || 0;
+    const attack = Number(unit.attack) || 0;
+
+    return quantity * attack;
+  }
+
+  function getDefensePower(unit) {
+    if (!unit) {
+      return 0;
+    }
+
+    const quantity = Number(unit.quantity) || 0;
+    const defense = Number(unit.defense) || 0;
+
+    return quantity * defense;
+  }
+
+  const totalBaseAttack =
+    getAttackPower(infantryUnit) +
+    getAttackPower(attackUnit);
+
+  const totalBaseDefense =
+    getDefensePower(infantryUnit) +
+    getDefensePower(defenseUnit) +
+    getDefensePower(attackUnit);
+
+  const totalAttackPower = Math.round(
+    totalBaseAttack * attackMultiplier
   );
-const attackerResearchResult = await supabase(
-  "research?select=combat_level&player_id=eq." +
-    encodeURIComponent(decoded.id) +
-    "&limit=1"
-);
 
-const defenderResearchResult = await supabase(
-  "research?select=defense_level&player_id=eq." +
-    encodeURIComponent(targetPlayerId) +
-    "&limit=1"
-);
-
-if (
-  !attackerResearchResult.ok ||
-  !defenderResearchResult.ok
-) {
-  return send(res, 500, {
-    success: false,
-    message: "Araştırma seviyeleri alınamadı."
-  });
-}
-
-const attackerCombatLevel =
-  attackerResearchResult.data &&
-  attackerResearchResult.data[0]
-    ? Number(
-        attackerResearchResult.data[0].combat_level || 0
-      )
-    : 0;
-
-const defenderDefenseLevel =
-  defenderResearchResult.data &&
-  defenderResearchResult.data[0]
-    ? Number(
-        defenderResearchResult.data[0].defense_level || 0
-      )
-    : 0;
-
-const attackMultiplier =
-  1 + attackerCombatLevel * 0.10;
-
-const defenseMultiplier =
-  1 + defenderDefenseLevel * 0.10;
-
-const totalAttackPower = Math.round(
-  (
-    infantry * 1 +
-    attackUnits * 3
-  ) * attackMultiplier
-);
-
-const totalDefensePower = Math.round(
-  defenseUnits * 2 * defenseMultiplier
-);
+  const totalDefensePower = Math.round(
+    totalBaseDefense * defenseMultiplier
+  );
 
   if (totalAttackPower <= 0) {
     return send(res, 400, {
