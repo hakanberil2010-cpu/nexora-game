@@ -1063,26 +1063,32 @@ function createPlayerColony(
   player,
   index
 ) {
-
   const colony =
     document.createElement("div");
 
   /*
-    Oyuncu ID'sine göre koordinat seçilir.
-    Böylece oyuncunun sırası değişse bile
-    koordinatı değişmez.
+    Öncelik veritabanındaki kayıtlı koordinatlar.
+    Eski oyuncularda koordinat yoksa
+    mevcut mapPositions sistemi kullanılır.
   */
-  const position =
-    mapPositions[
-      Number(player.player_id) %
-      mapPositions.length
-    ];
+  let x = Number(player.coordinate_x);
+  let y = Number(player.coordinate_y);
 
-  const x = position.x;
-  const y = position.y;
+  if (
+    !Number.isFinite(x) ||
+    !Number.isFinite(y)
+  ) {
+    const position =
+      mapPositions[
+        Number(player.player_id) %
+        mapPositions.length
+      ];
 
-  colony.className =
-    "colony";
+    x = position.x;
+    y = position.y;
+  }
+
+  colony.className = "colony";
 
   colony.style.left =
     x + "%";
