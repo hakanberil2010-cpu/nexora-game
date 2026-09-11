@@ -146,7 +146,25 @@ h1 {
   transition: 0.2s;
 }
 
-.colony:hover {
+.colony:hover { .colony.selected {
+  transform: translate(-50%, -50%) scale(1.15);
+  filter: brightness(1.5);
+  animation: selectedPulse 1.2s infinite;
+}
+
+@keyframes selectedPulse {
+  0% {
+    filter: brightness(1.2);
+  }
+
+  50% {
+    filter: brightness(1.8);
+  }
+
+  100% {
+    filter: brightness(1.2);
+  }
+}
   transform: translate(-50%, -50%) scale(1.08);
   filter: brightness(1.35);
 }
@@ -493,7 +511,11 @@ function createPlayerColony(player, index) {
 
     const attackButton =
       document.getElementById("attackButton");
+document.querySelectorAll(".colony.selected").forEach(function(colony) {
+  colony.classList.remove("selected");
+});
 
+event.currentTarget.classList.add("selected");
     selectedPlayer = player.username;
     selectedPlayerId = player.player_id;
 
