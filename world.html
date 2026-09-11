@@ -570,8 +570,6 @@ if (savedUser && savedUser.username) {
 
 let selectedPlayer = null;
 let selectedPlayerId = null;
-let selectedTargetX = null;
-let selectedTargetY = null;
 
 /*
   Haritadaki sabit başlangıç koordinatları.
@@ -692,8 +690,6 @@ function selectColony(name, isMine, playerId = null) {
 
     selectedPlayer = null;
     selectedPlayerId = null;
-    selectedTargetX = null;
-    selectedTargetY = null;
 
     return;
   }
@@ -710,8 +706,6 @@ function selectColony(name, isMine, playerId = null) {
   const position = getPlayerPosition(playerId);
   const x = position.x;
   const y = position.y;
-  selectedTargetX = x;
-  selectedTargetY = y;
   const regionName = getRegionName(x, y);
 
   updateSelectedInfo(
@@ -746,8 +740,6 @@ function selectPlayerColony(
 
   selectedPlayer = player.username;
   selectedPlayerId = player.player_id;
-  selectedTargetX = Number(x);
-  selectedTargetY = Number(y);
 
   const regionName = getRegionName(x, y);
 
@@ -933,34 +925,29 @@ async function changeCoordinates() {
     return;
   }
 
+  // Aynı koordinatta başka koloni var mı?
   const occupiedColony = Array.from(
     document.querySelectorAll(".colony")
-  ).find(function(colony) {
+  ).find(function (colony) {
     return (
-      !colony.classList.contains("you") &&
       colony.style.left === x + "%" &&
       colony.style.top === y + "%"
     );
   });
 
   if (occupiedColony) {
-    const nameElement =
-      occupiedColony.querySelector(".colony-name");
-
+    const nameElement = occupiedColony.querySelector(".colony-name");
     const colonyName = nameElement
       ? nameElement.textContent
       : "başka bir koloni";
 
-    alert(
-      "❌ Bu koordinat dolu!\n\nKoloni: " +
-      colonyName
-    );
+    // Kendi mevcut koordinatına tekrar taşınmaya çalışıyorsa
+    if (occupiedColony.classList.contains("you")) {
+      alert("❌ Zaten bu koordinattasın.");
+    } else {
+      alert("❌ Bu koordinat dolu!\n\nKoloni: " + colonyName);
+    }
 
-    return;
-  }
-
-  if (x === myCoordinateX && y === myCoordinateY) {
-    alert("❌ Zaten bu koordinattasın.");
     return;
   }
 
@@ -1026,13 +1013,7 @@ async function attack() {
     document.getElementById("attackFleet");
 
   const targetPosition =
-    Number.isFinite(Number(selectedTargetX)) &&
-    Number.isFinite(Number(selectedTargetY))
-      ? {
-          x: Number(selectedTargetX),
-          y: Number(selectedTargetY)
-        }
-      : getPlayerPosition(selectedPlayerId);
+    getPlayerPosition(selectedPlayerId);
 
   const targetX = targetPosition.x;
   const targetY = targetPosition.y;
@@ -1187,29 +1168,23 @@ function createPlayerColony(
   player,
   index
 ) {
-  const colony =
-    document.createElement("div");
+  const colony = document.createElement("div");
 
-  const databaseX = Number(player.coordinate_x);
-  const databaseY = Number(player.coordinate_y);
+  let x = Number(player.coordinate_x);
+  let y = Number(player.coordinate_y);
 
-  /*
-    Yeni oyuncularda koordinatlar varsayılan 25,35 olabilir.
-    Bu durumda mevcut sabit başlangıç noktalarından birini kullan.
-    Oyuncu taşındığında veritabanındaki gerçek koordinatı kullan.
-  */
-  let x = databaseX;
-  let y = databaseY;
+  // Geçerli koordinat yoksa eski sabit başlangıç konumunu kullan.
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    const position = getPlayerPosition(player.player_id);
+    x = position.x;
+    y = position.y;
+  }
 
-  const isCurrentPlayer =
-    savedUser &&
-    Number(player.player_id) === Number(savedUser.id);
-
-  if (
-    !Number.isFinite(databaseX) ||
-    !Number.isFinite(databaseY) ||
-    (!isCurrentPlayer && databaseX === 25 && databaseY === 35)
-  ) {
+  // Eski oyuncuların koordinatı 25,35 olarak kalmışsa,
+  // tüm oyuncuları üst üste bindirmemek için player_id tabanlı
+  // başlangıç konumuna geç.
+  if (x === 25 && y === 35 &&
+      (!savedUser || Number(player.player_id) !== Number(savedUser.id))) {
     const position = getPlayerPosition(player.player_id);
     x = position.x;
     y = position.y;
@@ -1232,6 +1207,7 @@ function createPlayerColony(
 
   colony.addEventListener("click", function(event) {
     event.stopPropagation();
+
     selectPlayerColony(
       colony,
       player,
@@ -1254,85 +1230,72 @@ function escapeHtml(text) {
 }
 
 async function loadWorldPlayers() {
-  const token =
-    localStorage.getItem("nexora_token");
+  const token = localStorage.getItem("nexora_token");
 
   if (!token) {
     return;
   }
 
+  const playersContainer =
+    document.getElementById("realPlayers");
+
+  if (!playersContainer) {
+    return;
+  }
+
   try {
-    const response =
-      await fetch(
-        "/api/auth?action=world",
-        {
-          method: "POST",
-          headers: {
-            "Authorization":
-              "Bearer " + token
-          }
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (
-      !response.ok ||
-      !data.success
-    ) {
-      console.error(
-        "Dünya oyuncuları alınamadı:",
-        data
-      );
-      return;
-    }
-
-    const playersContainer =
-      document.getElementById("realPlayers");
-
-    if (!playersContainer) {
-      return;
-    }
-
-    playersContainer.innerHTML =
-      "";
-
-    const otherPlayers =
-      (data.players || [])
-      .filter(function(player) {
-        if (!savedUser) {
-          return true;
-        }
-
-        return Number(
-          player.player_id
-        ) !== Number(
-          savedUser.id
-        );
-      });
-
-    otherPlayers.forEach(
-      function(player, index) {
-        const colony =
-          createPlayerColony(
-            player,
-            index
-          );
-
-        if (colony) {
-          playersContainer.appendChild(
-            colony
-          );
-        }
+    const response = await fetch(
+      "/api/auth?action=world",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token
+        },
+        cache: "no-store"
       }
     );
 
+    let data = null;
+
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error("Dünya API JSON hatası:", jsonError);
+    }
+
+    if (!response.ok || !data || !data.success) {
+      console.error("Dünya oyuncuları alınamadı:", data);
+      playersContainer.innerHTML = "";
+      return;
+    }
+
+    const players = Array.isArray(data.players)
+      ? data.players
+      : [];
+
+    playersContainer.innerHTML = "";
+
+    players.forEach(function(player, index) {
+      if (
+        savedUser &&
+        Number(player.player_id) === Number(savedUser.id)
+      ) {
+        return;
+      }
+
+      const colony = createPlayerColony(
+        player,
+        index
+      );
+
+      if (colony) {
+        playersContainer.appendChild(colony);
+      }
+    });
+
   } catch (error) {
-    console.error(
-      "Dünya haritası hatası:",
-      error
-    );
+    console.error("Dünya haritası hatası:", error);
+    playersContainer.innerHTML = "";
   }
 }
 
