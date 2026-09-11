@@ -496,7 +496,71 @@ h1 {
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
 );
+let myCoordinateX = 25;
+let myCoordinateY = 35;
 
+async function loadMyCoordinates() {
+  const token =
+    localStorage.getItem("nexora_token");
+
+  if (!token) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "/api/auth?action=city",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (
+      response.ok &&
+      data.success &&
+      data.city
+    ) {
+      if (
+        Number.isFinite(
+          Number(data.city.coordinate_x)
+        )
+      ) {
+        myCoordinateX =
+          Number(data.city.coordinate_x);
+      }
+
+      if (
+        Number.isFinite(
+          Number(data.city.coordinate_y)
+        )
+      ) {
+        myCoordinateY =
+          Number(data.city.coordinate_y);
+      }
+
+      const myColony =
+        document.querySelector(".colony.you");
+
+      if (myColony) {
+        myColony.style.left =
+          myCoordinateX + "%";
+
+        myColony.style.top =
+          myCoordinateY + "%";
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Koloni koordinatı alınamadı:",
+      error
+    );
+  }
+}
 if (savedUser && savedUser.username) {
   const playerName = document.getElementById("playerName");
   if (playerName) {
@@ -1240,6 +1304,7 @@ async function loadWorldPlayers() {
 }
 
 loadWorldPlayers();
+  loadMyCoordinates();
 </script>
 </body>
 </html>
