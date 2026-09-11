@@ -695,15 +695,17 @@ function selectPlayerColony(
   const attackButton =
     document.getElementById("attackButton");
 
-  /*
-    Seçilen oyuncunun koordinatını bul.
-    Haritadaki mevcut konum sistemini kullanıyoruz.
-  */
-  const targetIndex =
-    Number(selectedPlayerId) % mapPositions.length;
+  const fleetContainer =
+    document.getElementById("attackFleet");
 
+  /*
+    Hedef koordinatı
+  */
   const targetPosition =
-    mapPositions[targetIndex];
+    mapPositions[
+      Number(selectedPlayerId) %
+      mapPositions.length
+    ];
 
   const targetX =
     targetPosition.x;
@@ -718,19 +720,69 @@ function selectPlayerColony(
   const myY = 35;
 
   /*
-    Mesafe hesapla
+    Mesafe
   */
-  const distance = Math.sqrt(
-    Math.pow(targetX - myX, 2) +
-    Math.pow(targetY - myY, 2)
-  );
+  const distance =
+    Math.sqrt(
+      Math.pow(targetX - myX, 2) +
+      Math.pow(targetY - myY, 2)
+    );
 
   /*
-    Mesafeye göre saldırı süresi.
-    Minimum 5 saniye.
+    Saldırı süresi
   */
   const attackTime =
     Math.max(5, Math.round(distance));
+
+  /*
+    Eski filoyu temizle
+  */
+  if (fleetContainer) {
+    fleetContainer.innerHTML = "";
+  }
+
+  /*
+    Yeni filo oluştur
+  */
+  const fleet =
+    document.createElement("div");
+
+  fleet.className =
+    "attack-fleet";
+
+  fleet.textContent =
+    "🚀";
+
+  fleet.style.left =
+    myX + "%";
+
+  fleet.style.top =
+    myY + "%";
+
+  /*
+    Filo, saldırı süresi boyunca
+    hedefe doğru hareket eder.
+  */
+  fleet.style.transition =
+    "left " + attackTime + "s linear, " +
+    "top " + attackTime + "s linear";
+
+  if (fleetContainer) {
+    fleetContainer.appendChild(fleet);
+  }
+
+  /*
+    Hareketi başlat
+  */
+  setTimeout(function() {
+
+    fleet.style.left =
+      targetX + "%";
+
+    fleet.style.top =
+      targetY + "%";
+
+  }, 50);
 
   attackButton.disabled = true;
 
@@ -742,25 +794,7 @@ function selectPlayerColony(
     remaining > 0;
     remaining--
   ) {
-const fleet = document.createElement("div");
 
-fleet.className = "attack-fleet";
-fleet.textContent = "🚀";
-
-const myX = 25;
-const myY = 35;
-
-fleet.style.left = myX + "%";
-fleet.style.top = myY + "%";
-
-document
-  .getElementById("attackFleet")
-  .appendChild(fleet);
-
-setTimeout(function() {
-  fleet.style.left = targetX + "%";
-  fleet.style.top = targetY + "%";
-}, 50);
     attackButton.textContent =
       "⚔️ Saldırılıyor... " +
       remaining +
@@ -776,26 +810,35 @@ setTimeout(function() {
 
   try {
 
-    const response = await fetch(
-      "/api/auth?action=attack",
-      {
-        method: "POST",
+    const response =
+      await fetch(
+        "/api/auth?action=attack",
+        {
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization":
-            "Bearer " + token
-        },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization":
+              "Bearer " + token
+          },
 
-        body: JSON.stringify({
-          targetPlayerId:
-            selectedPlayerId
-        })
-      }
-    );
+          body: JSON.stringify({
+            targetPlayerId:
+              selectedPlayerId
+          })
+        }
+      );
 
     const data =
       await response.json();
+
+    /*
+      Savaş tamamlandıktan sonra
+      filoyu haritadan kaldır.
+    */
+    if (fleet) {
+      fleet.remove();
+    }
 
     if (!response.ok || !data.success) {
 
@@ -830,6 +873,10 @@ setTimeout(function() {
 
   } catch (error) {
 
+    if (fleet) {
+      fleet.remove();
+    }
+
     console.error(
       "Saldırı hatası:",
       error
@@ -842,6 +889,7 @@ setTimeout(function() {
   } finally {
 
     attackButton.disabled = false;
+
     attackButton.textContent =
       "⚔️ Saldır";
   }
