@@ -3007,7 +3007,7 @@ async function getWorldPlayers(req, res) {
   }
 
   const citiesResult = await supabase(
-    "cities?select=id,player_id,name,level,coordinate_x,coordinate_y"
+    "cities?select=id,player_id,name,level"
   );
 
   if (!citiesResult.ok) {
