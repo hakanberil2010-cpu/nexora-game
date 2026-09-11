@@ -1171,13 +1171,13 @@ function createPlayerColony(
   const colony =
     document.createElement("div");
 
-  const position =
-    getPlayerPosition(
-      player.player_id
-    );
+  const x = Number(
+    player.coordinate_x ?? 25
+  );
 
-  const x = position.x;
-  const y = position.y;
+  const y = Number(
+    player.coordinate_y ?? 35
+  );
 
   colony.className =
     "colony";
