@@ -251,6 +251,18 @@ function buildReport(report) {
       ? "⚔️ Yaptığım Saldırı"
       : "🛡️ Gelen Saldırı";
 
+  const attackerX =
+    report.attacker_x ?? "--";
+
+  const attackerY =
+    report.attacker_y ?? "--";
+
+  const defenderX =
+    report.defender_x ?? "--";
+
+  const defenderY =
+    report.defender_y ?? "--";
+
   card.innerHTML =
 
     '<div class="report-title ' +
@@ -265,8 +277,24 @@ function buildReport(report) {
     '</p>' +
 
     '<p>' +
+    '<strong>📍 Saldıran Koordinat:</strong> ' +
+    'X:' +
+    escapeHtml(String(attackerX)) +
+    ' Y:' +
+    escapeHtml(String(attackerY)) +
+    '</p>' +
+
+    '<p>' +
     '<strong>Savunan:</strong> ' +
     escapeHtml(defenderName) +
+    '</p>' +
+
+    '<p>' +
+    '<strong>📍 Savunan Koordinat:</strong> ' +
+    'X:' +
+    escapeHtml(String(defenderX)) +
+    ' Y:' +
+    escapeHtml(String(defenderY)) +
     '</p>' +
 
     '<p>' +
@@ -276,12 +304,16 @@ function buildReport(report) {
 
     '<p>' +
     '<strong>Saldırı Gücü:</strong> ' +
-    escapeHtml(String(report.attack_power || 0)) +
+    escapeHtml(
+      String(report.attack_power || 0)
+    ) +
     '</p>' +
 
     '<p>' +
     '<strong>Savunma Gücü:</strong> ' +
-    escapeHtml(String(report.defense_power || 0)) +
+    escapeHtml(
+      String(report.defense_power || 0)
+    ) +
     '</p>' +
 
     '<div class="losses">' +
@@ -335,7 +367,6 @@ function buildReport(report) {
 
   return card;
 }
-
 async function loadReports() {
   const token = localStorage.getItem("nexora_token");
   const container = document.getElementById("reports");
