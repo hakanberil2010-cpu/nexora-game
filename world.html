@@ -381,7 +381,11 @@ function selectColony(name, isMine, playerId = null) {
   selectedName.textContent = name;
 
   if (isMine) {
+document.getElementById("selectedCoordinates").textContent =
+  "X:" + x + " Y:" + y;
 
+document.getElementById("selectedRegion").textContent =
+  regionName;
     selectedText.textContent =
       "Bu senin kolonin. Kendi kolonine saldıramazsın.";
 
