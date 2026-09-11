@@ -3092,7 +3092,9 @@ module.exports = async function handler(req, res) {
     if (action === "world") {
       return await getWorldPlayers(req, res);
     }
-
+if (action === "move") {
+  return await moveColony(req, res);
+}
     if (action === "upgrade") {
       return await upgradeBuilding(req, res);
     }
