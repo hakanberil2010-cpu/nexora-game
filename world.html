@@ -570,6 +570,8 @@ if (savedUser && savedUser.username) {
 
 let selectedPlayer = null;
 let selectedPlayerId = null;
+let selectedPlayerX = null;
+let selectedPlayerY = null;
 
 /*
   Haritadaki sabit başlangıç koordinatları.
@@ -690,6 +692,8 @@ function selectColony(name, isMine, playerId = null) {
 
     selectedPlayer = null;
     selectedPlayerId = null;
+    selectedPlayerX = null;
+    selectedPlayerY = null;
 
     return;
   }
@@ -740,6 +744,8 @@ function selectPlayerColony(
 
   selectedPlayer = player.username;
   selectedPlayerId = player.player_id;
+  selectedPlayerX = Number(x);
+  selectedPlayerY = Number(y);
 
   const regionName = getRegionName(x, y);
 
@@ -1012,11 +1018,16 @@ async function attack() {
   const fleetContainer =
     document.getElementById("attackFleet");
 
-  const targetPosition =
+  const fallbackTargetPosition =
     getPlayerPosition(selectedPlayerId);
 
-  const targetX = targetPosition.x;
-  const targetY = targetPosition.y;
+  const targetX = Number.isFinite(selectedPlayerX)
+    ? selectedPlayerX
+    : fallbackTargetPosition.x;
+
+  const targetY = Number.isFinite(selectedPlayerY)
+    ? selectedPlayerY
+    : fallbackTargetPosition.y;
 
   const myX = myCoordinateX;
   const myY = myCoordinateY;
@@ -1168,27 +1179,29 @@ function createPlayerColony(
   player,
   index
 ) {
-  const colony = document.createElement("div");
+  const colony =
+    document.createElement("div");
 
-  let x = Number(player.coordinate_x);
-  let y = Number(player.coordinate_y);
+  const savedX = Number(player.coordinate_x);
+  const savedY = Number(player.coordinate_y);
 
-  // Geçerli koordinat yoksa eski sabit başlangıç konumunu kullan.
-  if (!Number.isFinite(x) || !Number.isFinite(y)) {
-    const position = getPlayerPosition(player.player_id);
-    x = position.x;
-    y = position.y;
-  }
+  const hasRealCoordinates =
+    Number.isFinite(savedX) &&
+    Number.isFinite(savedY) &&
+    savedX >= 1 && savedX <= 100 &&
+    savedY >= 1 && savedY <= 100 &&
+    !(savedX === 25 && savedY === 35);
 
-  // Eski oyuncuların koordinatı 25,35 olarak kalmışsa,
-  // tüm oyuncuları üst üste bindirmemek için player_id tabanlı
-  // başlangıç konumuna geç.
-  if (x === 25 && y === 35 &&
-      (!savedUser || Number(player.player_id) !== Number(savedUser.id))) {
-    const position = getPlayerPosition(player.player_id);
-    x = position.x;
-    y = position.y;
-  }
+  const fallbackPosition =
+    getPlayerPosition(player.player_id);
+
+  const x = hasRealCoordinates
+    ? savedX
+    : fallbackPosition.x;
+
+  const y = hasRealCoordinates
+    ? savedY
+    : fallbackPosition.y;
 
   colony.className = "colony";
   colony.style.left = x + "%";
@@ -1200,10 +1213,6 @@ function createPlayerColony(
     '<div class="colony-name">' +
     escapeHtml(player.username) +
     '</div>';
-
-  colony.dataset.coordinateX = String(x);
-  colony.dataset.coordinateY = String(y);
-  colony.dataset.playerId = String(player.player_id);
 
   colony.addEventListener("click", function(event) {
     event.stopPropagation();
@@ -1230,72 +1239,85 @@ function escapeHtml(text) {
 }
 
 async function loadWorldPlayers() {
-  const token = localStorage.getItem("nexora_token");
+  const token =
+    localStorage.getItem("nexora_token");
 
   if (!token) {
     return;
   }
 
-  const playersContainer =
-    document.getElementById("realPlayers");
-
-  if (!playersContainer) {
-    return;
-  }
-
   try {
-    const response = await fetch(
-      "/api/auth?action=world",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + token
-        },
-        cache: "no-store"
-      }
-    );
+    const response =
+      await fetch(
+        "/api/auth?action=world",
+        {
+          method: "POST",
+          headers: {
+            "Authorization":
+              "Bearer " + token
+          }
+        }
+      );
 
-    let data = null;
+    const data =
+      await response.json();
 
-    try {
-      data = await response.json();
-    } catch (jsonError) {
-      console.error("Dünya API JSON hatası:", jsonError);
-    }
-
-    if (!response.ok || !data || !data.success) {
-      console.error("Dünya oyuncuları alınamadı:", data);
-      playersContainer.innerHTML = "";
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      console.error(
+        "Dünya oyuncuları alınamadı:",
+        data
+      );
       return;
     }
 
-    const players = Array.isArray(data.players)
-      ? data.players
-      : [];
+    const playersContainer =
+      document.getElementById("realPlayers");
 
-    playersContainer.innerHTML = "";
+    if (!playersContainer) {
+      return;
+    }
 
-    players.forEach(function(player, index) {
-      if (
-        savedUser &&
-        Number(player.player_id) === Number(savedUser.id)
-      ) {
-        return;
+    playersContainer.innerHTML =
+      "";
+
+    const otherPlayers =
+      (data.players || [])
+      .filter(function(player) {
+        if (!savedUser) {
+          return true;
+        }
+
+        return Number(
+          player.player_id
+        ) !== Number(
+          savedUser.id
+        );
+      });
+
+    otherPlayers.forEach(
+      function(player, index) {
+        const colony =
+          createPlayerColony(
+            player,
+            index
+          );
+
+        if (colony) {
+          playersContainer.appendChild(
+            colony
+          );
+        }
       }
-
-      const colony = createPlayerColony(
-        player,
-        index
-      );
-
-      if (colony) {
-        playersContainer.appendChild(colony);
-      }
-    });
+    );
 
   } catch (error) {
-    console.error("Dünya haritası hatası:", error);
-    playersContainer.innerHTML = "";
+    console.error(
+      "Dünya haritası hatası:",
+      error
+    );
   }
 }
 
