@@ -492,6 +492,21 @@ h1 {
 </div>
 
 <script>
+  function openMoveMenu() {
+  const menu = document.getElementById("moveMenu");
+
+  if (menu) {
+    menu.style.display = "block";
+  }
+}
+
+function closeMoveMenu() {
+  const menu = document.getElementById("moveMenu");
+
+  if (menu) {
+    menu.style.display = "none";
+  }
+}
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
 );
