@@ -403,7 +403,7 @@ h1 {
 
     <div
       class="colony you c1"
-      onclick="selectColony('Senin Kolonin', true, savedUser ? savedUser.id : null)"
+      onclick="selectColony('Senin Kolonin', true)"
     >
       <div class="colony-icon">🏰</div>
       <div class="colony-name">Senin Kolonin</div>
@@ -447,6 +447,7 @@ h1 {
     <button
       class="move"
       id="moveButton"
+      style="display:none;"
       onclick="openMoveMenu()"
     >
       🚚 Taşınma
@@ -492,109 +493,23 @@ h1 {
 </div>
 
 <script>
-  function openMoveMenu() {
-  const menu = document.getElementById("moveMenu");
-
-  if (menu) {
-    menu.style.display = "block";
-  }
-}
-
-function closeMoveMenu() {
-  const menu = document.getElementById("moveMenu");
-
-  if (menu) {
-    menu.style.display = "none";
-  }
-}
-  function showCoordinates() {
-  const coordinates =
-    document.getElementById("selectedCoordinates").textContent;
-
-  alert("📍 Koloni Koordinatı\n\n" + coordinates.trim());
-}
-function copyCoordinates() {
-  const coordinates =
-    document.getElementById("selectedCoordinates").textContent.trim();
-
-  navigator.clipboard.writeText(coordinates)
-    .then(function() {
-      alert("✅ Koordinat kopyalandı:\n\n" + coordinates);
-    })
-    .catch(function() {
-      alert("❌ Koordinat kopyalanamadı.");
-    });
-} 
-  function shareCoordinates() {
-  const coordinates =
-    document.getElementById("selectedCoordinates").textContent.trim();
-
-  if (navigator.share) {
-    navigator.share({
-      title: "NEXORA Koloni Koordinatı",
-      text: "📍 Koloni koordinatı: " + coordinates
-    });
-  } else {
-    navigator.clipboard.writeText(
-      "📍 NEXORA Koloni Koordinatı: " + coordinates
-    );
-
-    alert(
-      "📋 Paylaşım desteklenmiyor.\n\nKoordinat panoya kopyalandı:\n" +
-      coordinates
-    );
-  }
-}
-  function moveColony() {
-  alert(
-    "🚚 Koloni Taşıma\n\n" +
-    "Bu özellik hazırlanıyor.\n\n" +
-    "Buradan ileride yeni koordinat seçerek " +
-    "kolonini haritada başka bir konuma taşıyabileceksin."
-  );
-}
-  function changeCoordinates() {
-  const newX = prompt("Yeni X koordinatını gir:");
-  const newY = prompt("Yeni Y koordinatını gir:");
-
-  if (newX === null || newY === null) {
-    return;
-  }
-
-  if (
-    newX === "" ||
-    newY === "" ||
-    isNaN(newX) ||
-    isNaN(newY)
-  ) {
-    alert("❌ Geçerli koordinat girin.");
-    return;
-  }
-
-  alert(
-    "📍 Yeni koordinat:\n\nX:" +
-    newX +
-    " Y:" +
-    newY +
-    "\n\nTaşınma sistemi henüz aktif değil."
-  );
-}
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
 );
 
 if (savedUser && savedUser.username) {
-  document.getElementById("playerName").textContent =
-    savedUser.username;
+  const playerName = document.getElementById("playerName");
+  if (playerName) {
+    playerName.textContent = savedUser.username;
+  }
 }
 
 let selectedPlayer = null;
 let selectedPlayerId = null;
 
 /*
-  Haritadaki sabit konumlar.
-  Oyuncu ID'sine göre seçildiği için
-  aynı oyuncu aynı koordinatta kalır.
+  Haritadaki sabit başlangıç koordinatları.
+  Oyuncular player_id değerine göre bu noktalardan birini kullanır.
 */
 const mapPositions = [
   { x: 18, y: 22 },
@@ -609,51 +524,26 @@ const mapPositions = [
   { x: 25, y: 78 }
 ];
 
-/*
-  Koordinata göre bölge belirler.
-  Böylece seçildiğinde kutudaki bölge
-  ile haritadaki konum aynı kalır.
-*/
-function getRegionName(x, y) {
+function getPlayerPosition(playerId) {
+  return mapPositions[
+    Number(playerId) % mapPositions.length
+  ];
+}
 
+function getRegionName(x, y) {
   const regionCenters = [
-    {
-      name: "Çöl Bölgesi",
-      x: 10,
-      y: 18
-    },
-    {
-      name: "Orman Bölgesi",
-      x: 42,
-      y: 12
-    },
-    {
-      name: "Buz Bölgesi",
-      x: 91,
-      y: 17
-    },
-    {
-      name: "Dağ Bölgesi",
-      x: 30,
-      y: 83
-    },
-    {
-      name: "Volkanik Bölge",
-      x: 72,
-      y: 85
-    },
-    {
-      name: "Okyanus",
-      x: 95,
-      y: 55
-    }
+    { name: "Çöl Bölgesi", x: 10, y: 18 },
+    { name: "Orman Bölgesi", x: 42, y: 12 },
+    { name: "Buz Bölgesi", x: 91, y: 17 },
+    { name: "Dağ Bölgesi", x: 30, y: 83 },
+    { name: "Volkanik Bölge", x: 72, y: 85 },
+    { name: "Okyanus", x: 95, y: 55 }
   ];
 
   let closest = regionCenters[0];
   let closestDistance = Infinity;
 
   regionCenters.forEach(function(region) {
-
     const distance = Math.sqrt(
       Math.pow(x - region.x, 2) +
       Math.pow(y - region.y, 2)
@@ -668,176 +558,338 @@ function getRegionName(x, y) {
   return closest.name;
 }
 
-function updateSelectedInfo(name, x, y, regionName) {
+function updateSelectedInfo(
+  name,
+  x,
+  y,
+  regionName,
+  description
+) {
+  document.getElementById("selectedName").textContent = name;
 
-  const selectedName =
-    document.getElementById("selectedName");
-
-  const selectedText =
-    document.getElementById("selectedText");
-
-  const selectedCoordinates =
-    document.getElementById("selectedCoordinates");
-
-  const selectedRegion =
-    document.getElementById("selectedRegion");
-
-  selectedName.textContent = name;
-
-  selectedCoordinates.textContent =
+  document.getElementById("selectedCoordinates").textContent =
     "X:" + x + " Y:" + y;
 
-  selectedRegion.textContent =
+  document.getElementById("selectedRegion").textContent =
     regionName;
 
-  selectedText.textContent =
-    name +
-    " kolonisini seçtin. " +
-    "Koordinat: X:" +
-    x +
-    " Y:" +
-    y +
-    " | Bölge: " +
-    regionName +
-    ". Saldırı gönderebilirsin.";
+  document.getElementById("selectedText").textContent =
+    description ||
+    (
+      name +
+      " kolonisini seçtin. " +
+      "Koordinat: X:" + x +
+      " Y:" + y +
+      " | Bölge: " + regionName + "."
+    );
 }
 
 function selectColony(name, isMine, playerId = null) {
-
-  const info =
-    document.getElementById("info");
-
-  const attackButton =
-    document.getElementById("attackButton");
+  const info = document.getElementById("info");
+  const attackButton = document.getElementById("attackButton");
+  const moveButton = document.getElementById("moveButton");
 
   info.style.display = "block";
 
-  document.querySelectorAll(
-    ".colony.selected"
-  ).forEach(function(colony) {
-    colony.classList.remove("selected");
-  });
+  document.querySelectorAll(".colony.selected").forEach(
+    function(colony) {
+      colony.classList.remove("selected");
+    }
+  );
 
-if (isMine) {
+  if (isMine) {
+    const ownColony = document.querySelector(".colony.you");
 
-  document.getElementById(
-    "selectedName"
-  ).textContent = name;
+    if (ownColony) {
+      ownColony.classList.add("selected");
+    }
 
-  document.getElementById(
-    "selectedCoordinates"
-  ).textContent = "X:25 Y:35";
+    updateSelectedInfo(
+      name,
+      25,
+      35,
+      getRegionName(25, 35),
+      "Bu senin kolonin."
+    );
 
-  document.getElementById(
-    "selectedRegion"
-  ).textContent =
-    getRegionName(25, 35);
+    attackButton.style.display = "none";
 
-  document.getElementById(
-    "selectedText"
-  ).textContent =
-    "Bu senin kolonin.";
+    if (moveButton) {
+      moveButton.style.display = "inline-block";
+    }
 
-  attackButton.style.display =
-    "none";
+    closeMoveMenu();
 
-  const moveButton =
-    document.getElementById("moveButton");
+    selectedPlayer = null;
+    selectedPlayerId = null;
 
-  if (moveButton) {
-    moveButton.style.display =
-      "inline-block";
+    return;
   }
 
-  selectedPlayer = null;
-  selectedPlayerId = null;
+  selectedPlayer = name;
+  selectedPlayerId = playerId;
 
-  return;
+  if (moveButton) {
+    moveButton.style.display = "none";
+  }
+
+  closeMoveMenu();
+
+  const position = getPlayerPosition(playerId);
+  const x = position.x;
+  const y = position.y;
+  const regionName = getRegionName(x, y);
+
+  updateSelectedInfo(
+    name,
+    x,
+    y,
+    regionName,
+    name +
+      " kolonisini seçtin. " +
+      "Koordinat: X:" + x +
+      " Y:" + y +
+      " | Bölge: " + regionName +
+      ". Saldırı gönderebilirsin."
+  );
+
+  attackButton.style.display = "inline-block";
 }
+
 function selectPlayerColony(
   colony,
   player,
   x,
   y
 ) {
-
-  document.querySelectorAll(
-    ".colony.selected"
-  ).forEach(function(item) {
-    item.classList.remove("selected");
-  });
+  document.querySelectorAll(".colony.selected").forEach(
+    function(item) {
+      item.classList.remove("selected");
+    }
+  );
 
   colony.classList.add("selected");
 
-  selectedPlayer =
-    player.username;
+  selectedPlayer = player.username;
+  selectedPlayerId = player.player_id;
 
-  selectedPlayerId =
-    player.player_id;
+  const regionName = getRegionName(x, y);
 
-  const regionName =
-    getRegionName(x, y);
-
-  /* Senin koloninin koordinatı */
   const myX = 25;
   const myY = 35;
 
-  /* İki koloni arasındaki mesafe */
   const distance = Math.sqrt(
     Math.pow(x - myX, 2) +
     Math.pow(y - myY, 2)
   );
 
-  const roundedDistance =
-    Math.round(distance);
+  const roundedDistance = Math.round(distance);
 
   updateSelectedInfo(
     player.username,
     x,
     y,
-    regionName
+    regionName,
+    player.username +
+      " kolonisini seçtin. " +
+      "Koordinat: X:" + x +
+      " Y:" + y +
+      " | Bölge: " + regionName +
+      " | 📏 Mesafe: " + roundedDistance +
+      " km. " +
+      "Saldırı gönderebilirsin."
   );
 
-  /* Mesafe bilgisini açıklamaya ekle */
-  document.getElementById(
-    "selectedText"
-  ).textContent =
-    player.username +
-    " kolonisini seçtin. " +
-    "Koordinat: X:" +
-    x +
-    " Y:" +
-    y +
-    " | Bölge: " +
-    regionName +
-    " | 📏 Mesafe: " +
-    roundedDistance +
-    " km. " +
-    "Saldırı gönderebilirsin.";
-
-  document.getElementById(
-    "attackButton"
-  ).style.display =
+  document.getElementById("attackButton").style.display =
     "inline-block";
 
-  document.getElementById(
-    "info"
-  ).style.display =
-    "block";
+  const moveButton = document.getElementById("moveButton");
+  if (moveButton) {
+    moveButton.style.display = "none";
+  }
+
+  closeMoveMenu();
+
+  document.getElementById("info").style.display = "block";
 
   setTimeout(function() {
-
-    document.getElementById(
-      "info"
-    ).scrollIntoView({
+    document.getElementById("info").scrollIntoView({
       behavior: "smooth",
       block: "center"
     });
-
   }, 50);
 }
-  async function attack() {
 
+/* ---------------- TAŞINMA MENÜSÜ ---------------- */
+
+function openMoveMenu() {
+  const menu = document.getElementById("moveMenu");
+  const moveButton = document.getElementById("moveButton");
+
+  if (!menu || !moveButton) {
+    return;
+  }
+
+  if (
+    selectedPlayerId !== null &&
+    selectedPlayerId !== undefined
+  ) {
+    return;
+  }
+
+  moveButton.style.display = "inline-block";
+  menu.style.display = "block";
+}
+
+function closeMoveMenu() {
+  const menu = document.getElementById("moveMenu");
+
+  if (menu) {
+    menu.style.display = "none";
+  }
+}
+
+function showCoordinates() {
+  const coordinates =
+    document.getElementById("selectedCoordinates")
+      .textContent
+      .trim();
+
+  alert(
+    "📍 Koloni Koordinatı\n\n" +
+    coordinates
+  );
+}
+
+function copyCoordinates() {
+  const coordinates =
+    document.getElementById("selectedCoordinates")
+      .textContent
+      .trim();
+
+  if (
+    !navigator.clipboard ||
+    !navigator.clipboard.writeText
+  ) {
+    alert("❌ Koordinat kopyalanamadı.");
+    return;
+  }
+
+  navigator.clipboard.writeText(coordinates)
+    .then(function() {
+      alert(
+        "✅ Koordinat kopyalandı:\n\n" +
+        coordinates
+      );
+    })
+    .catch(function() {
+      alert("❌ Koordinat kopyalanamadı.");
+    });
+}
+
+function shareCoordinates() {
+  const coordinates =
+    document.getElementById("selectedCoordinates")
+      .textContent
+      .trim();
+
+  const shareText =
+    "📍 NEXORA Koloni Koordinatı: " +
+    coordinates;
+
+  if (navigator.share) {
+    navigator.share({
+      title: "NEXORA Koloni Koordinatı",
+      text: shareText
+    }).catch(function() {});
+    return;
+  }
+
+  if (
+    navigator.clipboard &&
+    navigator.clipboard.writeText
+  ) {
+    navigator.clipboard.writeText(shareText)
+      .then(function() {
+        alert(
+          "📋 Paylaşım desteklenmiyor.\n\n" +
+          "Koordinat panoya kopyalandı:\n" +
+          coordinates
+        );
+      })
+      .catch(function() {
+        alert(
+          "📤 Bu tarayıcı paylaşımı desteklemiyor."
+        );
+      });
+
+    return;
+  }
+
+  alert(
+    "📍 NEXORA Koloni Koordinatı:\n\n" +
+    coordinates
+  );
+}
+
+/*
+  Bu aşamada gerçek taşınma yapmıyoruz.
+  Menü ve buton hazır; gerçek hareket sistemi
+  sonraki aşamada bağlanacak.
+*/
+function moveColony() {
+  alert(
+    "🚚 Koloni Taşıma\n\n" +
+    "Taşınma sistemi hazırlanıyor.\n\n" +
+    "Bir sonraki aşamada haritada boş bir koordinat " +
+    "seçip kolonini oraya taşıyacağız."
+  );
+}
+
+function changeCoordinates() {
+  const newX = prompt(
+    "Yeni X koordinatını gir (1-100):"
+  );
+
+  if (newX === null) {
+    return;
+  }
+
+  const newY = prompt(
+    "Yeni Y koordinatını gir (1-100):"
+  );
+
+  if (newY === null) {
+    return;
+  }
+
+  const x = Number(newX);
+  const y = Number(newY);
+
+  if (
+    !Number.isInteger(x) ||
+    !Number.isInteger(y) ||
+    x < 1 ||
+    x > 100 ||
+    y < 1 ||
+    y > 100
+  ) {
+    alert(
+      "❌ Koordinatlar 1 ile 100 arasında tam sayı olmalı."
+    );
+    return;
+  }
+
+  alert(
+    "📍 Seçilen koordinat:\n\n" +
+    "X:" + x + " Y:" + y +
+    "\n\nGerçek taşınma sistemi bir sonraki aşamada aktif edilecek."
+  );
+}
+
+/* ---------------- SALDIRI ---------------- */
+
+async function attack() {
   if (!selectedPlayerId) {
     return;
   }
@@ -856,60 +908,34 @@ function selectPlayerColony(
   const fleetContainer =
     document.getElementById("attackFleet");
 
-  /*
-    Hedef koordinatı
-  */
   const targetPosition =
-    mapPositions[
-      Number(selectedPlayerId) %
-      mapPositions.length
-    ];
+    getPlayerPosition(selectedPlayerId);
 
-  const targetX =
-    targetPosition.x;
+  const targetX = targetPosition.x;
+  const targetY = targetPosition.y;
 
-  const targetY =
-    targetPosition.y;
-
-  /*
-    Senin koloninin koordinatı
-  */
   const myX = 25;
   const myY = 35;
 
-  /*
-    Mesafe
-  */
-  const distance =
-    Math.sqrt(
-      Math.pow(targetX - myX, 2) +
-      Math.pow(targetY - myY, 2)
-    );
+  const distance = Math.sqrt(
+    Math.pow(targetX - myX, 2) +
+    Math.pow(targetY - myY, 2)
+  );
 
-  /*
-    Saldırı süresi
-  */
   const attackTime =
     Math.max(5, Math.round(distance));
 
-  /*
-    Eski filoyu temizle
-  */
   if (fleetContainer) {
     fleetContainer.innerHTML = "";
   }
 
-  /*
-    Yeni filo oluştur
-  */
   const fleet =
     document.createElement("div");
 
   fleet.className =
     "attack-fleet";
 
-  fleet.textContent =
-    "🚀";
+  fleet.textContent = "🚀";
 
   fleet.style.left =
     myX + "%";
@@ -917,10 +943,6 @@ function selectPlayerColony(
   fleet.style.top =
     myY + "%";
 
-  /*
-    Filo, saldırı süresi boyunca
-    hedefe doğru hareket eder.
-  */
   fleet.style.transition =
     "left " + attackTime + "s linear, " +
     "top " + attackTime + "s linear";
@@ -929,30 +951,21 @@ function selectPlayerColony(
     fleetContainer.appendChild(fleet);
   }
 
-  /*
-    Hareketi başlat
-  */
   setTimeout(function() {
-
     fleet.style.left =
       targetX + "%";
 
     fleet.style.top =
       targetY + "%";
-
   }, 50);
 
   attackButton.disabled = true;
 
-  /*
-    Geri sayım
-  */
   for (
     let remaining = attackTime;
     remaining > 0;
     remaining--
   ) {
-
     attackButton.textContent =
       "⚔️ Saldırılıyor... " +
       remaining +
@@ -967,19 +980,16 @@ function selectPlayerColony(
     "⚔️ Saldırı gönderiliyor...";
 
   try {
-
     const response =
       await fetch(
         "/api/auth?action=attack",
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
             "Authorization":
               "Bearer " + token
           },
-
           body: JSON.stringify({
             targetPlayerId:
               selectedPlayerId
@@ -990,16 +1000,14 @@ function selectPlayerColony(
     const data =
       await response.json();
 
-    /*
-      Savaş tamamlandıktan sonra
-      filoyu haritadan kaldır.
-    */
     if (fleet) {
       fleet.remove();
     }
 
-    if (!response.ok || !data.success) {
-
+    if (
+      !response.ok ||
+      !data.success
+    ) {
       alert(
         data.message ||
         "Saldırı gerçekleştirilemedi."
@@ -1030,7 +1038,6 @@ function selectPlayerColony(
     );
 
   } catch (error) {
-
     if (fleet) {
       fleet.remove();
     }
@@ -1045,41 +1052,37 @@ function selectPlayerColony(
     );
 
   } finally {
-
     attackButton.disabled = false;
-
     attackButton.textContent =
       "⚔️ Saldır";
   }
 }
-function createPlayerColony(player, index) {
-  const colony = document.createElement("div");
 
-  const positions = [
-    { x: 18, y: 22 },
-    { x: 42, y: 18 },
-    { x: 68, y: 25 },
-    { x: 82, y: 42 },
-    { x: 60, y: 58 },
-    { x: 32, y: 64 },
-    { x: 15, y: 48 },
-    { x: 45, y: 40 },
-    { x: 75, y: 70 },
-    { x: 25, y: 78 }
-  ];
+/* ---------------- DÜNYA OYUNCULARI ---------------- */
+
+function createPlayerColony(
+  player,
+  index
+) {
+  const colony =
+    document.createElement("div");
 
   const position =
-    positions[
-      Number(player.player_id) % positions.length
-    ];
+    getPlayerPosition(
+      player.player_id
+    );
 
-  colony.className = "colony";
+  const x = position.x;
+  const y = position.y;
+
+  colony.className =
+    "colony";
 
   colony.style.left =
-    position.x + "%";
+    x + "%";
 
   colony.style.top =
-    position.y + "%";
+    y + "%";
 
   colony.style.position =
     "absolute";
@@ -1093,22 +1096,21 @@ function createPlayerColony(player, index) {
   colony.addEventListener(
     "click",
     function(event) {
-
       event.stopPropagation();
 
       selectPlayerColony(
         colony,
         player,
-        position.x,
-        position.y
+        x,
+        y
       );
     }
   );
 
   return colony;
 }
-function escapeHtml(text) {
 
+function escapeHtml(text) {
   const div =
     document.createElement("div");
 
@@ -1119,24 +1121,19 @@ function escapeHtml(text) {
 }
 
 async function loadWorldPlayers() {
-
   const token =
-    localStorage.getItem(
-      "nexora_token"
-    );
+    localStorage.getItem("nexora_token");
 
   if (!token) {
     return;
   }
 
   try {
-
     const response =
       await fetch(
         "/api/auth?action=world",
         {
           method: "POST",
-
           headers: {
             "Authorization":
               "Bearer " + token
@@ -1146,25 +1143,20 @@ async function loadWorldPlayers() {
 
     const data =
       await response.json();
-const fleet =
-  document.querySelector("#attackFleet .attack-fleet");
 
     if (
       !response.ok ||
       !data.success
     ) {
+      console.error(
+        "Dünya oyuncuları alınamadı:",
+        data
+      );
       return;
     }
 
-    console.log(
-      "Dünya oyuncuları:",
-      data.players
-    );
-
     const playersContainer =
-      document.getElementById(
-        "realPlayers"
-      );
+      document.getElementById("realPlayers");
 
     if (!playersContainer) {
       return;
@@ -1176,7 +1168,6 @@ const fleet =
     const otherPlayers =
       (data.players || [])
       .filter(function(player) {
-
         if (!savedUser) {
           return true;
         }
@@ -1190,7 +1181,6 @@ const fleet =
 
     otherPlayers.forEach(
       function(player, index) {
-
         const colony =
           createPlayerColony(
             player,
@@ -1198,7 +1188,6 @@ const fleet =
           );
 
         if (colony) {
-
           playersContainer.appendChild(
             colony
           );
@@ -1207,7 +1196,6 @@ const fleet =
     );
 
   } catch (error) {
-
     console.error(
       "Dünya haritası hatası:",
       error
@@ -1217,6 +1205,5 @@ const fleet =
 
 loadWorldPlayers();
 </script>
-
 </body>
 </html>
