@@ -665,8 +665,7 @@ function selectPlayerColony(
 
   }, 50);
 }
-  
-async function attack() {
+  async function attack() {
 
   if (!selectedPlayerId) {
     return;
@@ -683,9 +682,66 @@ async function attack() {
   const attackButton =
     document.getElementById("attackButton");
 
+  /*
+    Seçilen oyuncunun koordinatını bul.
+    Haritadaki mevcut konum sistemini kullanıyoruz.
+  */
+  const targetIndex =
+    Number(selectedPlayerId) % mapPositions.length;
+
+  const targetPosition =
+    mapPositions[targetIndex];
+
+  const targetX =
+    targetPosition.x;
+
+  const targetY =
+    targetPosition.y;
+
+  /*
+    Senin koloninin koordinatı
+  */
+  const myX = 25;
+  const myY = 35;
+
+  /*
+    Mesafe hesapla
+  */
+  const distance = Math.sqrt(
+    Math.pow(targetX - myX, 2) +
+    Math.pow(targetY - myY, 2)
+  );
+
+  /*
+    Mesafeye göre saldırı süresi.
+    Minimum 5 saniye.
+  */
+  const attackTime =
+    Math.max(5, Math.round(distance));
+
   attackButton.disabled = true;
+
+  /*
+    Geri sayım
+  */
+  for (
+    let remaining = attackTime;
+    remaining > 0;
+    remaining--
+  ) {
+
+    attackButton.textContent =
+      "⚔️ Saldırılıyor... " +
+      remaining +
+      " sn";
+
+    await new Promise(function(resolve) {
+      setTimeout(resolve, 1000);
+    });
+  }
+
   attackButton.textContent =
-    "⚔️ Saldırılıyor...";
+    "⚔️ Saldırı gönderiliyor...";
 
   try {
 
@@ -759,7 +815,6 @@ async function attack() {
       "⚔️ Saldır";
   }
 }
-
 function createPlayerColony(
   player,
   index
