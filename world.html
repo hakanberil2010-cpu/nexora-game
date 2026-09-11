@@ -718,49 +718,42 @@ function selectColony(name, isMine, playerId = null) {
     colony.classList.remove("selected");
   });
 
-  if (isMine) {
+if (isMine) {
 
-    document.getElementById(
-      "selectedName"
-    ).textContent = name;
+  document.getElementById(
+    "selectedName"
+  ).textContent = name;
 
-    document.getElementById(
-      "selectedCoordinates"
-    ).textContent = "X:25 Y:35";
+  document.getElementById(
+    "selectedCoordinates"
+  ).textContent = "X:25 Y:35";
 
-    document.getElementById(
-      "selectedRegion"
-    ).textContent =
-      getRegionName(25, 35);
+  document.getElementById(
+    "selectedRegion"
+  ).textContent =
+    getRegionName(25, 35);
 
-    document.getElementById(
-      "selectedText"
-    ).textContent =
-      "Bu senin kolonin. Kendi kolonine saldıramazsın.";
-
-    attackButton.style.display =
-      "none";
-
-    selectedPlayer = null;
-    selectedPlayerId = null;
-
-    return;
-  }
-
-  selectedPlayer = name;
-  selectedPlayerId = playerId;
-
-  updateSelectedInfo(
-    name,
-    0,
-    0,
-    "Bilinmeyen Bölge"
-  );
+  document.getElementById(
+    "selectedText"
+  ).textContent =
+    "Bu senin kolonin.";
 
   attackButton.style.display =
-    "inline-block";
-}
+    "none";
 
+  const moveButton =
+    document.getElementById("moveButton");
+
+  if (moveButton) {
+    moveButton.style.display =
+      "inline-block";
+  }
+
+  selectedPlayer = null;
+  selectedPlayerId = null;
+
+  return;
+}
 function selectPlayerColony(
   colony,
   player,
