@@ -478,36 +478,124 @@ function createPlayerColony(player, index) {
     '</div>';
 
   colony.addEventListener("click", function(event) {
-  event.stopPropagation();
 
-  const info = document.getElementById("info");
-  const selectedName = document.getElementById("selectedName");
-  const selectedText = document.getElementById("selectedText");
-  const attackButton = document.getElementById("attackButton");
+    event.stopPropagation();
 
-  selectedPlayer = player.username;
-  selectedPlayerId = player.player_id;
+    const info =
+      document.getElementById("info");
 
-  selectedName.textContent = player.username;
+    const selectedName =
+      document.getElementById("selectedName");
 
-  selectedText.textContent =
-    player.username +
-    " kolonisini seçtin. Saldırı gönderebilirsin.";
+    const selectedText =
+      document.getElementById("selectedText");
 
-  attackButton.style.display = "inline-block";
-  info.style.display = "block";
+    const attackButton =
+      document.getElementById("attackButton");
 
-  setTimeout(function() {
-    info.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
+    selectedPlayer = player.username;
+    selectedPlayerId = player.player_id;
+
+    selectedName.textContent =
+      player.username;
+
+    /*
+      Koloninin haritadaki gerçek yüzdelik konumu
+      X ve Y koordinatı olarak kullanılıyor.
+    */
+    const x =
+      Math.round(parseFloat(colony.style.left));
+
+    const y =
+      Math.round(parseFloat(colony.style.top));
+
+    /*
+      Haritadaki bölge etiketlerinden en yakın olanı bul.
+    */
+    let regionName = "Bilinmeyen Bölge";
+
+    const regions =
+      document.querySelectorAll(".region");
+
+    let closestDistance = Infinity;
+
+    regions.forEach(function(region) {
+
+      const rect =
+        region.getBoundingClientRect();
+
+      const world =
+        document.querySelector(".world");
+
+      if (!world) {
+        return;
+      }
+
+      const worldRect =
+        world.getBoundingClientRect();
+
+      const centerX =
+        ((rect.left + rect.width / 2 -
+          worldRect.left) /
+          worldRect.width) * 100;
+
+      const centerY =
+        ((rect.top + rect.height / 2 -
+          worldRect.top) /
+          worldRect.height) * 100;
+
+      const distance =
+        Math.sqrt(
+          Math.pow(x - centerX, 2) +
+          Math.pow(y - centerY, 2)
+        );
+
+      if (distance < closestDistance) {
+
+        closestDistance = distance;
+
+        regionName =
+          region.textContent
+            .replace("🏜️", "")
+            .replace("🌲", "")
+            .replace("❄️", "")
+            .replace("⛰️", "")
+            .replace("🌋", "")
+            .replace("🌊", "")
+            .trim();
+      }
     });
-  }, 50);
-});
+
+    selectedText.textContent =
+      player.username +
+      " kolonisini seçtin. " +
+      "Koordinat: X:" +
+      x +
+      " Y:" +
+      y +
+      " | Bölge: " +
+      regionName +
+      ". Saldırı gönderebilirsin.";
+
+    attackButton.style.display =
+      "inline-block";
+
+    info.style.display =
+      "block";
+
+    setTimeout(function() {
+
+      info.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+    }, 50);
+
+  });
 
   return colony;
 }
-
 function escapeHtml(text) {
 
   const div = document.createElement("div");
