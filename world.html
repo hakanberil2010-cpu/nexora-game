@@ -404,7 +404,45 @@ h1 {
     >
       ⚔️ Saldır
     </button>
+    <button
+      class="move"
+      id="moveButton"
+      onclick="openMoveMenu()"
+    >
+      🚚 Taşınma
+    </button>
 
+    <div
+      id="moveMenu"
+      class="move-menu"
+      style="display:none;"
+    >
+      <h3>🚚 Koloni İşlemleri</h3>
+
+      <button onclick="showCoordinates()">
+        📍 Koordinat Bilgisi
+      </button>
+
+      <button onclick="copyCoordinates()">
+        📋 Koordinatı Kopyala
+      </button>
+
+      <button onclick="shareCoordinates()">
+        📤 Koordinatı Paylaş
+      </button>
+
+      <button onclick="moveColony()">
+        🚚 Koloniyi Taşı
+      </button>
+
+      <button onclick="changeCoordinates()">
+        🧭 Koordinat Değiştir
+      </button>
+
+      <button onclick="closeMoveMenu()">
+        ❌ Kapat
+      </button>
+    </div>
   </div>
 
   <a class="back" href="game.html">
