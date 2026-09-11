@@ -607,12 +607,42 @@ function selectPlayerColony(
   const regionName =
     getRegionName(x, y);
 
+  /* Senin koloninin koordinatı */
+  const myX = 25;
+  const myY = 35;
+
+  /* İki koloni arasındaki mesafe */
+  const distance = Math.sqrt(
+    Math.pow(x - myX, 2) +
+    Math.pow(y - myY, 2)
+  );
+
+  const roundedDistance =
+    Math.round(distance);
+
   updateSelectedInfo(
     player.username,
     x,
     y,
     regionName
   );
+
+  /* Mesafe bilgisini açıklamaya ekle */
+  document.getElementById(
+    "selectedText"
+  ).textContent =
+    player.username +
+    " kolonisini seçtin. " +
+    "Koordinat: X:" +
+    x +
+    " Y:" +
+    y +
+    " | Bölge: " +
+    regionName +
+    " | 📏 Mesafe: " +
+    roundedDistance +
+    " km. " +
+    "Saldırı gönderebilirsin.";
 
   document.getElementById(
     "attackButton"
