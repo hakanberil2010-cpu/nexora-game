@@ -513,7 +513,18 @@ function closeMoveMenu() {
 
   alert("📍 Koloni Koordinatı\n\n" + coordinates.trim());
 }
-  
+function copyCoordinates() {
+  const coordinates =
+    document.getElementById("selectedCoordinates").textContent.trim();
+
+  navigator.clipboard.writeText(coordinates)
+    .then(function() {
+      alert("✅ Koordinat kopyalandı:\n\n" + coordinates);
+    })
+    .catch(function() {
+      alert("❌ Koordinat kopyalanamadı.");
+    });
+}  
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
 );
