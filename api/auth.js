@@ -494,6 +494,7 @@ function getBuildingLevel(name) {
 const metalLevel = getBuildingLevel("Metal Madeni");
 const energyLevel = getBuildingLevel("Enerji Santrali");
 const waterLevel = getBuildingLevel("Su Arıtma");
+const crystalLevel = getBuildingLevel("Kristal Madeni");
 
 const now = Date.now();
 const lastProduction = new Date(
@@ -508,7 +509,7 @@ if (elapsedMinutes > 0) {
   const metalGain = metalLevel * 10 * elapsedMinutes;
   const energyGain = energyLevel * 10 * elapsedMinutes;
   const waterGain = waterLevel * 10 * elapsedMinutes;
-  const crystalGain = 2 * elapsedMinutes;
+  const crystalGain = crystalLevel * 5 * elapsedMinutes;
 
   const updatedCityResult = await supabase(
     "cities?id=eq." +
@@ -2124,6 +2125,13 @@ async function upgradeBuilding(req, res) {
       energy: 100,
       water: 50,
       crystal: 25
+    },
+
+    "Kristal Madeni": {
+      metal: 600,
+      energy: 120,
+      water: 40,
+      crystal: 30
     },
 
     "Merkez Bina": {
