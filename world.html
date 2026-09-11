@@ -146,10 +146,16 @@ h1 {
   transition: 0.2s;
 }
 
-.colony:hover { .colony.selected {
+.colony:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  filter: brightness(1.35);
+}
+
+.colony.selected {
   transform: translate(-50%, -50%) scale(1.15);
   filter: brightness(1.5);
   animation: selectedPulse 1.2s infinite;
+  z-index: 20;
 }
 
 @keyframes selectedPulse {
@@ -164,9 +170,6 @@ h1 {
   100% {
     filter: brightness(1.2);
   }
-}
-  transform: translate(-50%, -50%) scale(1.08);
-  filter: brightness(1.35);
 }
 
 .colony-icon {
@@ -212,7 +215,7 @@ h1 {
 
 .info {
   position: relative;
-z-index: 20;
+  z-index: 20;
   margin-top: 20px;
   padding: 20px;
   background: #091b2d;
@@ -225,6 +228,7 @@ z-index: 20;
   margin-top: 0;
   color: #16b9ff;
 }
+
 .colony-details {
   display: flex;
   gap: 12px;
@@ -237,7 +241,7 @@ z-index: 20;
   border: 1px solid #1b5278;
   border-radius: 10px;
   padding: 12px 16px;
-  min-width: 150px;
+  min-width: 170px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -254,6 +258,7 @@ z-index: 20;
   font-weight: bold;
   color: #16b9ff;
 }
+
 .info p {
   color: #9cc6e2;
 }
@@ -272,6 +277,11 @@ z-index: 20;
   background: #ff4d4d;
 }
 
+.attack:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .back {
   display: inline-block;
   margin-top: 25px;
@@ -281,6 +291,30 @@ z-index: 20;
 
 .back:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    padding: 0 15px;
+  }
+
+  .logo {
+    font-size: 22px;
+    letter-spacing: 4px;
+  }
+
+  .container {
+    padding: 0 12px;
+    margin-top: 20px;
+  }
+
+  .world {
+    height: 500px;
+  }
+
+  .detail-box {
+    width: 100%;
+  }
 }
 </style>
 </head>
@@ -314,8 +348,10 @@ z-index: 20;
     <div class="region volcanic">🌋 Volkanik Bölge</div>
     <div class="region ocean">🌊 Okyanus</div>
 
-    <div class="colony you c1"
-         onclick="selectColony('Senin Kolonin', true)">
+    <div
+      class="colony you c1"
+      onclick="selectColony('Senin Kolonin', true)"
+    >
       <div class="colony-icon">🏰</div>
       <div class="colony-name">Senin Kolonin</div>
     </div>
@@ -356,7 +392,14 @@ z-index: 20;
       ⚔️ Saldır
     </button>
 
+  </div>
+
+  <a class="back" href="game.html">
+    ← Koloniye Dön
+  </a>
+
 </div>
+
 <script>
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
@@ -370,22 +413,155 @@ if (savedUser && savedUser.username) {
 let selectedPlayer = null;
 let selectedPlayerId = null;
 
+/*
+  Haritadaki sabit konumlar.
+  Oyuncu ID'sine göre seçildiği için
+  aynı oyuncu aynı koordinatta kalır.
+*/
+const mapPositions = [
+  { x: 18, y: 22 },
+  { x: 42, y: 18 },
+  { x: 68, y: 25 },
+  { x: 82, y: 42 },
+  { x: 60, y: 58 },
+  { x: 32, y: 64 },
+  { x: 15, y: 48 },
+  { x: 45, y: 40 },
+  { x: 75, y: 70 },
+  { x: 25, y: 78 }
+];
+
+/*
+  Koordinata göre bölge belirler.
+  Böylece seçildiğinde kutudaki bölge
+  ile haritadaki konum aynı kalır.
+*/
+function getRegionName(x, y) {
+
+  const regionCenters = [
+    {
+      name: "Çöl Bölgesi",
+      x: 10,
+      y: 18
+    },
+    {
+      name: "Orman Bölgesi",
+      x: 42,
+      y: 12
+    },
+    {
+      name: "Buz Bölgesi",
+      x: 91,
+      y: 17
+    },
+    {
+      name: "Dağ Bölgesi",
+      x: 30,
+      y: 83
+    },
+    {
+      name: "Volkanik Bölge",
+      x: 72,
+      y: 85
+    },
+    {
+      name: "Okyanus",
+      x: 95,
+      y: 55
+    }
+  ];
+
+  let closest = regionCenters[0];
+  let closestDistance = Infinity;
+
+  regionCenters.forEach(function(region) {
+
+    const distance = Math.sqrt(
+      Math.pow(x - region.x, 2) +
+      Math.pow(y - region.y, 2)
+    );
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closest = region;
+    }
+  });
+
+  return closest.name;
+}
+
+function updateSelectedInfo(name, x, y, regionName) {
+
+  const selectedName =
+    document.getElementById("selectedName");
+
+  const selectedText =
+    document.getElementById("selectedText");
+
+  const selectedCoordinates =
+    document.getElementById("selectedCoordinates");
+
+  const selectedRegion =
+    document.getElementById("selectedRegion");
+
+  selectedName.textContent = name;
+
+  selectedCoordinates.textContent =
+    "X:" + x + " Y:" + y;
+
+  selectedRegion.textContent =
+    regionName;
+
+  selectedText.textContent =
+    name +
+    " kolonisini seçtin. " +
+    "Koordinat: X:" +
+    x +
+    " Y:" +
+    y +
+    " | Bölge: " +
+    regionName +
+    ". Saldırı gönderebilirsin.";
+}
+
 function selectColony(name, isMine, playerId = null) {
 
-  const info = document.getElementById("info");
-  const selectedName = document.getElementById("selectedName");
-  const selectedText = document.getElementById("selectedText");
-  const attackButton = document.getElementById("attackButton");
+  const info =
+    document.getElementById("info");
+
+  const attackButton =
+    document.getElementById("attackButton");
 
   info.style.display = "block";
-  selectedName.textContent = name;
+
+  document.querySelectorAll(
+    ".colony.selected"
+  ).forEach(function(colony) {
+    colony.classList.remove("selected");
+  });
 
   if (isMine) {
 
-    selectedText.textContent =
+    document.getElementById(
+      "selectedName"
+    ).textContent = name;
+
+    document.getElementById(
+      "selectedCoordinates"
+    ).textContent = "X:25 Y:35";
+
+    document.getElementById(
+      "selectedRegion"
+    ).textContent =
+      getRegionName(25, 35);
+
+    document.getElementById(
+      "selectedText"
+    ).textContent =
       "Bu senin kolonin. Kendi kolonine saldıramazsın.";
 
-    attackButton.style.display = "none";
+    attackButton.style.display =
+      "none";
 
     selectedPlayer = null;
     selectedPlayerId = null;
@@ -396,38 +572,70 @@ function selectColony(name, isMine, playerId = null) {
   selectedPlayer = name;
   selectedPlayerId = playerId;
 
-  const x = Math.floor(Math.random() * 100) + 1;
-  const y = Math.floor(Math.random() * 100) + 1;
+  updateSelectedInfo(
+    name,
+    0,
+    0,
+    "Bilinmeyen Bölge"
+  );
 
-  const regions = [
-    "Çöl Bölgesi",
-    "Orman Bölgesi",
-    "Buz Bölgesi",
-    "Dağ Bölgesi",
-    "Volkanik Bölge"
-  ];
-
-  const region =
-    regions[Math.floor(Math.random() * regions.length)];
-document.getElementById("selectedCoordinates").textContent =
-  "X:" + x + " Y:" + y;
-
-document.getElementById("selectedRegion").textContent =
-  region;
-  selectedText.textContent =
-    name +
-    " kolonisini seçtin. " +
-    "Koordinat: X:" +
-    x +
-    " Y:" +
-    y +
-    " | Bölge: " +
-    region +
-    ". Saldırı gönderebilirsin.";
-
-  attackButton.style.display = "inline-block";
+  attackButton.style.display =
+    "inline-block";
 }
 
+function selectPlayerColony(
+  colony,
+  player,
+  x,
+  y
+) {
+
+  document.querySelectorAll(
+    ".colony.selected"
+  ).forEach(function(item) {
+    item.classList.remove("selected");
+  });
+
+  colony.classList.add("selected");
+
+  selectedPlayer =
+    player.username;
+
+  selectedPlayerId =
+    player.player_id;
+
+  const regionName =
+    getRegionName(x, y);
+
+  updateSelectedInfo(
+    player.username,
+    x,
+    y,
+    regionName
+  );
+
+  document.getElementById(
+    "attackButton"
+  ).style.display =
+    "inline-block";
+
+  document.getElementById(
+    "info"
+  ).style.display =
+    "block";
+
+  setTimeout(function() {
+
+    document.getElementById(
+      "info"
+    ).scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+
+  }, 50);
+}
+  <script>
 async function attack() {
 
   if (!selectedPlayerId) {
@@ -446,7 +654,8 @@ async function attack() {
     document.getElementById("attackButton");
 
   attackButton.disabled = true;
-  attackButton.textContent = "⚔️ Saldırılıyor...";
+  attackButton.textContent =
+    "⚔️ Saldırılıyor...";
 
   try {
 
@@ -454,19 +663,25 @@ async function attack() {
       "/api/auth?action=attack",
       {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
+          "Authorization":
+            "Bearer " + token
         },
+
         body: JSON.stringify({
-          targetPlayerId: selectedPlayerId
+          targetPlayerId:
+            selectedPlayerId
         })
       }
     );
 
-    const data = await response.json();
+    const data =
+      await response.json();
 
     if (!response.ok || !data.success) {
+
       alert(
         data.message ||
         "Saldırı gerçekleştirilemedi."
@@ -475,15 +690,25 @@ async function attack() {
       return;
     }
 
+    const loot =
+      data.loot || {};
+
     alert(
-      "⚔️ Savaş Sonucu: " + data.result +
-      "\n\nSaldırı Gücü: " + data.attackPower +
-      "\nSavunma Gücü: " + data.defensePower +
+      "⚔️ Savaş Sonucu: " +
+      data.result +
+      "\n\nSaldırı Gücü: " +
+      data.attackPower +
+      "\nSavunma Gücü: " +
+      data.defensePower +
       "\n\nGanimet:" +
-      "\nMetal: " + data.loot.metal +
-      "\nEnerji: " + data.loot.energy +
-      "\nSu: " + data.loot.water +
-      "\nKristal: " + data.loot.crystal
+      "\nMetal: " +
+      (loot.metal || 0) +
+      "\nEnerji: " +
+      (loot.energy || 0) +
+      "\nSu: " +
+      (loot.water || 0) +
+      "\nKristal: " +
+      (loot.crystal || 0)
     );
 
   } catch (error) {
@@ -500,39 +725,52 @@ async function attack() {
   } finally {
 
     attackButton.disabled = false;
-    attackButton.textContent = "⚔️ Saldır";
+    attackButton.textContent =
+      "⚔️ Saldır";
   }
 }
 
-function createPlayerColony(player, index) {
+function createPlayerColony(
+  player,
+  index
+) {
 
-  const colony = document.createElement("div");
+  const colony =
+    document.createElement("div");
 
-  const positions = [
-    { left: "52%", top: "25%" },
-    { left: "72%", top: "32%" },
-    { left: "58%", top: "50%" },
-    { left: "35%", top: "48%" },
-    { left: "78%", top: "65%" },
-    { left: "18%", top: "55%" },
-    { left: "42%", top: "78%" },
-    { left: "68%", top: "80%" }
-  ];
-
+  /*
+    Oyuncu ID'sine göre koordinat seçilir.
+    Böylece oyuncunun sırası değişse bile
+    koordinatı değişmez.
+  */
   const position =
-    positions[index % positions.length];
+    mapPositions[
+      Number(player.player_id) %
+      mapPositions.length
+    ];
 
-  colony.className = "colony";
+  const x = position.x;
+  const y = position.y;
 
-  colony.style.left = position.left;
-  colony.style.top = position.top;
+  colony.className =
+    "colony";
+
+  colony.style.left =
+    x + "%";
+
+  colony.style.top =
+    y + "%";
+
+  colony.style.position =
+    "absolute";
 
   const isMine =
     savedUser &&
-    Number(player.player_id) === Number(savedUser.id);
+    Number(player.player_id) ===
+    Number(savedUser.id);
 
   if (isMine) {
-    return;
+    return null;
   }
 
   colony.innerHTML =
@@ -541,134 +779,31 @@ function createPlayerColony(player, index) {
     escapeHtml(player.username) +
     '</div>';
 
-  colony.addEventListener("click", function(event) {
+  colony.addEventListener(
+    "click",
+    function(event) {
 
-    event.stopPropagation();
+      event.stopPropagation();
 
-    const info =
-      document.getElementById("info");
-
-    const selectedName =
-      document.getElementById("selectedName");
-
-    const selectedText =
-      document.getElementById("selectedText");
-
-    const attackButton =
-      document.getElementById("attackButton");
-document.querySelectorAll(".colony.selected").forEach(function(colony) {
-  colony.classList.remove("selected");
-});
-
-event.currentTarget.classList.add("selected");
-    selectedPlayer = player.username;
-    selectedPlayerId = player.player_id;
-
-    selectedName.textContent =
-      player.username;
-
-    /*
-      Koloninin haritadaki gerçek yüzdelik konumu
-      X ve Y koordinatı olarak kullanılıyor.
-    */
-    const x =
-      Math.round(parseFloat(colony.style.left));
-
-    const y =
-      Math.round(parseFloat(colony.style.top));
-
-    /*
-      Haritadaki bölge etiketlerinden en yakın olanı bul.
-    */
-    let regionName = "Bilinmeyen Bölge";
-
-    const regions =
-      document.querySelectorAll(".region");
-
-    let closestDistance = Infinity;
-
-    regions.forEach(function(region) {
-
-      const rect =
-        region.getBoundingClientRect();
-
-      const world =
-        document.querySelector(".world");
-
-      if (!world) {
-        return;
-      }
-
-      const worldRect =
-        world.getBoundingClientRect();
-
-      const centerX =
-        ((rect.left + rect.width / 2 -
-          worldRect.left) /
-          worldRect.width) * 100;
-
-      const centerY =
-        ((rect.top + rect.height / 2 -
-          worldRect.top) /
-          worldRect.height) * 100;
-
-      const distance =
-        Math.sqrt(
-          Math.pow(x - centerX, 2) +
-          Math.pow(y - centerY, 2)
-        );
-
-      if (distance < closestDistance) {
-
-        closestDistance = distance;
-
-        regionName =
-          region.textContent
-            .replace("🏜️", "")
-            .replace("🌲", "")
-            .replace("❄️", "")
-            .replace("⛰️", "")
-            .replace("🌋", "")
-            .replace("🌊", "")
-            .trim();
-      }
-    });
-
-    selectedText.textContent =
-      player.username +
-      " kolonisini seçtin. " +
-      "Koordinat: X:" +
-      x +
-      " Y:" +
-      y +
-      " | Bölge: " +
-      regionName +
-      ". Saldırı gönderebilirsin.";
-
-    attackButton.style.display =
-      "inline-block";
-
-    info.style.display =
-      "block";
-
-    setTimeout(function() {
-
-      info.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-
-    }, 50);
-
-  });
+      selectPlayerColony(
+        colony,
+        player,
+        x,
+        y
+      );
+    }
+  );
 
   return colony;
 }
+
 function escapeHtml(text) {
 
-  const div = document.createElement("div");
+  const div =
+    document.createElement("div");
 
-  div.textContent = text || "Oyuncu";
+  div.textContent =
+    text || "Oyuncu";
 
   return div.innerHTML;
 }
@@ -676,7 +811,9 @@ function escapeHtml(text) {
 async function loadWorldPlayers() {
 
   const token =
-    localStorage.getItem("nexora_token");
+    localStorage.getItem(
+      "nexora_token"
+    );
 
   if (!token) {
     return;
@@ -684,21 +821,26 @@ async function loadWorldPlayers() {
 
   try {
 
-    const response = await fetch(
-      "/api/auth?action=world",
-      {
-        method: "POST",
-        headers: {
-          "Authorization":
-            "Bearer " + token
+    const response =
+      await fetch(
+        "/api/auth?action=world",
+        {
+          method: "POST",
+
+          headers: {
+            "Authorization":
+              "Bearer " + token
+          }
         }
-      }
-    );
+      );
 
     const data =
       await response.json();
 
-    if (!response.ok || !data.success) {
+    if (
+      !response.ok ||
+      !data.success
+    ) {
       return;
     }
 
@@ -708,64 +850,49 @@ async function loadWorldPlayers() {
     );
 
     const playersContainer =
-      document.getElementById("realPlayers");
+      document.getElementById(
+        "realPlayers"
+      );
 
     if (!playersContainer) {
       return;
     }
 
-    playersContainer.innerHTML = "";
+    playersContainer.innerHTML =
+      "";
 
     const otherPlayers =
-      (data.players || []).filter(function(player) {
+      (data.players || [])
+      .filter(function(player) {
 
         if (!savedUser) {
           return true;
         }
 
-        return Number(player.player_id) !==
-          Number(savedUser.id);
+        return Number(
+          player.player_id
+        ) !== Number(
+          savedUser.id
+        );
       });
 
-    otherPlayers.forEach(function(player, index) {
+    otherPlayers.forEach(
+      function(player, index) {
 
-  const colony =
-    createPlayerColony(player, index);
+        const colony =
+          createPlayerColony(
+            player,
+            index
+          );
 
-  if (colony) {
+        if (colony) {
 
-    const mapPositions = [
-      { x: 18, y: 22 },
-      { x: 42, y: 18 },
-      { x: 68, y: 25 },
-      { x: 82, y: 42 },
-      { x: 60, y: 58 },
-      { x: 32, y: 64 },
-      { x: 15, y: 48 },
-      { x: 45, y: 40 },
-      { x: 75, y: 70 },
-      { x: 25, y: 78 }
-    ];
-
-    const position =
-  mapPositions[
-    Number(player.player_id) % mapPositions.length
-  ];
-
-    colony.style.left =
-      position.x + "%";
-
-    colony.style.top =
-      position.y + "%";
-
-    colony.style.position =
-      "absolute";
-
-    playersContainer.appendChild(
-      colony
+          playersContainer.appendChild(
+            colony
+          );
+        }
+      }
     );
-  }
-});
 
   } catch (error) {
 
