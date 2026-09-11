@@ -1044,15 +1044,29 @@ function formatMissionTime(seconds) {
 function renderMissionPanel(missions) {
   const list = document.getElementById("missionList");
   if (!list) return;
-  if (!missions.length) { list.className = "mission-empty"; list.innerHTML = "Aktif sefer bulunmuyor."; return; }
+  if (!missions.length) {
+    list.className = "mission-empty";
+    list.innerHTML = "Aktif sefer bulunmuyor.";
+    return;
+  }
   list.className = "";
   list.innerHTML = missions.map(function(mission) {
     const title = escapeHtml(mission.targetName || "Hedef Koloni");
     const coords = "X:" + (mission.targetX ?? "-") + " Y:" + (mission.targetY ?? "-");
+
     if (mission.status === "completed") {
       const result = mission.result || {};
-      return '<div class="mission-card"><strong>⚔️ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-result">' + escapeHtml(result.result || "Savaş tamamlandı") + '</div><div class="mission-meta">Sefer tamamlandı.</div></div>';
+      return '<div class="mission-card"><strong>✅ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-result">' + escapeHtml(result.result || "Savaş tamamlandı") + '</div><div class="mission-meta">Ordu üsse döndü.</div></div>';
     }
+
+    if (mission.status === "returning") {
+      return '<div class="mission-card"><strong>↩️ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-time">' + formatMissionTime(mission.remainingSeconds) + '</div><div class="mission-meta">Savaş bitti, ordu geri dönüyor...</div></div>';
+    }
+
+    if (mission.status === "resolving") {
+      return '<div class="mission-card"><strong>⚔️ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-time">00:00</div><div class="mission-meta">Savaş sonucu hesaplanıyor...</div></div>';
+    }
+
     return '<div class="mission-card"><strong>🚀 ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-time">' + formatMissionTime(mission.remainingSeconds) + '</div><div class="mission-meta">Hedefe ilerliyor...</div></div>';
   }).join("");
 }
@@ -1061,23 +1075,46 @@ async function refreshMissionPanel() {
   const token = localStorage.getItem("nexora_token");
   if (!token) return;
   const missions = getSavedMissions();
-  if (!missions.length) { renderMissionPanel([]); return; }
+  if (!missions.length) {
+    renderMissionPanel([]);
+    return;
+  }
+
   const updated = [];
   for (const saved of missions) {
     try {
-      const response = await fetch("/api/auth?action=missionstatus&id=" + encodeURIComponent(saved.id), { method: "POST", headers: { "Authorization": "Bearer " + token } });
+      const response = await fetch(
+        "/api/auth?action=missionstatus&id=" + encodeURIComponent(saved.id),
+        {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token }
+        }
+      );
       const data = await response.json();
       if (!response.ok || !data.success || !data.mission) continue;
+
       const serverMission = data.mission;
-      const merged = { ...saved, id: serverMission.id || saved.id, status: serverMission.status || "traveling", remainingSeconds: Number(serverMission.remainingSeconds ?? saved.remainingSeconds ?? 0), arriveAt: serverMission.arriveAt || saved.arriveAt, result: serverMission.result || saved.result };
+      const merged = {
+        ...saved,
+        id: serverMission.id || saved.id,
+        status: serverMission.status || saved.status || "traveling",
+        remainingSeconds: Number(serverMission.remainingSeconds ?? saved.remainingSeconds ?? 0),
+        arriveAt: serverMission.arriveAt || serverMission.arrive_at || saved.arriveAt,
+        result: serverMission.result || saved.result
+      };
+
       if (merged.status === "completed") {
         const completedAt = Number(saved.completedAt || Date.now());
         merged.completedAt = completedAt;
         if (Date.now() - completedAt > 15000) continue;
       }
+
       updated.push(merged);
-    } catch (error) { updated.push(saved); }
+    } catch (error) {
+      updated.push(saved);
+    }
   }
+
   saveMissions(updated);
   renderMissionPanel(updated);
 }
@@ -1112,13 +1149,10 @@ async function attack() {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + token
       },
-      body: JSON.stringify({
-        targetPlayerId: selectedPlayerId
-      })
+      body: JSON.stringify({ targetPlayerId: selectedPlayerId })
     });
 
     const data = await response.json();
-
     if (!response.ok || !data.success || !data.mission) {
       alert(data.message || "Sefer oluşturulamadı.");
       return;
@@ -1126,20 +1160,22 @@ async function attack() {
 
     const missionId = data.mission.id;
     const arriveAt = new Date(data.mission.arriveAt).getTime();
+    const targetName = (document.getElementById("selectedName") || {}).textContent || "Hedef Koloni";
+    const targetX = Number.isFinite(selectedPlayerX) ? selectedPlayerX : getPlayerPosition(selectedPlayerId).x;
+    const targetY = Number.isFinite(selectedPlayerY) ? selectedPlayerY : getPlayerPosition(selectedPlayerId).y;
+
     upsertSavedMission({
       id: missionId,
       status: "traveling",
       remainingSeconds: Number(data.mission.travelSeconds || 0),
       arriveAt: data.mission.arriveAt,
-      targetName: (document.getElementById("selectedName") || {}).textContent || "Hedef Koloni",
-      targetX: selectedPlayerX,
-      targetY: selectedPlayerY
+      targetName: targetName,
+      targetX: targetX,
+      targetY: targetY
     });
+
     const startX = myCoordinateX;
     const startY = myCoordinateY;
-    const targetX = Number.isFinite(selectedPlayerX) ? selectedPlayerX : getPlayerPosition(selectedPlayerId).x;
-    const targetY = Number.isFinite(selectedPlayerY) ? selectedPlayerY : getPlayerPosition(selectedPlayerId).y;
-
     if (fleetContainer) {
       fleetContainer.innerHTML = "";
       const fleet = document.createElement("div");
@@ -1149,7 +1185,6 @@ async function attack() {
       fleet.style.top = startY + "%";
       fleet.style.transition = "left " + Math.max(1, data.mission.travelSeconds || 1) + "s linear, top " + Math.max(1, data.mission.travelSeconds || 1) + "s linear";
       fleetContainer.appendChild(fleet);
-
       setTimeout(function() {
         fleet.style.left = targetX + "%";
         fleet.style.top = targetY + "%";
@@ -1166,9 +1201,7 @@ async function attack() {
         "/api/auth?action=missionstatus&id=" + encodeURIComponent(missionId),
         {
           method: "POST",
-          headers: {
-            "Authorization": "Bearer " + token
-          }
+          headers: { "Authorization": "Bearer " + token }
         }
       );
 
@@ -1178,39 +1211,64 @@ async function attack() {
         return;
       }
 
-      if (statusData.mission && statusData.mission.status === "completed") {
-        const result = statusData.mission.result || {};
-        const loot = result.loot || {};
+      const serverMission = statusData.mission || {};
+      if (serverMission.status === "returning") {
+        const returnAt = new Date(serverMission.arriveAt || serverMission.arrive_at).getTime();
+        upsertSavedMission({
+          id: missionId,
+          status: "returning",
+          remainingSeconds: Number(serverMission.remainingSeconds || Math.max(0, Math.ceil((returnAt - Date.now()) / 1000))),
+          arriveAt: serverMission.arriveAt || serverMission.arrive_at,
+          targetName: targetName,
+          targetX: targetX,
+          targetY: targetY,
+          result: serverMission.result || null
+        });
+        attackButton.textContent = "↩️ Ordu geri dönüyor...";
         if (fleetContainer) {
-          fleetContainer.innerHTML = "";
+          const fleet = fleetContainer.querySelector(".attack-fleet");
+          if (fleet) {
+            fleet.style.left = startX + "%";
+            fleet.style.top = startY + "%";
+            fleet.style.transition = "left " + Math.max(1, Number(serverMission.remainingSeconds || 10)) + "s linear, top " + Math.max(1, Number(serverMission.remainingSeconds || 10)) + "s linear";
+          }
         }
+      }
 
+      if (serverMission.status === "completed") {
+        const result = serverMission.result || {};
+        const loot = result.loot || {};
         upsertSavedMission({
           id: missionId,
           status: "completed",
           remainingSeconds: 0,
-          targetName: (document.getElementById("selectedName") || {}).textContent || "Hedef Koloni",
+          targetName: targetName,
           targetX: targetX,
           targetY: targetY,
           result: result,
           completedAt: Date.now()
         });
 
+        if (fleetContainer) {
+          fleetContainer.innerHTML = "";
+        }
+
         alert(
           "⚔️ Savaş Sonucu: " + (result.result || "Tamamlandı") + "\n\n" +
-          "Saldırı Gücü: " + (result.attackPower || statusData.mission.attack_power || 0) + "\n" +
+          "Saldırı Gücü: " + (result.attackPower || serverMission.attack_power || 0) + "\n" +
           "Savunma Gücü: " + (result.defensePower || 0) + "\n\n" +
           "Ganimet:\n" +
           "Metal: " + (loot.metal || 0) + "\n" +
           "Enerji: " + (loot.energy || 0) + "\n" +
           "Su: " + (loot.water || 0) + "\n" +
-          "Kristal: " + (loot.crystal || 0)
+          "Kristal: " + (loot.crystal || 0) + "\n\n" +
+          "Hayatta kalan birlikler üsse dönüş yolunda."
         );
         return;
       }
 
       await new Promise(function(resolve) {
-        setTimeout(resolve, remaining > 0 ? 1000 : 500);
+        setTimeout(resolve, 1000);
       });
     }
   } catch (error) {
@@ -1235,11 +1293,8 @@ function createPlayerColony(
   const savedY = Number(player.coordinate_y);
 
   const hasRealCoordinates =
-    Number.isFinite(savedX) &&
-    Number.isFinite(savedY) &&
-    savedX >= 1 && savedX <= 100 &&
-    savedY >= 1 && savedY <= 100 &&
-    !(savedX === 25 && savedY === 35);
+    Number.isFinite(savedX) && Number.isFinite(savedY) &&
+    savedX >= 1 && savedX <= 100 && savedY >= 1 && savedY <= 100;
 
   const fallbackPosition =
     getPlayerPosition(player.player_id);
