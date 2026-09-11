@@ -703,7 +703,9 @@ async function loadWorldPlayers() {
     ];
 
     const position =
-      mapPositions[index % mapPositions.length];
+  mapPositions[
+    Number(player.player_id) % mapPositions.length
+  ];
 
     colony.style.left =
       position.x + "%";
