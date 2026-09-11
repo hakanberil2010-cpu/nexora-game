@@ -54,9 +54,29 @@ h1 {
   margin-bottom: 30px;
 }
 
+.resources {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.resources > div {
+  background: #091a2c;
+  border: 1px solid #173b5d;
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: #9fc0df;
+}
+
+.resources span {
+  color: #ffffff;
+  font-weight: bold;
+}
+
 .army-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
 }
 
@@ -87,6 +107,46 @@ h1 {
   margin-bottom: 18px;
 }
 
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.stat {
+  background: #071526;
+  border: 1px solid #16344f;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: #7196b8;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.level {
+  color: #18bfff;
+  font-size: 17px;
+  font-weight: bold;
+  margin: 8px 0 14px;
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 button {
   width: 100%;
   padding: 12px;
@@ -103,11 +163,47 @@ button:hover {
   background: #18bfff;
 }
 
+.upgrade-button {
+  background: #1b8f59;
+}
+
+.upgrade-button:hover {
+  background: #26b86f;
+}
+
+.upgrade-button:disabled {
+  background: #244735;
+  color: #81988b;
+  cursor: not-allowed;
+}
+
+.message {
+  min-height: 20px;
+  margin: 0 0 18px;
+  color: #8bdcff;
+}
+
 .back {
   display: inline-block;
   margin-top: 30px;
   color: #18bfff;
   text-decoration: none;
+}
+
+@media (max-width: 800px) {
+  .resources {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .resources {
+    grid-template-columns: 1fr;
+  }
+
+  .button-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
 </head>
@@ -125,14 +221,18 @@ button:hover {
 
   <h1>⚔️ Ordu</h1>
   <p class="subtitle">
-    Askeri birliklerini üret ve kolonini savun.
+    Askeri birliklerini üret, seviyelerini yükselt ve kolonini güçlendir.
   </p>
-<div class="resources">
-  <div>🪨 Metal: <span id="metal">0</span></div>
-  <div>⚡ Enerji: <span id="energy">0</span></div>
-  <div>💧 Su: <span id="water">0</span></div>
-  <div>💎 Kristal: <span id="crystal">0</span></div>
-</div>
+
+  <div class="resources">
+    <div>🪨 Metal: <span id="metal">0</span></div>
+    <div>⚡ Enerji: <span id="energy">0</span></div>
+    <div>💧 Su: <span id="water">0</span></div>
+    <div>💎 Kristal: <span id="crystal">0</span></div>
+  </div>
+
+  <div class="message" id="message"></div>
+
   <div class="army-grid">
 
     <div class="card">
@@ -140,17 +240,48 @@ button:hover {
       <h2>Piyade</h2>
       <p>Temel kara birlikleri.</p>
 
+      <div class="level">
+        Seviye: <span id="infantryLevel">1</span> / 15
+      </div>
+
       <div class="quantity">
         Asker: <span id="infantry">0</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Saldırı</span>
+          <span class="stat-value" id="infantryAttack">100</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Savunma</span>
+          <span class="stat-value" id="infantryDefense">100</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">HP</span>
+          <span class="stat-value" id="infantryHp">100</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Hız</span>
+          <span class="stat-value" id="infantrySpeed">100</span>
+        </div>
       </div>
 
       <div class="cost">
         Üretim maliyeti: 100 Metal + 20 Enerji
       </div>
 
-      <button onclick="produceUnit('Piyade')">
-        Piyade Üret
-      </button>
+      <div class="button-row">
+        <button onclick="produceUnit('Piyade')">
+          Piyade Üret
+        </button>
+        <button
+          class="upgrade-button"
+          id="infantryUpgrade"
+          onclick="upgradeUnit('piyade')">
+          Seviyeyi Yükselt
+        </button>
+      </div>
     </div>
 
     <div class="card">
@@ -158,17 +289,48 @@ button:hover {
       <h2>Savunma Birliği</h2>
       <p>Koloniyi savunmak için güçlü birlikler.</p>
 
+      <div class="level">
+        Seviye: <span id="defenderLevel">1</span> / 15
+      </div>
+
       <div class="quantity">
         Asker: <span id="defender">0</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Saldırı</span>
+          <span class="stat-value" id="defenderAttack">70</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Savunma</span>
+          <span class="stat-value" id="defenderDefense">140</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">HP</span>
+          <span class="stat-value" id="defenderHp">120</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Hız</span>
+          <span class="stat-value" id="defenderSpeed">90</span>
+        </div>
       </div>
 
       <div class="cost">
         Üretim maliyeti: 150 Metal + 40 Enerji
       </div>
 
-      <button onclick="produceUnit('Savunma Birliği')">
-        Savunma Birliği Üret
-      </button>
+      <div class="button-row">
+        <button onclick="produceUnit('Savunma Birliği')">
+          Savunma Birliği Üret
+        </button>
+        <button
+          class="upgrade-button"
+          id="defenderUpgrade"
+          onclick="upgradeUnit('savunma')">
+          Seviyeyi Yükselt
+        </button>
+      </div>
     </div>
 
     <div class="card">
@@ -176,17 +338,48 @@ button:hover {
       <h2>Saldırı Birliği</h2>
       <p>Düşman kolonilerine saldırmak için.</p>
 
+      <div class="level">
+        Seviye: <span id="attackerLevel">1</span> / 15
+      </div>
+
       <div class="quantity">
         Asker: <span id="attacker">0</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Saldırı</span>
+          <span class="stat-value" id="attackerAttack">150</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Savunma</span>
+          <span class="stat-value" id="attackerDefense">70</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">HP</span>
+          <span class="stat-value" id="attackerHp">100</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Hız</span>
+          <span class="stat-value" id="attackerSpeed">110</span>
+        </div>
       </div>
 
       <div class="cost">
         Üretim maliyeti: 200 Metal + 75 Enerji
       </div>
 
-      <button onclick="produceUnit('Saldırı Birliği')">
-        Saldırı Birliği Üret
-      </button>
+      <div class="button-row">
+        <button onclick="produceUnit('Saldırı Birliği')">
+          Saldırı Birliği Üret
+        </button>
+        <button
+          class="upgrade-button"
+          id="attackerUpgrade"
+          onclick="upgradeUnit('saldiri')">
+          Seviyeyi Yükselt
+        </button>
+      </div>
     </div>
 
   </div>
@@ -210,6 +403,101 @@ if (savedUser) {
     document.getElementById("playerName").textContent = savedUser;
   }
 }
+
+const unitDefaults = {
+  piyade: {
+    level: 1,
+    attack: 100,
+    defense: 100,
+    hp: 100,
+    speed: 100
+  },
+  savunma: {
+    level: 1,
+    attack: 70,
+    defense: 140,
+    hp: 120,
+    speed: 90
+  },
+  saldiri: {
+    level: 1,
+    attack: 150,
+    defense: 70,
+    hp: 100,
+    speed: 110
+  }
+};
+
+function setUnitUI(type, unit) {
+  const data = unit || unitDefaults[type];
+
+  const ids = {
+    piyade: {
+      quantity: "infantry",
+      level: "infantryLevel",
+      attack: "infantryAttack",
+      defense: "infantryDefense",
+      hp: "infantryHp",
+      speed: "infantrySpeed",
+      upgrade: "infantryUpgrade"
+    },
+    savunma: {
+      quantity: "defender",
+      level: "defenderLevel",
+      attack: "defenderAttack",
+      defense: "defenderDefense",
+      hp: "defenderHp",
+      speed: "defenderSpeed",
+      upgrade: "defenderUpgrade"
+    },
+    saldiri: {
+      quantity: "attacker",
+      level: "attackerLevel",
+      attack: "attackerAttack",
+      defense: "attackerDefense",
+      hp: "attackerHp",
+      speed: "attackerSpeed",
+      upgrade: "attackerUpgrade"
+    }
+  };
+
+  const map = ids[type];
+
+  document.getElementById(map.quantity).textContent =
+    unit ? Number(unit.quantity || 0) : 0;
+
+  document.getElementById(map.level).textContent =
+    Number(data.level || 1);
+
+  document.getElementById(map.attack).textContent =
+    Number(data.attack || 0);
+
+  document.getElementById(map.defense).textContent =
+    Number(data.defense || 0);
+
+  document.getElementById(map.hp).textContent =
+    Number(data.hp || 0);
+
+  document.getElementById(map.speed).textContent =
+    Number(data.speed || 0);
+
+  const button = document.getElementById(map.upgrade);
+
+  if (button) {
+    if (Number(data.level || 1) >= 15) {
+      button.disabled = true;
+      button.textContent = "Maksimum Seviye";
+    } else {
+      button.disabled = false;
+      button.textContent = "Seviyeyi Yükselt";
+    }
+  }
+}
+
+function showMessage(text) {
+  document.getElementById("message").textContent = text || "";
+}
+
 async function loadResources() {
   const token = localStorage.getItem("nexora_token");
 
@@ -242,28 +530,25 @@ async function loadResources() {
 
     document.getElementById("crystal").textContent =
       data.city.crystal;
-const units = data.units || [];
 
-const infantry = units.find(function(item) {
-  return item.unit_type === "piyade";
-});
+    const units = data.units || [];
 
-const defender = units.find(function(item) {
-  return item.unit_type === "savunma";
-});
+    const infantry = units.find(function(item) {
+      return item.unit_type === "piyade";
+    });
 
-const attacker = units.find(function(item) {
-  return item.unit_type === "saldiri";
-});
+    const defender = units.find(function(item) {
+      return item.unit_type === "savunma";
+    });
 
-document.getElementById("infantry").textContent =
-  infantry ? infantry.quantity : 0;
+    const attacker = units.find(function(item) {
+      return item.unit_type === "saldiri";
+    });
 
-document.getElementById("defender").textContent =
-  defender ? defender.quantity : 0;
+    setUnitUI("piyade", infantry);
+    setUnitUI("savunma", defender);
+    setUnitUI("saldiri", attacker);
 
-document.getElementById("attacker").textContent =
-  attacker ? attacker.quantity : 0;
   } catch (error) {
     console.error(error);
   }
@@ -271,6 +556,7 @@ document.getElementById("attacker").textContent =
 
 loadResources();
 setInterval(loadResources, 60000);
+
 async function produceUnit(unit) {
   const token = localStorage.getItem("nexora_token");
 
@@ -311,21 +597,64 @@ async function produceUnit(unit) {
       return;
     }
 
-    
+    showMessage(data.message || "Birlik üretildi.");
 
-    if (unitType === "piyade") {
-      document.getElementById("infantry").textContent =
-        data.unit.quantity;
+    setUnitUI(unitType, data.unit);
+
+    document.getElementById("metal").textContent =
+      data.city.metal;
+
+    document.getElementById("energy").textContent =
+      data.city.energy;
+
+  } catch (error) {
+    console.error(error);
+    alert("Sunucuya bağlanırken hata oluştu.");
+  }
+}
+
+async function upgradeUnit(unitType) {
+  const token = localStorage.getItem("nexora_token");
+
+  if (!token) {
+    alert("Oturum bulunamadı. Lütfen tekrar giriş yap.");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth?action=upgradeunit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({
+        unitType: unitType
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert(data.message || "Birlik seviyesi yükseltilemedi.");
+      return;
     }
 
-    if (unitType === "savunma") {
-      document.getElementById("defender").textContent =
-        data.unit.quantity;
+    showMessage(data.message || "Birlik seviyesi yükseltildi.");
+
+    if (data.unit) {
+      setUnitUI(unitType, data.unit);
     }
 
-    if (unitType === "saldiri") {
-      document.getElementById("attacker").textContent =
-        data.unit.quantity;
+    if (data.city) {
+      document.getElementById("metal").textContent =
+        data.city.metal;
+      document.getElementById("energy").textContent =
+        data.city.energy;
+      document.getElementById("water").textContent =
+        data.city.water;
+      document.getElementById("crystal").textContent =
+        data.city.crystal;
     }
 
   } catch (error) {
