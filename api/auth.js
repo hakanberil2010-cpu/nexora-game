@@ -3101,7 +3101,7 @@ async function getWorldPlayers(req, res) {
   }
 
   const citiesResult = await supabase(
-    "cities?select=id,player_id,name,level"
+  "cities?select=id,player_id,name,level,coordinate_x,coordinate_y"
   );
 
   if (!citiesResult.ok) {
@@ -3138,7 +3138,9 @@ async function getWorldPlayers(req, res) {
       username: playerMap[city.player_id] || "Oyuncu",
       name: city.name,
       level: city.level
-    };
+       coordinate_x: Number(city.coordinate_x || 25),
+  coordinate_y: Number(city.coordinate_y || 35)
+};
   });
 
   return send(res, 200, {
