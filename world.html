@@ -553,6 +553,32 @@ function copyCoordinates() {
     "kolonini haritada başka bir konuma taşıyabileceksin."
   );
 }
+  function changeCoordinates() {
+  const newX = prompt("Yeni X koordinatını gir:");
+  const newY = prompt("Yeni Y koordinatını gir:");
+
+  if (newX === null || newY === null) {
+    return;
+  }
+
+  if (
+    newX === "" ||
+    newY === "" ||
+    isNaN(newX) ||
+    isNaN(newY)
+  ) {
+    alert("❌ Geçerli koordinat girin.");
+    return;
+  }
+
+  alert(
+    "📍 Yeni koordinat:\n\nX:" +
+    newX +
+    " Y:" +
+    newY +
+    "\n\nTaşınma sistemi henüz aktif değil."
+  );
+}
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
 );
