@@ -670,10 +670,14 @@ function selectColony(name, isMine, playerId = null) {
 
     updateSelectedInfo(
       name,
-      25,
-      35,
-      getRegionName(25, 35),
-      "Bu senin kolonin."
+      myCoordinateX,
+      myCoordinateY,
+      getRegionName(myCoordinateX, myCoordinateY),
+      "Bu senin kolonin. 📍 Koordinat: X:" +
+        myCoordinateX +
+        " Y:" +
+        myCoordinateY +
+        "."
     );
 
     attackButton.style.display = "none";
@@ -739,8 +743,8 @@ function selectPlayerColony(
 
   const regionName = getRegionName(x, y);
 
-  const myX = 25;
-  const myY = 35;
+  const myX = myCoordinateX;
+  const myY = myCoordinateY;
 
   const distance = Math.sqrt(
     Math.pow(x - myX, 2) +
@@ -896,18 +900,8 @@ function shareCoordinates() {
   );
 }
 
-/*
-  Bu aşamada gerçek taşınma yapmıyoruz.
-  Menü ve buton hazır; gerçek hareket sistemi
-  sonraki aşamada bağlanacak.
-*/
 function moveColony() {
-  alert(
-    "🚚 Koloni Taşıma\n\n" +
-    "Taşınma sistemi hazırlanıyor.\n\n" +
-    "Bir sonraki aşamada haritada boş bir koordinat " +
-    "seçip kolonini oraya taşıyacağız."
-  );
+  changeCoordinates();
 }
 
 async function changeCoordinates() {
@@ -967,6 +961,39 @@ async function changeCoordinates() {
       return;
     }
 
+    myCoordinateX = x;
+    myCoordinateY = y;
+
+    const ownColony =
+      document.querySelector(".colony.you");
+
+    if (ownColony) {
+      ownColony.style.left =
+        myCoordinateX + "%";
+      ownColony.style.top =
+        myCoordinateY + "%";
+    }
+
+    const selectedCoordinates =
+      document.getElementById("selectedCoordinates");
+
+    if (selectedCoordinates) {
+      selectedCoordinates.textContent =
+        "X:" + myCoordinateX +
+        " Y:" + myCoordinateY;
+    }
+
+    const selectedRegion =
+      document.getElementById("selectedRegion");
+
+    if (selectedRegion) {
+      selectedRegion.textContent =
+        getRegionName(
+          myCoordinateX,
+          myCoordinateY
+        );
+    }
+
     alert(
       "✅ Koloni taşındı!\n\n" +
       "Yeni koordinat: X:" +
@@ -975,7 +1002,7 @@ async function changeCoordinates() {
       y
     );
 
-    location.reload();
+    closeMoveMenu();
 
   } catch (error) {
     console.error(
@@ -1014,8 +1041,8 @@ async function attack() {
   const targetX = targetPosition.x;
   const targetY = targetPosition.y;
 
-  const myX = 25;
-  const myY = 35;
+  const myX = myCoordinateX;
+  const myY = myCoordinateY;
 
   const distance = Math.sqrt(
     Math.pow(targetX - myX, 2) +
@@ -1303,8 +1330,9 @@ async function loadWorldPlayers() {
   }
 }
 
-loadWorldPlayers();
-  loadMyCoordinates();
+loadMyCoordinates().then(function() {
+  loadWorldPlayers();
+});
 </script>
 </body>
 </html>
