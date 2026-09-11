@@ -507,6 +507,13 @@ function closeMoveMenu() {
     menu.style.display = "none";
   }
 }
+  function showCoordinates() {
+  const coordinates =
+    document.getElementById("selectedCoordinates").textContent;
+
+  alert("📍 Koloni Koordinatı\n\n" + coordinates.trim());
+}
+  
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
 );
