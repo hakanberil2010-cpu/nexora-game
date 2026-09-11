@@ -336,8 +336,30 @@ function selectColony(name, isMine, playerId = null) {
   selectedPlayer = name;
   selectedPlayerId = playerId;
 
+  const x = Math.floor(Math.random() * 100) + 1;
+  const y = Math.floor(Math.random() * 100) + 1;
+
+  const regions = [
+    "Çöl Bölgesi",
+    "Orman Bölgesi",
+    "Buz Bölgesi",
+    "Dağ Bölgesi",
+    "Volkanik Bölge"
+  ];
+
+  const region =
+    regions[Math.floor(Math.random() * regions.length)];
+
   selectedText.textContent =
-    name + " kolonisini seçtin. Saldırı gönderebilirsin.";
+    name +
+    " kolonisini seçtin. " +
+    "Koordinat: X:" +
+    x +
+    " Y:" +
+    y +
+    " | Bölge: " +
+    region +
+    ". Saldırı gönderebilirsin.";
 
   attackButton.style.display = "inline-block";
 }
