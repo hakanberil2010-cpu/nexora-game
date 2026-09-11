@@ -1469,35 +1469,14 @@ async function upgradeResearch(req, res) {
       metal: 800,
       energy: 250,
       crystal: 60
-    },
-    general_power: {
-      metal: 1000,
-      energy: 300,
-      crystal: 50
-    },
-    unit_attack: {
-      metal: 900,
-      energy: 250,
-      crystal: 45
-    },
-    unit_defense: {
-      metal: 850,
-      energy: 250,
-      crystal: 45
-    },
-    unit_hp: {
-      metal: 950,
-      energy: 275,
-      crystal: 50
-    },
-    travel_speed: {
-      metal: 1200,
-      energy: 350,
-      crystal: 65
     }
   };
 
-  const cost = costs[researchType];
+  const baseCost = costs[researchType] || {
+    metal: 1000,
+    energy: 300,
+    crystal: 50
+  };
 
   const cityResult = await supabase(
     "cities?select=*&player_id=eq." +
@@ -1518,17 +1497,6 @@ async function upgradeResearch(req, res) {
 
   const city = cityResult.data[0];
 
-  if (
-    Number(city.metal) < cost.metal ||
-    Number(city.energy) < cost.energy ||
-    Number(city.crystal) < cost.crystal
-  ) {
-    return send(res, 400, {
-      success: false,
-      message: "Yeterli kaynak yok."
-    });
-  }
-
   const researchResult = await supabase(
     "research?select=*&player_id=eq." +
       encodeURIComponent(playerId) +
@@ -1544,10 +1512,7 @@ async function upgradeResearch(req, res) {
 
   let research;
 
-  if (
-    !researchResult.data ||
-    researchResult.data.length === 0
-  ) {
+  if (!researchResult.data || researchResult.data.length === 0) {
     const createResearch = await supabase(
       "research",
       {
@@ -1573,13 +1538,30 @@ async function upgradeResearch(req, res) {
     research = researchResult.data[0];
   }
 
-  const currentLevel =
-    Number(research[column] || 0);
+  const currentLevel = Math.max(0, Number(research[column]) || 0);
 
   if (currentLevel >= 15) {
     return send(res, 400, {
       success: false,
       message: "Bu araştırma zaten 15. seviyede."
+    });
+  }
+
+  const costMultiplier = Math.max(1, currentLevel + 1);
+  const cost = {
+    metal: Math.round(Number(baseCost.metal) * costMultiplier),
+    energy: Math.round(Number(baseCost.energy) * costMultiplier),
+    crystal: Math.round(Number(baseCost.crystal) * costMultiplier)
+  };
+
+  if (
+    Number(city.metal) < cost.metal ||
+    Number(city.energy) < cost.energy ||
+    Number(city.crystal) < cost.crystal
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Yeterli kaynak yok."
     });
   }
 
@@ -1967,12 +1949,7 @@ async function getResearch(req, res) {
           production_level: 0,
           combat_level: 0,
           defense_level: 0,
-          crystal_level: 0,
-          general_power_level: 0,
-          unit_attack_level: 0,
-          unit_defense_level: 0,
-          unit_hp_level: 0,
-          travel_speed_level: 0
+          crystal_level: 0
         })
       }
     );
@@ -2182,19 +2159,6 @@ async function upgradeBuilding(req, res) {
   }
 
   const city = cityResult.data[0];
-  const cost = costs[buildingType];
-
-  if (
-    city.metal < cost.metal ||
-    city.energy < cost.energy ||
-    city.water < cost.water ||
-    city.crystal < cost.crystal
-  ) {
-    return send(res, 400, {
-      success: false,
-      message: "Yeterli kaynak bulunmuyor."
-    });
-  }
 
   const buildingResult = await supabase(
     "buildings?select=*&city_id=eq." +
@@ -2212,12 +2176,35 @@ async function upgradeBuilding(req, res) {
   }
 
   let building;
+  let cost;
 
   if (
     buildingResult.data &&
     buildingResult.data.length > 0
   ) {
     building = buildingResult.data[0];
+
+    const currentBuildingLevel = Math.max(1, Number(building.level) || 1);
+    const baseBuildingCost = costs[buildingType];
+    cost = {
+      metal: Math.round(baseBuildingCost.metal * currentBuildingLevel),
+      energy: Math.round(baseBuildingCost.energy * currentBuildingLevel),
+      water: Math.round(baseBuildingCost.water * currentBuildingLevel),
+      crystal: Math.round(baseBuildingCost.crystal * currentBuildingLevel)
+    };
+
+    if (
+      Number(city.metal) < cost.metal ||
+      Number(city.energy) < cost.energy ||
+      Number(city.water) < cost.water ||
+      Number(city.crystal) < cost.crystal
+    ) {
+      return send(res, 400, {
+        success: false,
+        message: "Yeterli kaynak bulunmuyor.",
+        cost: cost
+      });
+    }
 
     const updateBuilding = await supabase(
       "buildings?id=eq." +
@@ -2242,6 +2229,27 @@ async function upgradeBuilding(req, res) {
 
     building = updateBuilding.data[0];
   } else {
+    const baseBuildingCost = costs[buildingType];
+    cost = {
+      metal: Number(baseBuildingCost.metal),
+      energy: Number(baseBuildingCost.energy),
+      water: Number(baseBuildingCost.water),
+      crystal: Number(baseBuildingCost.crystal)
+    };
+
+    if (
+      Number(city.metal) < cost.metal ||
+      Number(city.energy) < cost.energy ||
+      Number(city.water) < cost.water ||
+      Number(city.crystal) < cost.crystal
+    ) {
+      return send(res, 400, {
+        success: false,
+        message: "Yeterli kaynak bulunmuyor.",
+        cost: cost
+      });
+    }
+
     const createBuilding = await supabase(
       "buildings",
       {
