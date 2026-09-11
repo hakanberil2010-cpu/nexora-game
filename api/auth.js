@@ -2982,7 +2982,101 @@ async function upgradeBuilding(req, res) {
     building: building
   });
 }
+async function moveColony(req, res) {
+  const authHeader = String(
+    req.headers.authorization || ""
+  );
 
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const body = await readBody(req);
+
+  const x = Number(body.x);
+  const y = Number(body.y);
+
+  if (
+    !Number.isInteger(x) ||
+    !Number.isInteger(y) ||
+    x < 1 ||
+    x > 100 ||
+    y < 1 ||
+    y > 100
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Koordinatlar 1-100 arasında olmalı."
+    });
+  }
+
+  const cityResult = await supabase(
+    "cities?select=id,player_id,coordinate_x,coordinate_y&player_id=eq." +
+      encodeURIComponent(decoded.id) +
+      "&limit=1"
+  );
+
+  if (
+    !cityResult.ok ||
+    !cityResult.data ||
+    !cityResult.data[0]
+  ) {
+    return send(res, 404, {
+      success: false,
+      message: "Koloni bulunamadı."
+    });
+  }
+
+  const city = cityResult.data[0];
+
+  const updateResult = await supabase(
+    "cities?id=eq." +
+      encodeURIComponent(city.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        coordinate_x: x,
+        coordinate_y: y
+      })
+    }
+  );
+
+  if (!updateResult.ok) {
+    console.error(
+      "Koloni taşıma hatası:",
+      updateResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Koloni taşınamadı."
+    });
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: "Koloni başarıyla taşındı.",
+    x: x,
+    y: y,
+    city: updateResult.data[0]
+  });
+}
 async function getWorldPlayers(req, res) {
   const authHeader = req.headers.authorization || "";
 
