@@ -1049,84 +1049,74 @@ async function attackPlayer(req, res) {
     return Math.min(quantity, Math.max(1, loss));
   }
 
-  const infantryUnit = getUnit(attackerUnits, "piyade");
-  const attackUnit = getUnit(attackerUnits, "saldiri");
-  const defenseUnit = getUnit(targetUnits, "savunma");
-
-  const infantry = infantryUnit ? Number(infantryUnit.quantity) : 0;
-  const attackUnits = attackUnit ? Number(attackUnit.quantity) : 0;
-  const defenseUnits = defenseUnit ? Number(defenseUnit.quantity) : 0;
-
-  const attackerResearchResult = await supabase(
-    "research?select=combat_level&player_id=eq." +
-      encodeURIComponent(decoded.id) +
-      "&limit=1"
+  const infantry = getUnitCount(
+    attackerUnits,
+    "piyade"
   );
 
-  const defenderResearchResult = await supabase(
-    "research?select=defense_level&player_id=eq." +
-      encodeURIComponent(targetPlayerId) +
-      "&limit=1"
+  const attackUnits = getUnitCount(
+    attackerUnits,
+    "saldiri"
   );
 
-  if (!attackerResearchResult.ok || !defenderResearchResult.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "Araştırma seviyeleri alınamadı."
-    });
-  }
-
-  const attackerCombatLevel =
-    attackerResearchResult.data && attackerResearchResult.data[0]
-      ? Number(attackerResearchResult.data[0].combat_level || 0)
-      : 0;
-
-  const defenderDefenseLevel =
-    defenderResearchResult.data && defenderResearchResult.data[0]
-      ? Number(defenderResearchResult.data[0].defense_level || 0)
-      : 0;
-
-  const attackMultiplier = 1 + attackerCombatLevel * 0.10;
-  const defenseMultiplier = 1 + defenderDefenseLevel * 0.10;
-
-  function getAttackPower(unit) {
-    if (!unit) {
-      return 0;
-    }
-
-    const quantity = Number(unit.quantity) || 0;
-    const attack = Number(unit.attack) || 0;
-
-    return quantity * attack;
-  }
-
-  function getDefensePower(unit) {
-    if (!unit) {
-      return 0;
-    }
-
-    const quantity = Number(unit.quantity) || 0;
-    const defense = Number(unit.defense) || 0;
-
-    return quantity * defense;
-  }
-
-  const totalBaseAttack =
-    getAttackPower(infantryUnit) +
-    getAttackPower(attackUnit);
-
-  const totalBaseDefense =
-    getDefensePower(infantryUnit) +
-    getDefensePower(defenseUnit) +
-    getDefensePower(attackUnit);
-
-  const totalAttackPower = Math.round(
-    totalBaseAttack * attackMultiplier
+  const defenseUnits = getUnitCount(
+    targetUnits,
+    "savunma"
   );
+const attackerResearchResult = await supabase(
+  "research?select=combat_level&player_id=eq." +
+    encodeURIComponent(decoded.id) +
+    "&limit=1"
+);
 
-  const totalDefensePower = Math.round(
-    totalBaseDefense * defenseMultiplier
-  );
+const defenderResearchResult = await supabase(
+  "research?select=defense_level&player_id=eq." +
+    encodeURIComponent(targetPlayerId) +
+    "&limit=1"
+);
+
+if (
+  !attackerResearchResult.ok ||
+  !defenderResearchResult.ok
+) {
+  return send(res, 500, {
+    success: false,
+    message: "Araştırma seviyeleri alınamadı."
+  });
+}
+
+const attackerCombatLevel =
+  attackerResearchResult.data &&
+  attackerResearchResult.data[0]
+    ? Number(
+        attackerResearchResult.data[0].combat_level || 0
+      )
+    : 0;
+
+const defenderDefenseLevel =
+  defenderResearchResult.data &&
+  defenderResearchResult.data[0]
+    ? Number(
+        defenderResearchResult.data[0].defense_level || 0
+      )
+    : 0;
+
+const attackMultiplier =
+  1 + attackerCombatLevel * 0.10;
+
+const defenseMultiplier =
+  1 + defenderDefenseLevel * 0.10;
+
+const totalAttackPower = Math.round(
+  (
+    infantry * 1 +
+    attackUnits * 3
+  ) * attackMultiplier
+);
+
+const totalDefensePower = Math.round(
+  defenseUnits * 2 * defenseMultiplier
+);
 
   if (totalAttackPower <= 0) {
     return send(res, 400, {
@@ -1442,7 +1432,12 @@ async function upgradeResearch(req, res) {
     production: "production_level",
     combat: "combat_level",
     defense: "defense_level",
-    crystal: "crystal_level"
+    crystal: "crystal_level",
+    general_power: "general_power_level",
+    unit_attack: "unit_attack_level",
+    unit_defense: "unit_defense_level",
+    unit_hp: "unit_hp_level",
+    travel_speed: "travel_speed_level"
   };
 
   const column = researchMap[researchType];
@@ -1474,6 +1469,31 @@ async function upgradeResearch(req, res) {
       metal: 800,
       energy: 250,
       crystal: 60
+    },
+    general_power: {
+      metal: 1000,
+      energy: 300,
+      crystal: 50
+    },
+    unit_attack: {
+      metal: 900,
+      energy: 250,
+      crystal: 45
+    },
+    unit_defense: {
+      metal: 850,
+      energy: 250,
+      crystal: 45
+    },
+    unit_hp: {
+      metal: 950,
+      energy: 275,
+      crystal: 50
+    },
+    travel_speed: {
+      metal: 1200,
+      energy: 350,
+      crystal: 65
     }
   };
 
@@ -1555,6 +1575,13 @@ async function upgradeResearch(req, res) {
 
   const currentLevel =
     Number(research[column] || 0);
+
+  if (currentLevel >= 15) {
+    return send(res, 400, {
+      success: false,
+      message: "Bu araştırma zaten 15. seviyede."
+    });
+  }
 
   const newLevel = currentLevel + 1;
 
@@ -1940,7 +1967,12 @@ async function getResearch(req, res) {
           production_level: 0,
           combat_level: 0,
           defense_level: 0,
-          crystal_level: 0
+          crystal_level: 0,
+          general_power_level: 0,
+          unit_attack_level: 0,
+          unit_defense_level: 0,
+          unit_hp_level: 0,
+          travel_speed_level: 0
         })
       }
     );
