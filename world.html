@@ -846,20 +846,11 @@ function moveColony() {
   );
 }
 
-function changeCoordinates() {
-  const newX = prompt(
-    "Yeni X koordinatını gir (1-100):"
-  );
+async function changeCoordinates() {
+  const newX = prompt("Yeni X koordinatını gir (1-100):");
+  const newY = prompt("Yeni Y koordinatını gir (1-100):");
 
-  if (newX === null) {
-    return;
-  }
-
-  const newY = prompt(
-    "Yeni Y koordinatını gir (1-100):"
-  );
-
-  if (newY === null) {
+  if (newX === null || newY === null) {
     return;
   }
 
@@ -874,20 +865,65 @@ function changeCoordinates() {
     y < 1 ||
     y > 100
   ) {
-    alert(
-      "❌ Koordinatlar 1 ile 100 arasında tam sayı olmalı."
-    );
+    alert("❌ X ve Y koordinatları 1-100 arasında tam sayı olmalı.");
     return;
   }
 
-  alert(
-    "📍 Seçilen koordinat:\n\n" +
-    "X:" + x + " Y:" + y +
-    "\n\nGerçek taşınma sistemi bir sonraki aşamada aktif edilecek."
-  );
-}
+  const token =
+    localStorage.getItem("nexora_token");
 
-/* ---------------- SALDIRI ---------------- */
+  if (!token) {
+    alert("Oturum bulunamadı.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "/api/auth?action=move",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+          x: x,
+          y: y
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert(
+        data.message ||
+        "Koloni taşınamadı."
+      );
+      return;
+    }
+
+    alert(
+      "✅ Koloni taşındı!\n\n" +
+      "Yeni koordinat: X:" +
+      x +
+      " Y:" +
+      y
+    );
+
+    location.reload();
+
+  } catch (error) {
+    console.error(
+      "Koloni taşıma hatası:",
+      error
+    );
+
+    alert(
+      "❌ Koloni taşınırken bir hata oluştu."
+    );
+  }
+}
 
 async function attack() {
   if (!selectedPlayerId) {
