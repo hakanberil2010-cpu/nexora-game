@@ -742,7 +742,25 @@ function selectPlayerColony(
     remaining > 0;
     remaining--
   ) {
+const fleet = document.createElement("div");
 
+fleet.className = "attack-fleet";
+fleet.textContent = "🚀";
+
+const myX = 25;
+const myY = 35;
+
+fleet.style.left = myX + "%";
+fleet.style.top = myY + "%";
+
+document
+  .getElementById("attackFleet")
+  .appendChild(fleet);
+
+setTimeout(function() {
+  fleet.style.left = targetX + "%";
+  fleet.style.top = targetY + "%";
+}, 50);
     attackButton.textContent =
       "⚔️ Saldırılıyor... " +
       remaining +
