@@ -1004,172 +1004,121 @@ async function attack() {
     return;
   }
 
-  const token =
-    localStorage.getItem("nexora_token");
-
+  const token = localStorage.getItem("nexora_token");
   if (!token) {
     alert("Oturum bulunamadı.");
     return;
   }
 
-  const attackButton =
-    document.getElementById("attackButton");
-
-  const fleetContainer =
-    document.getElementById("attackFleet");
-
-  const fallbackTargetPosition =
-    getPlayerPosition(selectedPlayerId);
-
-  const targetX = Number.isFinite(selectedPlayerX)
-    ? selectedPlayerX
-    : fallbackTargetPosition.x;
-
-  const targetY = Number.isFinite(selectedPlayerY)
-    ? selectedPlayerY
-    : fallbackTargetPosition.y;
-
-  const myX = myCoordinateX;
-  const myY = myCoordinateY;
-
-  const distance = Math.sqrt(
-    Math.pow(targetX - myX, 2) +
-    Math.pow(targetY - myY, 2)
-  );
-
-  const attackTime =
-    Math.max(5, Math.round(distance));
-
-  if (fleetContainer) {
-    fleetContainer.innerHTML = "";
-  }
-
-  const fleet =
-    document.createElement("div");
-
-  fleet.className =
-    "attack-fleet";
-
-  fleet.textContent = "🚀";
-
-  fleet.style.left =
-    myX + "%";
-
-  fleet.style.top =
-    myY + "%";
-
-  fleet.style.transition =
-    "left " + attackTime + "s linear, " +
-    "top " + attackTime + "s linear";
-
-  if (fleetContainer) {
-    fleetContainer.appendChild(fleet);
-  }
-
-  setTimeout(function() {
-    fleet.style.left =
-      targetX + "%";
-
-    fleet.style.top =
-      targetY + "%";
-  }, 50);
-
-  attackButton.disabled = true;
-
-  for (
-    let remaining = attackTime;
-    remaining > 0;
-    remaining--
-  ) {
-    attackButton.textContent =
-      "⚔️ Saldırılıyor... " +
-      remaining +
-      " sn";
-
-    await new Promise(function(resolve) {
-      setTimeout(resolve, 1000);
-    });
-  }
-
-  attackButton.textContent =
-    "⚔️ Saldırı gönderiliyor...";
+  const attackButton = document.getElementById("attackButton");
+  const fleetContainer = document.getElementById("attackFleet");
 
   try {
-    const response =
-      await fetch(
-        "/api/auth?action=attack",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization":
-              "Bearer " + token
-          },
-          body: JSON.stringify({
-            targetPlayerId:
-              selectedPlayerId
-          })
-        }
-      );
+    attackButton.disabled = true;
+    attackButton.textContent = "⚔️ Sefer hazırlanıyor...";
 
-    const data =
-      await response.json();
+    const response = await fetch("/api/auth?action=mission", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({
+        targetPlayerId: selectedPlayerId
+      })
+    });
 
-    if (fleet) {
-      fleet.remove();
-    }
+    const data = await response.json();
 
-    if (
-      !response.ok ||
-      !data.success
-    ) {
-      alert(
-        data.message ||
-        "Saldırı gerçekleştirilemedi."
-      );
-
+    if (!response.ok || !data.success || !data.mission) {
+      alert(data.message || "Sefer oluşturulamadı.");
       return;
     }
 
-    const loot =
-      data.loot || {};
+    const missionId = data.mission.id;
+    const arriveAt = new Date(data.mission.arriveAt).getTime();
+    const startX = myCoordinateX;
+    const startY = myCoordinateY;
+    const targetX = Number.isFinite(selectedPlayerX) ? selectedPlayerX : getPlayerPosition(selectedPlayerId).x;
+    const targetY = Number.isFinite(selectedPlayerY) ? selectedPlayerY : getPlayerPosition(selectedPlayerId).y;
 
-    alert(
-      "⚔️ Savaş Sonucu: " +
-      data.result +
-      "\n\nSaldırı Gücü: " +
-      data.attackPower +
-      "\nSavunma Gücü: " +
-      data.defensePower +
-      "\n\nGanimet:" +
-      "\nMetal: " +
-      (loot.metal || 0) +
-      "\nEnerji: " +
-      (loot.energy || 0) +
-      "\nSu: " +
-      (loot.water || 0) +
-      "\nKristal: " +
-      (loot.crystal || 0)
-    );
+    if (fleetContainer) {
+      fleetContainer.innerHTML = "";
+      const fleet = document.createElement("div");
+      fleet.className = "attack-fleet";
+      fleet.textContent = "🚀";
+      fleet.style.left = startX + "%";
+      fleet.style.top = startY + "%";
+      fleet.style.transition = "left " + Math.max(1, data.mission.travelSeconds || 1) + "s linear, top " + Math.max(1, data.mission.travelSeconds || 1) + "s linear";
+      fleetContainer.appendChild(fleet);
 
-  } catch (error) {
-    if (fleet) {
-      fleet.remove();
+      setTimeout(function() {
+        fleet.style.left = targetX + "%";
+        fleet.style.top = targetY + "%";
+      }, 50);
     }
 
-    console.error(
-      "Saldırı hatası:",
-      error
-    );
+    while (true) {
+      const remaining = Math.max(0, Math.ceil((arriveAt - Date.now()) / 1000));
+      attackButton.textContent = remaining > 0
+        ? "⚔️ Saldırı yolda... " + remaining + " sn"
+        : "⚔️ Savaş sonucu alınıyor...";
 
-    alert(
-      "Saldırı sırasında bir hata oluştu."
-    );
+      const statusResponse = await fetch(
+        "/api/auth?action=missionstatus&id=" + encodeURIComponent(missionId),
+        {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token
+          }
+        }
+      );
 
+      const statusData = await statusResponse.json();
+      if (!statusResponse.ok || !statusData.success) {
+        alert(statusData.message || "Sefer durumu alınamadı.");
+        return;
+      }
+
+      if (statusData.mission && statusData.mission.status === "completed") {
+        const result = statusData.mission.result || {};
+        const loot = result.loot || {};
+        if (fleetContainer) {
+          fleetContainer.innerHTML = "";
+        }
+
+        alert(
+          "⚔️ Savaş Sonucu: " + (result.result || "Tamamlandı") +
+          "
+
+Saldırı Gücü: " + (result.attackPower || statusData.mission.attack_power || 0) +
+          "
+Savunma Gücü: " + (result.defensePower || 0) +
+          "
+
+Ganimet:" +
+          "
+Metal: " + (loot.metal || 0) +
+          "
+Enerji: " + (loot.energy || 0) +
+          "
+Su: " + (loot.water || 0) +
+          "
+Kristal: " + (loot.crystal || 0)
+        );
+        return;
+      }
+
+      await new Promise(function(resolve) {
+        setTimeout(resolve, remaining > 0 ? 1000 : 500);
+      });
+    }
+  } catch (error) {
+    console.error("Sefer hatası:", error);
+    alert("Sefer sırasında bir hata oluştu.");
   } finally {
     attackButton.disabled = false;
-    attackButton.textContent =
-      "⚔️ Saldır";
+    attackButton.textContent = "⚔️ Saldır";
   }
 }
 
