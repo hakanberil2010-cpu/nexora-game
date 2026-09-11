@@ -2712,21 +2712,57 @@ async function getBattleReports(req, res) {
     playerMap[player.id] = player.username;
   });
 
-  const reports = (reportsResult.data || []).map(
-    function(report) {
-      return {
-        ...report,
+ const mapPositions = [
+  { x: 18, y: 22 },
+  { x: 42, y: 18 },
+  { x: 68, y: 25 },
+  { x: 82, y: 42 },
+  { x: 60, y: 58 },
+  { x: 32, y: 64 },
+  { x: 15, y: 48 },
+  { x: 45, y: 40 },
+  { x: 75, y: 70 },
+  { x: 25, y: 78 }
+];
 
-        attacker_username:
-          playerMap[report.attacker_player_id] ||
-          "Bilinmeyen Oyuncu",
+function getPlayerPosition(playerId) {
+  return mapPositions[
+    Number(playerId) % mapPositions.length
+  ];
+}
 
-        defender_username:
-          playerMap[report.defender_player_id] ||
-          "Bilinmeyen Oyuncu"
-      };
-    }
-  );
+const reports = (reportsResult.data || []).map(
+  function(report) {
+
+    const attackerPosition =
+      Number(report.attacker_player_id) === Number(playerId)
+        ? { x: 25, y: 35 }
+        : getPlayerPosition(report.attacker_player_id);
+
+    const defenderPosition =
+      Number(report.defender_player_id) === Number(playerId)
+        ? { x: 25, y: 35 }
+        : getPlayerPosition(report.defender_player_id);
+
+    return {
+      ...report,
+
+      attacker_username:
+        playerMap[report.attacker_player_id] ||
+        "Bilinmeyen Oyuncu",
+
+      defender_username:
+        playerMap[report.defender_player_id] ||
+        "Bilinmeyen Oyuncu",
+
+      attacker_x: attackerPosition.x,
+      attacker_y: attackerPosition.y,
+
+      defender_x: defenderPosition.x,
+      defender_y: defenderPosition.y
+    };
+  }
+);
 
   return send(res, 200, {
     success: true,
