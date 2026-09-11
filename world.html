@@ -225,7 +225,35 @@ z-index: 20;
   margin-top: 0;
   color: #16b9ff;
 }
+.colony-details {
+  display: flex;
+  gap: 12px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
 
+.detail-box {
+  background: #0d2740;
+  border: 1px solid #1b5278;
+  border-radius: 10px;
+  padding: 12px 16px;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.detail-label {
+  font-size: 11px;
+  color: #7faecb;
+  text-transform: uppercase;
+}
+
+.detail-value {
+  font-size: 15px;
+  font-weight: bold;
+  color: #16b9ff;
+}
 .info p {
   color: #9cc6e2;
 }
@@ -297,7 +325,26 @@ z-index: 20;
   </div>
 
   <div class="info" id="info">
+
     <h2 id="selectedName">Koloni</h2>
+
+    <div class="colony-details">
+
+      <div class="detail-box">
+        <span class="detail-label">📍 Koordinat</span>
+        <span class="detail-value" id="selectedCoordinates">
+          X:-- Y:--
+        </span>
+      </div>
+
+      <div class="detail-box">
+        <span class="detail-label">🌍 Bölge</span>
+        <span class="detail-value" id="selectedRegion">
+          -
+        </span>
+      </div>
+
+    </div>
 
     <p id="selectedText"></p>
 
@@ -308,14 +355,8 @@ z-index: 20;
     >
       ⚔️ Saldır
     </button>
-  </div>
-
-  <a class="back" href="game.html">
-    ← Koloniye Dön
-  </a>
 
 </div>
-
 <script>
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
