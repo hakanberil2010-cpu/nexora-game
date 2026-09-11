@@ -524,7 +524,27 @@ function copyCoordinates() {
     .catch(function() {
       alert("❌ Koordinat kopyalanamadı.");
     });
-}  
+} 
+  function shareCoordinates() {
+  const coordinates =
+    document.getElementById("selectedCoordinates").textContent.trim();
+
+  if (navigator.share) {
+    navigator.share({
+      title: "NEXORA Koloni Koordinatı",
+      text: "📍 Koloni koordinatı: " + coordinates
+    });
+  } else {
+    navigator.clipboard.writeText(
+      "📍 NEXORA Koloni Koordinatı: " + coordinates
+    );
+
+    alert(
+      "📋 Paylaşım desteklenmiyor.\n\nKoordinat panoya kopyalandı:\n" +
+      coordinates
+    );
+  }
+}
 const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
 );
