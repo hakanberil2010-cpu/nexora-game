@@ -136,7 +136,20 @@ h1 {
   inset: 0;
   z-index: 5;
 }
+#attackFleet {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+}
 
+.attack-fleet {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  transition: left 1s linear, top 1s linear;
+  filter: drop-shadow(0 0 8px rgba(255,220,80,0.8));
+}
 .colony {
   position: absolute;
   transform: translate(-50%, -50%);
