@@ -848,853 +848,614 @@ function showCoordinates() {
     "📍 Koloni Koordinatı\n\n" +
     coordinates
   );
-  }
+}
 
-  const nextStats = levelResult.data[0];
-
-  const cost = {
-    metal: currentLevel * 500,
-    energy: currentLevel * 100,
-    crystal: currentLevel * 50
-  };
+function copyCoordinates() {
+  const coordinates =
+    document.getElementById("selectedCoordinates")
+      .textContent
+      .trim();
 
   if (
-    Number(city.metal) < cost.metal ||
-    Number(city.energy) < cost.energy ||
-    Number(city.crystal) < cost.crystal
+    !navigator.clipboard ||
+    !navigator.clipboard.writeText
   ) {
-    return send(res, 400, {
-      success: false,
-      message:
-        "Seviye yükseltmek için yeterli kaynak yok.",
-      cost: cost
-    });
+    alert("❌ Koordinat kopyalanamadı.");
+    return;
   }
 
-  const cityUpdate = await supabase(
-    "cities?id=eq." + encodeURIComponent(city.id),
-    {
-      method: "PATCH",
-      headers: {
-        Prefer: "return=representation"
-      },
-      body: JSON.stringify({
-        metal: Number(city.metal) - cost.metal,
-        energy: Number(city.energy) - cost.energy,
-        crystal: Number(city.crystal) - cost.crystal
+  navigator.clipboard.writeText(coordinates)
+    .then(function() {
+      alert(
+        "✅ Koordinat kopyalandı:\n\n" +
+        coordinates
+      );
+    })
+    .catch(function() {
+      alert("❌ Koordinat kopyalanamadı.");
+    });
+}
+
+function shareCoordinates() {
+  const coordinates =
+    document.getElementById("selectedCoordinates")
+      .textContent
+      .trim();
+
+  const shareText =
+    "📍 NEXORA Koloni Koordinatı: " +
+    coordinates;
+
+  if (navigator.share) {
+    navigator.share({
+      title: "NEXORA Koloni Koordinatı",
+      text: shareText
+    }).catch(function() {});
+    return;
+  }
+
+  if (
+    navigator.clipboard &&
+    navigator.clipboard.writeText
+  ) {
+    navigator.clipboard.writeText(shareText)
+      .then(function() {
+        alert(
+          "📋 Paylaşım desteklenmiyor.\n\n" +
+          "Koordinat panoya kopyalandı:\n" +
+          coordinates
+        );
       })
-    }
-  );
+      .catch(function() {
+        alert(
+          "📤 Bu tarayıcı paylaşımı desteklemiyor."
+        );
+      });
 
-  if (!cityUpdate.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "Kaynaklar güncellenemedi."
-    });
+    return;
   }
 
-  const unitUpdate = await supabase(
-    "units?id=eq." + encodeURIComponent(unit.id),
-    {
-      method: "PATCH",
-      headers: {
-        Prefer: "return=representation"
-      },
-      body: JSON.stringify({
-        level: nextLevel,
-        attack: Number(nextStats.attack),
-        defense: Number(nextStats.defense),
-        hp: Number(nextStats.hp),
-        speed: Number(nextStats.speed)
-      })
-    }
+  alert(
+    "📍 NEXORA Koloni Koordinatı:\n\n" +
+    coordinates
   );
+}
 
-  if (!unitUpdate.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "Birlik seviyesi güncellenemedi."
-    });
+function moveColony() {
+  changeCoordinates();
+}
+
+async function changeCoordinates() {
+  const newX = prompt("Yeni X koordinatını gir (1-100):");
+  const newY = prompt("Yeni Y koordinatını gir (1-100):");
+
+  if (newX === null || newY === null) return;
+
+  const x = Number(newX);
+  const y = Number(newY);
+
+  if (
+    !Number.isInteger(x) ||
+    !Number.isInteger(y) ||
+    x < 1 ||
+    x > 100 ||
+    y < 1 ||
+    y > 100
+  ) {
+    alert("❌ X ve Y koordinatları 1-100 arasında tam sayı olmalı.");
+    return;
   }
 
-  return send(res, 200, {
-    success: true,
-    message: "Birlik seviyesi yükseltildi.",
-    unit: unitUpdate.data[0],
-    city: cityUpdate.data[0],
-    cost: cost
+  // Aynı koordinatta başka koloni var mı?
+  const occupiedColony = Array.from(
+    document.querySelectorAll(".colony")
+  ).find(function (colony) {
+    return (
+      colony.style.left === x + "%" &&
+      colony.style.top === y + "%"
+    );
   });
+
+  if (occupiedColony) {
+    const nameElement = occupiedColony.querySelector(".colony-name");
+    const colonyName = nameElement
+      ? nameElement.textContent
+      : "başka bir koloni";
+
+    // Kendi mevcut koordinatına tekrar taşınmaya çalışıyorsa
+    if (occupiedColony.classList.contains("you")) {
+      alert("❌ Zaten bu koordinattasın.");
+    } else {
+      alert("❌ Bu koordinat dolu!\n\nKoloni: " + colonyName);
+    }
+
+    return;
+  }
+
+  let serverClockOffset = 0;
+const token = localStorage.getItem("nexora_token");
+
+  if (!token) {
+    alert("Oturum bulunamadı.");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth?action=move", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({
+        x: x,
+        y: y
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert(data.message || "Koloni taşınamadı.");
+      return;
+    }
+
+    alert(
+      "✅ Koloni taşındı!\n\nYeni koordinat: X:" +
+      x +
+      " Y:" +
+      y
+    );
+
+    location.reload();
+
+  } catch (error) {
+    console.error("Koloni taşıma hatası:", error);
+    alert("❌ Koloni taşınırken bir hata oluştu.");
+  }
 }
 
 
-async function createMilitaryMission(req, res) {
-  const authHeader = String(req.headers.authorization || "");
+function getSavedMissions() {
+  try {
+    const raw = localStorage.getItem("nexora_missions");
+    const missions = raw ? JSON.parse(raw) : [];
+    return Array.isArray(missions) ? missions : [];
+  } catch (error) { return []; }
+}
 
-  if (!authHeader.startsWith("Bearer ")) {
-    return send(res, 401, { success: false, message: "Oturum bulunamadı." });
+function saveMissions(missions) { localStorage.setItem("nexora_missions", JSON.stringify(missions)); }
+
+function upsertSavedMission(mission) {
+  const missions = getSavedMissions();
+  const index = missions.findIndex(function(item) { return String(item.id) === String(mission.id); });
+  if (index >= 0) missions[index] = { ...missions[index], ...mission };
+  else missions.push(mission);
+  saveMissions(missions);
+  renderMissionPanel(missions);
+}
+
+function formatMissionTime(seconds) {
+  const total = Math.max(0, Number(seconds) || 0);
+  const minutes = Math.floor(total / 60);
+  const secs = total % 60;
+  return String(minutes).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
+}
+
+function renderMissionPanel(missions) {
+  const list = document.getElementById("missionList");
+  if (!list) return;
+  if (!missions.length) {
+    list.className = "mission-empty";
+    list.innerHTML = "Aktif sefer bulunmuyor.";
+    return;
+  }
+  list.className = "";
+  list.innerHTML = missions.map(function(mission) {
+    const title = escapeHtml(mission.targetName || "Hedef Koloni");
+    const coords = "X:" + (mission.targetX ?? "-") + " Y:" + (mission.targetY ?? "-");
+
+    if (mission.status === "completed") {
+      const result = mission.result || {};
+      return '<div class="mission-card"><strong>✅ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-result">' + escapeHtml(result.result || "Savaş tamamlandı") + '</div><div class="mission-meta">Ordu üsse döndü.</div></div>';
+    }
+
+    if (mission.status === "returning") {
+      return '<div class="mission-card"><strong>↩️ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-time">' + formatMissionTime(mission.remainingSeconds) + '</div><div class="mission-meta">Savaş bitti, ordu geri dönüyor...</div></div>';
+    }
+
+    if (mission.status === "resolving") {
+      return '<div class="mission-card"><strong>⚔️ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-time">00:00</div><div class="mission-meta">Savaş sonucu hesaplanıyor...</div></div>';
+    }
+
+    return '<div class="mission-card"><strong>🚀 ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-time">' + formatMissionTime(mission.remainingSeconds) + '</div><div class="mission-meta">Hedefe ilerliyor...</div></div>';
+  }).join("");
+}
+
+async function refreshMissionPanel() {
+  const token = localStorage.getItem("nexora_token");
+  if (!token) return;
+  const missions = getSavedMissions();
+  if (!missions.length) {
+    renderMissionPanel([]);
+    return;
   }
 
-  const token = authHeader.slice(7).trim();
-  const decoded = verifyToken(token);
-  if (!decoded || !decoded.id) {
-    return send(res, 401, { success: false, message: "Geçersiz oturum." });
-  }
+  const updated = [];
+  for (const saved of missions) {
+    try {
+      const response = await fetch(
+        "/api/auth?action=missionstatus&id=" + encodeURIComponent(saved.id),
+        {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token }
+        }
+      );
+      const data = await response.json();
+      if (!response.ok || !data.success || !data.mission) continue;
 
-  const body = await readBody(req);
-  const targetPlayerId = Number(body.targetPlayerId);
-
-  if (!Number.isInteger(targetPlayerId) || targetPlayerId === Number(decoded.id)) {
-    return send(res, 400, { success: false, message: "Geçersiz hedef oyuncu." });
-  }
-
-  const attackerCityResult = await supabase(
-    "cities?select=*&player_id=eq." + encodeURIComponent(decoded.id) + "&limit=1"
-  );
-  const targetCityResult = await supabase(
-    "cities?select=*&player_id=eq." + encodeURIComponent(targetPlayerId) + "&limit=1"
-  );
-
-  if (!attackerCityResult.ok || !attackerCityResult.data?.[0]) {
-    return send(res, 404, { success: false, message: "Saldıran koloni bulunamadı." });
-  }
-  if (!targetCityResult.ok || !targetCityResult.data?.[0]) {
-    return send(res, 404, { success: false, message: "Hedef koloni bulunamadı." });
-  }
-
-  const attackerCity = attackerCityResult.data[0];
-  const targetCity = targetCityResult.data[0];
-
-  const activeMissionResult = await supabase(
-    "military_missions?select=id,status&attacker_player_id=eq." + encodeURIComponent(decoded.id) +
-    "&status=in.(traveling,resolving,returning)&limit=1"
-  );
-
-  if (activeMissionResult.ok && activeMissionResult.data?.[0]) {
-    return send(res, 400, {
-      success: false,
-      message: "Zaten aktif bir seferin bulunuyor."
-    });
-  }
-
-  const unitsResult = await supabase(
-    "units?select=*&city_id=eq." + encodeURIComponent(attackerCity.id)
-  );
-  if (!unitsResult.ok) {
-    return send(res, 500, { success: false, message: "Ordu verisi alınamadı." });
-  }
-
-  const army = (unitsResult.data || [])
-    .filter(function(unit) { return Number(unit.quantity) > 0; })
-    .map(function(unit) {
-      return {
-        unit_type: unit.unit_type,
-        quantity: Number(unit.quantity),
-        level: Number(unit.level || 1),
-        attack: Number(unit.attack || 0),
-        defense: Number(unit.defense || 0),
-        hp: Number(unit.hp || 0),
-        speed: Number(unit.speed || 100)
+      if(data.serverTime) serverClockOffset=new Date(data.serverTime).getTime()-Date.now();
+      const serverMission = data.mission;
+      const merged = {
+        ...saved,
+        id: serverMission.id || saved.id,
+        status: serverMission.status || saved.status || "traveling",
+        remainingSeconds: Number(serverMission.remainingSeconds ?? saved.remainingSeconds ?? 0),
+        arriveAt: serverMission.arriveAt || serverMission.arrive_at || saved.arriveAt,
+        result: serverMission.result || saved.result
       };
-    });
 
-  if (army.length === 0) {
-    return send(res, 400, { success: false, message: "Gönderilecek asker bulunmuyor." });
+      if (merged.status === "completed") {
+        const completedAt = Number(saved.completedAt || Date.now()+serverClockOffset);
+        merged.completedAt = completedAt;
+        if (Date.now()+serverClockOffset - completedAt > 15000) continue;
+      }
+
+      updated.push(merged);
+    } catch (error) {
+      updated.push(saved);
+    }
   }
 
-  const distance = Math.sqrt(
-    Math.pow(Number(targetCity.coordinate_x || 0) - Number(attackerCity.coordinate_x || 0), 2) +
-    Math.pow(Number(targetCity.coordinate_y || 0) - Number(attackerCity.coordinate_y || 0), 2)
-  );
+  saveMissions(updated);
+  renderMissionPanel(updated);
+}
 
-  const researchResult = await supabase(
-    "research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level&player_id=eq." +
-    encodeURIComponent(decoded.id) + "&limit=1"
-  );
-  const research = researchResult.ok && researchResult.data?.[0]
-    ? researchResult.data[0]
-    : {};
+async function loadServerMissions() {
+  const token = localStorage.getItem("nexora_token");
+  if (!token) return;
+  try {
+    const response = await fetch("/api/auth?action=missions", {
+      method: "POST", headers: { "Authorization": "Bearer " + token }
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) return;
+    const local = getSavedMissions();
+    (data.missions || []).forEach(function(m) {
+      const mine = Number(m.attacker_player_id) === Number(savedUser && savedUser.id);
+      upsertSavedMission({
+        id:m.id, status:m.status, remainingSeconds: m.status === "completed" ? 0 : Math.max(0, Math.ceil((new Date(m.arrive_at).getTime()-Date.now()+serverClockOffset)/1000)),
+        targetName: mine ? "Hedef Koloni" : "Sana gelen saldırı", targetX:"-", targetY:"-", result:m.result||null
+      });
+    });
+  } catch (error) { console.error("Seferler yüklenemedi", error); }
+}
 
-  const travelLevel = Number(research.travel_speed_level || 0);
-  const travelMultiplier = Math.max(0.25, 1 - travelLevel * 0.05);
-  const travelSeconds = Math.max(10, Math.round(Math.max(1, distance) * 10 * travelMultiplier));
+function startMissionPanel() {
+  renderMissionPanel(getSavedMissions());
+  loadServerMissions().then(refreshMissionPanel);
+  setInterval(function(){ loadServerMissions().then(refreshMissionPanel); }, 5000);
+  setInterval(refreshMissionPanel, 1000);
+}
 
-  const baseAttackPower = army.reduce(function(sum, unit) {
-    return sum + Number(unit.quantity) * Number(unit.attack || 0);
-  }, 0);
+async function attack() {
+  if (!selectedPlayerId) {
+    return;
+  }
 
-  const generalMultiplier = 1 + Number(research.general_power_level || 0) * 0.05;
-  const attackResearchMultiplier = 1 + Number(research.unit_attack_level || 0) * 0.05;
-  const attackPower = Math.round(baseAttackPower * generalMultiplier * attackResearchMultiplier);
+  const token = localStorage.getItem("nexora_token");
+  if (!token) {
+    alert("Oturum bulunamadı.");
+    return;
+  }
 
-  const nowIso = new Date().toISOString();
-  const arriveAt = new Date(Date.now() + travelSeconds * 1000).toISOString();
+  const attackButton = document.getElementById("attackButton");
+  const fleetContainer = document.getElementById("attackFleet");
 
-  const missionResult = await supabase(
-    "military_missions",
-    {
+  try {
+    attackButton.disabled = true;
+    attackButton.textContent = "⚔️ Sefer hazırlanıyor...";
+
+    const response = await fetch("/api/auth?action=mission", {
       method: "POST",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({
-        attacker_player_id: Number(decoded.id),
-        defender_player_id: targetPlayerId,
-        attacker_city_id: attackerCity.id,
-        defender_city_id: targetCity.id,
-        mission_type: "attack",
-        status: "traveling",
-        depart_at: nowIso,
-        arrive_at: arriveAt,
-        attack_power: attackPower,
-        army: army
-      })
-    }
-  );
-
-  if (!missionResult.ok || !missionResult.data?.[0]) {
-    return send(res, 500, {
-      success: false,
-      message: "Sefer oluşturulamadı."
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ targetPlayerId: selectedPlayerId })
     });
-  }
 
-  const missionId = missionResult.data[0].id;
-  const zeroedUnits = [];
-
-  for (const unit of army) {
-    const patchResult = await supabase(
-      "units?select=id,quantity&city_id=eq." + encodeURIComponent(attackerCity.id) +
-      "&unit_type=eq." + encodeURIComponent(unit.unit_type) + "&limit=1"
-    );
-
-    if (!patchResult.ok || !patchResult.data?.[0]) {
-      await supabase("military_missions?id=eq." + encodeURIComponent(missionId), {
-        method: "DELETE"
-      });
-      for (const doneUnit of zeroedUnits) {
-        await supabase("units?id=eq." + encodeURIComponent(doneUnit.id), {
-          method: "PATCH",
-          headers: { Prefer: "return=minimal" },
-          body: JSON.stringify({ quantity: doneUnit.quantity })
-        });
-      }
-      return send(res, 500, {
-        success: false,
-        message: "Ordu sefer için hazırlanamadı."
-      });
+    const data = await response.json();
+    if (!response.ok || !data.success || !data.mission) {
+      alert(data.message || "Sefer oluşturulamadı.");
+      return;
     }
 
-    const currentQuantity = Number(patchResult.data[0].quantity || 0);
-    if (currentQuantity < Number(unit.quantity)) {
-      await supabase("military_missions?id=eq." + encodeURIComponent(missionId), {
-        method: "DELETE"
-      });
-      for (const doneUnit of zeroedUnits) {
-        await supabase("units?id=eq." + encodeURIComponent(doneUnit.id), {
-          method: "PATCH",
-          headers: { Prefer: "return=minimal" },
-          body: JSON.stringify({ quantity: doneUnit.quantity })
-        });
-      }
-      return send(res, 400, {
-        success: false,
-        message: "Ordu miktarı güncel değil. Tekrar deneyin."
-      });
-    }
+    if(data.serverTime) serverClockOffset=new Date(data.serverTime).getTime()-Date.now();
+    const missionId = data.mission.id;
+    const arriveAt = new Date(data.mission.arriveAt).getTime();
+    const targetName = (document.getElementById("selectedName") || {}).textContent || "Hedef Koloni";
+    const targetX = Number.isFinite(selectedPlayerX) ? selectedPlayerX : getPlayerPosition(selectedPlayerId).x;
+    const targetY = Number.isFinite(selectedPlayerY) ? selectedPlayerY : getPlayerPosition(selectedPlayerId).y;
 
-    const lossUpdate = await supabase(
-      "units?id=eq." + encodeURIComponent(patchResult.data[0].id),
-      {
-        method: "PATCH",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({ quantity: currentQuantity - Number(unit.quantity) })
-      }
-    );
-
-    if (!lossUpdate.ok) {
-      await supabase("military_missions?id=eq." + encodeURIComponent(missionId), {
-        method: "DELETE"
-      });
-      for (const doneUnit of zeroedUnits) {
-        await supabase("units?id=eq." + encodeURIComponent(doneUnit.id), {
-          method: "PATCH",
-          headers: { Prefer: "return=minimal" },
-          body: JSON.stringify({ quantity: doneUnit.quantity })
-        });
-      }
-      return send(res, 500, {
-        success: false,
-        message: "Ordu sefer için hazırlanamadı."
-      });
-    }
-
-    zeroedUnits.push({ id: patchResult.data[0].id, quantity: currentQuantity });
-  }
-
-  return send(res, 200, {
-    success: true,
-    message: "⚔️ Ordu sefere çıktı.",
-    mission: {
+    upsertSavedMission({
       id: missionId,
       status: "traveling",
-      arriveAt: arriveAt,
-      travelSeconds: travelSeconds,
-      distance: Math.round(distance)
+      remainingSeconds: Number(data.mission.travelSeconds || 0),
+      arriveAt: data.mission.arriveAt,
+      targetName: targetName,
+      targetX: targetX,
+      targetY: targetY
+    });
+
+    const startX = myCoordinateX;
+    const startY = myCoordinateY;
+    if (fleetContainer) {
+      fleetContainer.innerHTML = "";
+      const fleet = document.createElement("div");
+      fleet.className = "attack-fleet";
+      fleet.textContent = "🚀";
+      fleet.style.left = startX + "%";
+      fleet.style.top = startY + "%";
+      fleet.style.transition = "left " + Math.max(1, data.mission.travelSeconds || 1) + "s linear, top " + Math.max(1, data.mission.travelSeconds || 1) + "s linear";
+      fleetContainer.appendChild(fleet);
+      setTimeout(function() {
+        fleet.style.left = targetX + "%";
+        fleet.style.top = targetY + "%";
+      }, 50);
     }
-  });
-}
 
-async function completeMissionReturn(mission, res) {
-  const army = Array.isArray(mission.army) ? mission.army : [];
-  const result = mission.result || {};
-  const survivorArmy = Array.isArray(result.survivorArmy) ? result.survivorArmy : [];
+    while (true) {
+      const remaining = Math.max(0, Math.ceil((arriveAt - Date.now()+serverClockOffset) / 1000));
+      attackButton.textContent = remaining > 0
+        ? "⚔️ Saldırı yolda... " + remaining + " sn"
+        : "⚔️ Savaş sonucu alınıyor...";
 
-  for (const unit of survivorArmy) {
-    const survivors = Number(unit.quantity || 0);
-    if (survivors <= 0) continue;
+      const statusResponse = await fetch(
+        "/api/auth?action=missionstatus&id=" + encodeURIComponent(missionId),
+        {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token }
+        }
+      );
 
-    const existing = await supabase(
-      "units?select=id,quantity&city_id=eq." + encodeURIComponent(mission.attacker_city_id) +
-      "&unit_type=eq." + encodeURIComponent(unit.unit_type) + "&limit=1"
-    );
-
-    if (existing.ok && existing.data?.[0]) {
-      await supabase("units?id=eq." + encodeURIComponent(existing.data[0].id), {
-        method: "PATCH",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({
-          quantity: Number(existing.data[0].quantity || 0) + survivors
-        })
-      });
-    } else {
-      await supabase("units", {
-        method: "POST",
-        headers: { Prefer: "return=representation" },
-        body: JSON.stringify({
-          city_id: mission.attacker_city_id,
-          unit_type: unit.unit_type,
-          quantity: survivors,
-          level: Number(unit.level || 1),
-          attack: Number(unit.attack || 0),
-          defense: Number(unit.defense || 0),
-          hp: Number(unit.hp || 0),
-          speed: Number(unit.speed || 100)
-        })
-      });
-    }
-  }
-
-  const completedAt = new Date().toISOString();
-  const updateMission = await supabase(
-    "military_missions?id=eq." + encodeURIComponent(mission.id) + "&status=eq.returning",
-    {
-      method: "PATCH",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({
-        status: "completed",
-        completed_at: completedAt
-      })
-    }
-  );
-
-  return send(res, 200, {
-    success: true,
-    mission: updateMission.data?.[0] || { ...mission, status: "completed", completed_at: completedAt }
-  });
-}
-
-async function getMilitaryMission(req, res) {
-  const authHeader = String(req.headers.authorization || "");
-  if (!authHeader.startsWith("Bearer ")) {
-    return send(res, 401, { success: false, message: "Oturum bulunamadı." });
-  }
-
-  const token = authHeader.slice(7).trim();
-  const decoded = verifyToken(token);
-  if (!decoded || !decoded.id) {
-    return send(res, 401, { success: false, message: "Geçersiz oturum." });
-  }
-
-  const missionId = Number(req.query.id);
-  if (!Number.isInteger(missionId)) {
-    return send(res, 400, { success: false, message: "Geçersiz sefer." });
-  }
-
-  const missionResult = await supabase(
-    "military_missions?id=eq." + encodeURIComponent(missionId) + "&limit=1"
-  );
-  if (!missionResult.ok || !missionResult.data?.[0]) {
-    return send(res, 404, { success: false, message: "Sefer bulunamadı." });
-  }
-
-  let mission = missionResult.data[0];
-  const playerId = Number(decoded.id);
-  if (playerId !== Number(mission.attacker_player_id) && playerId !== Number(mission.defender_player_id)) {
-    return send(res, 403, { success: false, message: "Bu sefere erişemezsin." });
-  }
-
-  if (mission.status === "completed") {
-    return send(res, 200, { success: true, mission: mission });
-  }
-
-  let remainingSeconds = Math.ceil(
-    (new Date(mission.arrive_at).getTime() - Date.now()) / 1000
-  );
-
-  if (remainingSeconds > 0 || mission.status === "resolving") {
-    return send(res, 200, {
-      success: true,
-      mission: {
-        id: mission.id,
-        status: mission.status,
-        arriveAt: mission.arrive_at,
-        remainingSeconds: Math.max(0, remainingSeconds),
-        result: mission.result || null,
-        attack_power: mission.attack_power || 0
+      const statusData = await statusResponse.json();
+      if (!statusResponse.ok || !statusData.success) {
+        alert(statusData.message || "Sefer durumu alınamadı.");
+        return;
       }
-    });
-  }
 
-  if (mission.status === "returning") {
-    return await completeMissionReturn(mission, res);
-  }
-
-  const claimResult = await supabase(
-    "military_missions?id=eq." + encodeURIComponent(mission.id) + "&status=eq.traveling",
-    {
-      method: "PATCH",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ status: "resolving" })
-    }
-  );
-
-  if (!claimResult.ok || !claimResult.data?.[0]) {
-    const reread = await supabase(
-      "military_missions?id=eq." + encodeURIComponent(mission.id) + "&limit=1"
-    );
-    const current = reread.data?.[0] || mission;
-
-    if (current.status === "completed") {
-      return send(res, 200, { success: true, mission: current });
-    }
-
-    return send(res, 200, {
-      success: true,
-      mission: {
-        id: current.id,
-        status: current.status,
-        arriveAt: current.arrive_at,
-        remainingSeconds: Math.max(0, Math.ceil((new Date(current.arrive_at).getTime() - Date.now()) / 1000)),
-        result: current.result || null,
-        attack_power: current.attack_power || 0
+      const serverMission = statusData.mission || {};
+      if (serverMission.status === "returning") {
+        const returnAt = new Date(serverMission.arriveAt || serverMission.arrive_at).getTime();
+        upsertSavedMission({
+          id: missionId,
+          status: "returning",
+          remainingSeconds: Number(serverMission.remainingSeconds || Math.max(0, Math.ceil((returnAt - Date.now()+serverClockOffset) / 1000))),
+          arriveAt: serverMission.arriveAt || serverMission.arrive_at,
+          targetName: targetName,
+          targetX: targetX,
+          targetY: targetY,
+          result: serverMission.result || null
+        });
+        attackButton.textContent = "↩️ Ordu geri dönüyor...";
+        if (fleetContainer) {
+          const fleet = fleetContainer.querySelector(".attack-fleet");
+          if (fleet) {
+            fleet.style.left = startX + "%";
+            fleet.style.top = startY + "%";
+            fleet.style.transition = "left " + Math.max(1, Number(serverMission.remainingSeconds || 10)) + "s linear, top " + Math.max(1, Number(serverMission.remainingSeconds || 10)) + "s linear";
+          }
+        }
       }
-    });
-  }
 
-  mission = claimResult.data[0];
+      if (serverMission.status === "completed") {
+        const result = serverMission.result || {};
+        const loot = result.loot || {};
+        upsertSavedMission({
+          id: missionId,
+          status: "completed",
+          remainingSeconds: 0,
+          targetName: targetName,
+          targetX: targetX,
+          targetY: targetY,
+          result: result,
+          completedAt: Date.now()+serverClockOffset
+        });
 
-  const defenderUnitsResult = await supabase(
-    "units?select=*&city_id=eq." + encodeURIComponent(mission.defender_city_id)
-  );
-  if (!defenderUnitsResult.ok) {
-    return send(res, 500, { success: false, message: "Savunma ordusu alınamadı." });
-  }
+        if (fleetContainer) {
+          fleetContainer.innerHTML = "";
+        }
 
-  const defenderUnits = defenderUnitsResult.data || [];
-  const army = Array.isArray(mission.army) ? mission.army : [];
+        alert(
+          "⚔️ Savaş Sonucu: " + (result.result || "Tamamlandı") + "\n\n" +
+          "Saldırı Gücü: " + (result.attackPower || serverMission.attack_power || 0) + "\n" +
+          "Savunma Gücü: " + (result.defensePower || 0) + "\n\n" +
+          "Ganimet:\n" +
+          "Metal: " + (loot.metal || 0) + "\n" +
+          "Enerji: " + (loot.energy || 0) + "\n" +
+          "Su: " + (loot.water || 0) + "\n" +
+          "Kristal: " + (loot.crystal || 0) + "\n\n" +
+          "Hayatta kalan birlikler üsse dönüş yolunda."
+        );
+        return;
+      }
 
-  const defenderResearchResult = await supabase(
-    "research?select=general_power_level,unit_defense_level&player_id=eq." +
-    encodeURIComponent(mission.defender_player_id) + "&limit=1"
-  );
-  const defenderResearch = defenderResearchResult.ok && defenderResearchResult.data?.[0]
-    ? defenderResearchResult.data[0]
-    : {};
-
-  const attackPower = Math.round(Number(mission.attack_power || 0));
-  const baseDefense = defenderUnits.reduce(function(sum, unit) {
-    return sum + Number(unit.quantity || 0) * Number(unit.defense || 0);
-  }, 0);
-
-  const defensePower = Math.round(
-    baseDefense *
-    (1 + Number(defenderResearch.general_power_level || 0) * 0.05) *
-    (1 + Number(defenderResearch.unit_defense_level || 0) * 0.05)
-  );
-
-  const result = attackPower > defensePower ? "Zafer" : attackPower === defensePower ? "Beraberlik" : "Yenilgi";
-  const attackerLossPercent = result === "Zafer" ? 0.20 : result === "Beraberlik" ? 0.40 : 0.70;
-  const defenderLossPercent = result === "Zafer" ? 0.60 : result === "Beraberlik" ? 0.40 : 0.20;
-  const lootPercent = result === "Zafer" ? 0.10 : 0;
-
-  const attackerLosses = {};
-  const survivorArmy = [];
-  for (const unit of army) {
-    const qty = Number(unit.quantity || 0);
-    const loss = qty > 0 ? Math.min(qty, Math.max(0, Math.ceil(qty * attackerLossPercent))) : 0;
-    const survivors = qty - loss;
-    attackerLosses[unit.unit_type] = loss;
-    survivorArmy.push({ ...unit, quantity: survivors });
-  }
-
-  const defenderLosses = {};
-  for (const unit of defenderUnits) {
-    const qty = Number(unit.quantity || 0);
-    if (qty <= 0) continue;
-    const loss = Math.min(qty, Math.max(0, Math.ceil(qty * defenderLossPercent)));
-    defenderLosses[unit.unit_type] = loss;
-  }
-
-  const targetCityResult = await supabase(
-    "cities?select=*&id=eq." + encodeURIComponent(mission.defender_city_id) + "&limit=1"
-  );
-  const attackerCityResult = await supabase(
-    "cities?select=*&id=eq." + encodeURIComponent(mission.attacker_city_id) + "&limit=1"
-  );
-  const targetCity = targetCityResult.data?.[0];
-  const attackerCity = attackerCityResult.data?.[0];
-
-  const loot = {
-    metal: targetCity && result === "Zafer" ? Math.floor(Number(targetCity.metal || 0) * lootPercent) : 0,
-    energy: targetCity && result === "Zafer" ? Math.floor(Number(targetCity.energy || 0) * lootPercent) : 0,
-    water: targetCity && result === "Zafer" ? Math.floor(Number(targetCity.water || 0) * lootPercent) : 0,
-    crystal: targetCity && result === "Zafer" ? Math.floor(Number(targetCity.crystal || 0) * lootPercent) : 0
-  };
-
-  if (targetCity && attackerCity && result === "Zafer") {
-    await supabase("cities?id=eq." + encodeURIComponent(targetCity.id), {
-      method: "PATCH",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({
-        metal: Math.max(0, Number(targetCity.metal || 0) - loot.metal),
-        energy: Math.max(0, Number(targetCity.energy || 0) - loot.energy),
-        water: Math.max(0, Number(targetCity.water || 0) - loot.water),
-        crystal: Math.max(0, Number(targetCity.crystal || 0) - loot.crystal)
-      })
-    });
-
-    await supabase("cities?id=eq." + encodeURIComponent(attackerCity.id), {
-      method: "PATCH",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({
-        metal: Number(attackerCity.metal || 0) + loot.metal,
-        energy: Number(attackerCity.energy || 0) + loot.energy,
-        water: Number(attackerCity.water || 0) + loot.water,
-        crystal: Number(attackerCity.crystal || 0) + loot.crystal
-      })
-    });
-  }
-
-  for (const unit of defenderUnits) {
-    const qty = Number(unit.quantity || 0);
-    if (qty <= 0) continue;
-    const loss = Number(defenderLosses[unit.unit_type] || 0);
-    await supabase("units?id=eq." + encodeURIComponent(unit.id), {
-      method: "PATCH",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ quantity: Math.max(0, qty - loss) })
-    });
-  }
-
-  const outboundSeconds = Math.max(10, Math.round(
-    (new Date(mission.arrive_at).getTime() - new Date(mission.depart_at).getTime()) / 1000
-  ));
-  const returnSeconds = outboundSeconds;
-
-  const returnAt = new Date(Date.now() + returnSeconds * 1000).toISOString();
-  const report = {
-    result: result,
-    attackPower: attackPower,
-    defensePower: defensePower,
-    attackerLosses: attackerLosses,
-    defenderLosses: defenderLosses,
-    loot: loot,
-    survivorArmy: survivorArmy,
-    returnAt: returnAt,
-    battleAt: new Date().toISOString()
-  };
-
-  await supabase("battle_reports", {
-    method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({
-      attacker_player_id: Number(mission.attacker_player_id),
-      defender_player_id: Number(mission.defender_player_id),
-      result: result,
-      attack_power: attackPower,
-      defense_power: defensePower,
-      attacker_losses: attackerLosses,
-      defender_losses: defenderLosses,
-      loot: loot
-    })
-  });
-
-  const updateMission = await supabase(
-    "military_missions?id=eq." + encodeURIComponent(mission.id) + "&status=eq.resolving",
-    {
-      method: "PATCH",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({
-        status: "returning",
-        arrive_at: returnAt,
-        attack_power: attackPower,
-        result: report
-      })
+      await new Promise(function(resolve) {
+        setTimeout(resolve, 1000);
+      });
     }
-  );
-
-  if (!updateMission.ok || !updateMission.data?.[0]) {
-    return send(res, 500, {
-      success: false,
-      message: "Savaş sonucu kaydedilemedi."
-    });
+  } catch (error) {
+    console.error("Sefer hatası:", error);
+    alert("Sefer sırasında bir hata oluştu.");
+  } finally {
+    attackButton.disabled = false;
+    attackButton.textContent = "⚔️ Saldır";
   }
-
-  const completedMission = updateMission.data[0];
-  return send(res, 200, {
-    success: true,
-    mission: {
-      ...completedMission,
-      status: "returning",
-      remainingSeconds: returnSeconds
-    }
-  });
 }
 
-async function attackPlayer(req, res) {
-  const authHeader = String(
-    req.headers.authorization || ""
-  );
+/* ---------------- DÜNYA OYUNCULARI ---------------- */
 
-  if (!authHeader.startsWith("Bearer ")) {
-    return send(res, 401, {
-      success: false,
-      message: "Oturum bulunamadı."
-    });
-  }
-
-  const token = authHeader.slice(7).trim();
-  const decoded = verifyToken(token);
-
-  if (!decoded || !decoded.id) {
-    return send(res, 401, {
-      success: false,
-      message: "Geçersiz oturum."
-    });
-  }
-
-  const body = await readBody(req);
-  const targetPlayerId = Number(body.targetPlayerId);
-
-  if (!Number.isInteger(targetPlayerId)) {
-    return send(res, 400, {
-      success: false,
-      message: "Geçersiz hedef oyuncu."
-    });
-  }
-
-  if (targetPlayerId === Number(decoded.id)) {
-    return send(res, 400, {
-      success: false,
-      message: "Kendi kolonine saldıramazsın."
-    });
-  }
-
-  const attackerCityResult = await supabase(
-    "cities?select=*&player_id=eq." +
-      encodeURIComponent(decoded.id) +
-      "&limit=1"
-  );
-
-  if (
-    !attackerCityResult.ok ||
-    !attackerCityResult.data ||
-    !attackerCityResult.data[0]
-  ) {
-    return send(res, 404, {
-      success: false,
-      message: "Saldıran koloninin verisi bulunamadı."
-    });
-  }
-
-  const targetCityResult = await supabase(
-    "cities?select=*&player_id=eq." +
-      encodeURIComponent(targetPlayerId) +
-      "&limit=1"
-  );
-
-  if (
-    !targetCityResult.ok ||
-    !targetCityResult.data ||
-    !targetCityResult.data[0]
-  ) {
-    return send(res, 404, {
-      success: false,
-      message: "Hedef koloni bulunamadı."
-    });
-  }
-
-  const attackerCity = attackerCityResult.data[0];
-  const targetCity = targetCityResult.data[0];
-
-  const attackerUnitsResult = await supabase(
-    "units?select=*&city_id=eq." +
-      encodeURIComponent(attackerCity.id)
-  );
-
-  if (!attackerUnitsResult.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "Saldırı ordusu alınamadı."
-    });
-  }
-
-  const targetUnitsResult = await supabase(
-    "units?select=*&city_id=eq." +
-      encodeURIComponent(targetCity.id)
-  );
-
-  if (!targetUnitsResult.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "Hedef savunması alınamadı."
-    });
-  }
-
-  const attackerUnits = attackerUnitsResult.data || [];
-  const targetUnits = targetUnitsResult.data || [];
-
-  function getUnit(units, type) {
-    return units.find(function(item) {
-      return item.unit_type === type;
-    });
-  }
-
-  function getUnitCount(units, type) {
-    const unit = getUnit(units, type);
-    return unit ? Number(unit.quantity) : 0;
-  }
-
-  function calculateLoss(quantity, percent) {
-    if (quantity <= 0) {
-      return 0;
-    }
-
-    const loss = Math.ceil(quantity * percent);
-
-    return Math.min(quantity, Math.max(1, loss));
-  }
-
-  const infantry = getUnitCount(
-    attackerUnits,
-    "piyade"
-  );
-
-  const attackUnits = getUnitCount(
-    attackerUnits,
-    "saldiri"
-  );
-
-  const defenseUnits = getUnitCount(
-    targetUnits,
-    "savunma"
-  );
-const attackerResearchResult = await supabase(
-  "research?select=combat_level&player_id=eq." +
-    encodeURIComponent(decoded.id) +
-    "&limit=1"
-);
-
-const defenderResearchResult = await supabase(
-  "research?select=defense_level&player_id=eq." +
-    encodeURIComponent(targetPlayerId) +
-    "&limit=1"
-);
-
-if (
-  !attackerResearchResult.ok ||
-  !defenderResearchResult.ok
+function createPlayerColony(
+  player,
+  index
 ) {
-  return send(res, 500, {
-    success: false,
-    message: "Araştırma seviyeleri alınamadı."
+  const colony =
+    document.createElement("div");
+
+  const savedX = Number(player.coordinate_x);
+  const savedY = Number(player.coordinate_y);
+
+  const hasRealCoordinates =
+    Number.isFinite(savedX) &&
+    Number.isFinite(savedY) &&
+    savedX >= 1 && savedX <= 100 &&
+    savedY >= 1 && savedY <= 100 &&
+    !(savedX === 25 && savedY === 35);
+
+  const fallbackPosition =
+    getPlayerPosition(player.player_id);
+
+  const x = hasRealCoordinates
+    ? savedX
+    : fallbackPosition.x;
+
+  const y = hasRealCoordinates
+    ? savedY
+    : fallbackPosition.y;
+
+  colony.className = "colony";
+  colony.style.left = x + "%";
+  colony.style.top = y + "%";
+  colony.style.position = "absolute";
+
+  colony.innerHTML =
+    '<div class="colony-icon">🏠</div>' +
+    '<div class="colony-name">' +
+    escapeHtml(player.username) +
+    '</div>';
+
+  colony.addEventListener("click", function(event) {
+    event.stopPropagation();
+
+    selectPlayerColony(
+      colony,
+      player,
+      x,
+      y
+    );
   });
+
+  return colony;
 }
 
-const attackerCombatLevel =
-  attackerResearchResult.data &&
-  attackerResearchResult.data[0]
-    ? Number(
-        attackerResearchResult.data[0].combat_level || 0
-      )
-    : 0;
+function escapeHtml(text) {
+  const div =
+    document.createElement("div");
 
-const defenderDefenseLevel =
-  defenderResearchResult.data &&
-  defenderResearchResult.data[0]
-    ? Number(
-        defenderResearchResult.data[0].defense_level || 0
-      )
-    : 0;
+  div.textContent =
+    text || "Oyuncu";
 
-const attackMultiplier =
-  1 + attackerCombatLevel * 0.10;
+  return div.innerHTML;
+}
 
-const defenseMultiplier =
-  1 + defenderDefenseLevel * 0.10;
+async function loadWorldPlayers() {
+  const token =
+    localStorage.getItem("nexora_token");
 
-const totalAttackPower = Math.round(
-  (
-    infantry * 1 +
-    attackUnits * 3
-  ) * attackMultiplier
-);
-
-const totalDefensePower = Math.round(
-  defenseUnits * 2 * defenseMultiplier
-);
-
-  if (totalAttackPower <= 0) {
-    return send(res, 400, {
-      success: false,
-      message: "Saldırı için yeterli asker yok."
-    });
+  if (!token) {
+    return;
   }
 
-  let result;
-  let lootPercent = 0;
+  try {
+    const response =
+      await fetch(
+        "/api/auth?action=world",
+        {
+          method: "POST",
+          headers: {
+            "Authorization":
+              "Bearer " + token
+          }
+        }
+      );
 
-  let attackerLossPercent = 0;
-  let defenderLossPercent = 0;
+    const data =
+      await response.json();
 
-  if (totalAttackPower > totalDefensePower) {
-    result = "Zafer";
-    lootPercent = 0.10;
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      console.error(
+        "Dünya oyuncuları alınamadı:",
+        data
+      );
+      return;
+    }
 
-    attackerLossPercent = 0.20;
-    defenderLossPercent = 0.60;
+    const playersContainer =
+      document.getElementById("realPlayers");
 
-  } else if (totalAttackPower === totalDefensePower) {
-    result = "Beraberlik";
+    if (!playersContainer) {
+      return;
+    }
 
-    attackerLossPercent = 0.40;
-    defenderLossPercent = 0.40;
+    playersContainer.innerHTML =
+      "";
 
-  } else {
-    result = "Yenilgi";
+    const otherPlayers =
+      (data.players || [])
+      .filter(function(player) {
+        if (!savedUser) {
+          return true;
+        }
 
-    attackerLossPercent = 0.70;
-    defenderLossPercent = 0.20;
+        return Number(
+          player.player_id
+        ) !== Number(
+          savedUser.id
+        );
+      });
+
+    otherPlayers.forEach(
+      function(player, index) {
+        const colony =
+          createPlayerColony(
+            player,
+            index
+          );
+
+        if (colony) {
+          playersContainer.appendChild(
+            colony
+          );
+        }
+      }
+    );
+
+  } catch (error) {
+    console.error(
+      "Dünya haritası hatası:",
+      error
+    );
   }
+}
 
-  const infantryLoss = calculateLoss(
-    infantry,
-    attackerLossPercent
-  );
-
-  const attackUnitsLoss = calculateLoss(
-    attackUnits,
-    attackerLossPercent
-  );
-
-  const defenseLoss = calculateLoss(
-    defenseUnits,
-    defenderLossPercent
+loadMyCoordinates().then(function() {
+  loadWorldPlayers();
+  startMissionPanel();
+});
+</script>
+</body>
+</html>
