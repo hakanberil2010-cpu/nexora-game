@@ -3,475 +3,207 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>NEXORA - Araştırma</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #050d18;
-  color: #eaf4ff;
-}
-
-.topbar {
-  height: 76px;
-  background: #071526;
-  border-bottom: 1px solid #173451;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 35px;
-}
-
-.logo {
-  font-size: 30px;
-  letter-spacing: 7px;
-  color: #16b9ff;
-  font-weight: bold;
-}
-
-.player {
-  color: #8fc9ef;
-}
-
-.player span {
-  color: white;
-  font-weight: bold;
-}
-
-.container {
-  max-width: 1100px;
-  margin: 35px auto;
-  padding: 0 25px;
-}
-
-h1 {
-  font-size: 34px;
-  margin-bottom: 8px;
-}
-
-.subtitle {
-  color: #78b9e6;
-  margin-bottom: 30px;
-}
-
-.research-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-.research-card {
-  background: #091b2d;
-  border: 1px solid #173e5d;
-  border-radius: 14px;
-  padding: 22px;
-}
-
-.research-icon {
-  font-size: 40px;
-  margin-bottom: 10px;
-}
-
-.research-card h2 {
-  margin: 0 0 8px;
-  color: #16b9ff;
-}
-
-.research-card p {
-  color: #91bad5;
-  line-height: 1.5;
-}
-
-.level {
-  margin: 15px 0;
-  color: #58ff9b;
-  font-weight: bold;
-}
-
-.cost {
-  color: #8caec7;
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-
-.research-button {
-  width: 100%;
-  padding: 12px;
-  background: #0d6284;
-  color: white;
-  border: 0;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.research-button:hover {
-  background: #1180aa;
-}
-
-.research-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.status {
-  margin-bottom: 20px;
-  padding: 12px 15px;
-  border-radius: 8px;
-  background: #091b2d;
-  border: 1px solid #173e5d;
-  color: #9cc6e2;
-  display: none;
-}
-
-.back {
-  display: inline-block;
-  margin-top: 25px;
-  color: #16b9ff;
-  text-decoration: none;
-}
-
-.back:hover {
-  text-decoration: underline;
-}
-
-@media (max-width: 700px) {
-  .research-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .topbar {
-    padding: 0 18px;
-  }
-
-  .logo {
-    font-size: 24px;
-  }
-}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
+.topbar{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 35px}
+.logo{font-size:30px;letter-spacing:7px;color:#16b9ff;font-weight:bold}
+.player{color:#8fc9ef}.player span{color:#fff;font-weight:bold}
+.container{max-width:1200px;margin:35px auto;padding:0 25px}
+h1{font-size:34px;margin-bottom:8px}.subtitle{color:#78b9e6;margin-bottom:30px}
+.research-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.research-card{background:#091b2d;border:1px solid #173e5d;border-radius:14px;padding:22px}
+.research-icon{font-size:40px;margin-bottom:10px}
+.research-card h2{margin:0 0 8px;color:#16b9ff}
+.research-card p{color:#91bad5;line-height:1.5;min-height:48px}
+.level{margin:15px 0;color:#58ff9b;font-weight:bold}
+.cost{color:#8caec7;font-size:13px;margin-bottom:12px}
+.research-button{width:100%;padding:12px;background:#0d6284;color:#fff;border:0;border-radius:8px;font-weight:bold;cursor:pointer}
+.research-button:hover{background:#1180aa}
+.research-button:disabled{opacity:.6;cursor:wait}
+.status{margin-bottom:20px;padding:12px 15px;border-radius:8px;background:#091b2d;border:1px solid #173e5d;color:#9cc6e2;display:none}
+.back{display:inline-block;margin-top:25px;color:#16b9ff;text-decoration:none}
+.back:hover{text-decoration:underline}
+@media(max-width:700px){.topbar{padding:0 18px}.logo{font-size:24px}}
 </style>
 </head>
 
 <body>
-
 <div class="topbar">
-
   <div class="logo">NEXORA</div>
-
-  <div class="player">
-    Oyuncu:
-    <span id="playerName">Oyuncu</span>
-  </div>
-
+  <div class="player">Oyuncu: <span id="playerName">Oyuncu</span></div>
 </div>
 
 <div class="container">
-
   <h1>🔬 Araştırma</h1>
-
-  <div class="subtitle">
-    Teknolojilerini geliştir, kolonini güçlendir ve üstünlük sağla.
-  </div>
-
+  <div class="subtitle">Teknolojilerini geliştir, ordunu güçlendir ve kolonini büyüt.</div>
   <div class="status" id="status"></div>
 
   <div class="research-grid">
 
     <div class="research-card">
-
       <div class="research-icon">⚙️</div>
-
       <h2>Üretim Teknolojisi</h2>
-
-      <p>
-        Maden ve enerji üretimini geliştirir.
-      </p>
-
-      <div class="level" id="productionLevel">
-        Seviye: 0
-      </div>
-
-      <div class="cost">
-        Maliyet: 500 Metal + 150 Enerji + 25 Kristal
-      </div>
-
-      <button
-        class="research-button"
-        onclick="researchTechnology('production')">
-        Araştır
-      </button>
-
+      <p>Maden ve enerji üretimini geliştirir.</p>
+      <div class="level" id="productionLevel">Seviye: 0</div>
+      <div class="cost">Maliyet: 500 Metal + 150 Enerji + 25 Kristal</div>
+      <button class="research-button" onclick="researchTechnology('production')">Araştır</button>
     </div>
 
     <div class="research-card">
-
       <div class="research-icon">⚔️</div>
-
       <h2>Savaş Teknolojisi</h2>
-
-      <p>
-        Saldırı birliklerinin savaş gücünü artırır.
-      </p>
-
-      <div class="level" id="combatLevel">
-        Seviye: 0
-      </div>
-
-      <div class="cost">
-        Maliyet: 700 Metal + 200 Enerji + 40 Kristal
-      </div>
-
-      <button
-        class="research-button"
-        onclick="researchTechnology('combat')">
-        Araştır
-      </button>
-
+      <p>Mevcut savaş araştırmasının bonusunu artırır.</p>
+      <div class="level" id="combatLevel">Seviye: 0</div>
+      <div class="cost">Maliyet: 700 Metal + 200 Enerji + 40 Kristal</div>
+      <button class="research-button" onclick="researchTechnology('combat')">Araştır</button>
     </div>
 
     <div class="research-card">
-
       <div class="research-icon">🛡️</div>
-
       <h2>Savunma Teknolojisi</h2>
-
-      <p>
-        Savunma birliklerinin gücünü artırır.
-      </p>
-
-      <div class="level" id="defenseLevel">
-        Seviye: 0
-      </div>
-
-      <div class="cost">
-        Maliyet: 600 Metal + 180 Enerji + 35 Kristal
-      </div>
-
-      <button
-        class="research-button"
-        onclick="researchTechnology('defense')">
-        Araştır
-      </button>
-
+      <p>Mevcut savunma araştırmasının bonusunu artırır.</p>
+      <div class="level" id="defenseLevel">Seviye: 0</div>
+      <div class="cost">Maliyet: 600 Metal + 180 Enerji + 35 Kristal</div>
+      <button class="research-button" onclick="researchTechnology('defense')">Araştır</button>
     </div>
 
     <div class="research-card">
-
       <div class="research-icon">💎</div>
-
       <h2>Kristal Teknolojisi</h2>
+      <p>Kristal üretimini geliştirir.</p>
+      <div class="level" id="crystalLevel">Seviye: 0</div>
+      <div class="cost">Maliyet: 800 Metal + 250 Enerji + 60 Kristal</div>
+      <button class="research-button" onclick="researchTechnology('crystal')">Araştır</button>
+    </div>
 
-      <p>
-        Kristal üretimini geliştirir.
-      </p>
+    <div class="research-card">
+      <div class="research-icon">🌟</div>
+      <h2>Genel Güç</h2>
+      <p>Tüm birliklerin genel savaş etkinliğini artırır.</p>
+      <div class="level" id="generalPowerLevel">Seviye: 0</div>
+      <div class="cost">Maliyet: 1000 Metal + 300 Enerji + 50 Kristal</div>
+      <button class="research-button" onclick="researchTechnology('general_power')">Araştır</button>
+    </div>
 
-      <div class="level" id="crystalLevel">
-        Seviye: 0
-      </div>
+    <div class="research-card">
+      <div class="research-icon">🔥</div>
+      <h2>Birlik Saldırısı</h2>
+      <p>Piyade, savunma ve saldırı birliklerinin saldırı gücünü artırır.</p>
+      <div class="level" id="unitAttackLevel">Seviye: 0</div>
+      <div class="cost">Maliyet: 900 Metal + 250 Enerji + 45 Kristal</div>
+      <button class="research-button" onclick="researchTechnology('unit_attack')">Araştır</button>
+    </div>
 
-      <div class="cost">
-        Maliyet: 800 Metal + 250 Enerji + 60 Kristal
-      </div>
+    <div class="research-card">
+      <div class="research-icon">🧱</div>
+      <h2>Birlik Savunması</h2>
+      <p>Tüm birliklerin savunma değerini artırır.</p>
+      <div class="level" id="unitDefenseLevel">Seviye: 0</div>
+      <div class="cost">Maliyet: 850 Metal + 250 Enerji + 45 Kristal</div>
+      <button class="research-button" onclick="researchTechnology('unit_defense')">Araştır</button>
+    </div>
 
-      <button
-        class="research-button"
-        onclick="researchTechnology('crystal')">
-        Araştır
-      </button>
+    <div class="research-card">
+      <div class="research-icon">❤️</div>
+      <h2>Birlik HP</h2>
+      <p>Tüm birliklerin dayanıklılığını ve toplam HP değerini artırır.</p>
+      <div class="level" id="unitHpLevel">Seviye: 0</div>
+      <div class="cost">Maliyet: 950 Metal + 275 Enerji + 50 Kristal</div>
+      <button class="research-button" onclick="researchTechnology('unit_hp')">Araştır</button>
+    </div>
 
+    <div class="research-card">
+      <div class="research-icon">🚀</div>
+      <h2>Seyahat Hızı</h2>
+      <p>Saldırı ve birlik hareketlerinin seyahat süresini azaltır.</p>
+      <div class="level" id="travelSpeedLevel">Seviye: 0</div>
+      <div class="cost">Maliyet: 1200 Metal + 350 Enerji + 65 Kristal</div>
+      <button class="research-button" onclick="researchTechnology('travel_speed')">Araştır</button>
     </div>
 
   </div>
 
-  <a class="back" href="game.html">
-    ← Koloniye Dön
-  </a>
-
+  <a class="back" href="game.html">← Koloniye Dön</a>
 </div>
 
 <script>
+const savedUser=JSON.parse(localStorage.getItem("nexora_player")||"null");
+if(savedUser&&savedUser.username) document.getElementById("playerName").textContent=savedUser.username;
 
-const savedUser = JSON.parse(
-  localStorage.getItem("nexora_player") || "null"
-);
-
-if (savedUser && savedUser.username) {
-  document.getElementById("playerName").textContent =
-    savedUser.username;
+function showStatus(message){
+  const status=document.getElementById("status");
+  status.textContent=message;
+  status.style.display="block";
 }
 
-function showStatus(message) {
-
-  const status =
-    document.getElementById("status");
-
-  status.textContent = message;
-  status.style.display = "block";
-
+function setLevel(id,value){
+  document.getElementById(id).textContent="Seviye: "+Number(value||0);
 }
 
-function updateLevels(research) {
-
-  document.getElementById(
-    "productionLevel"
-  ).textContent =
-    "Seviye: " +
-    Number(research.production_level || 0);
-
-  document.getElementById(
-    "combatLevel"
-  ).textContent =
-    "Seviye: " +
-    Number(research.combat_level || 0);
-
-  document.getElementById(
-    "defenseLevel"
-  ).textContent =
-    "Seviye: " +
-    Number(research.defense_level || 0);
-
-  document.getElementById(
-    "crystalLevel"
-  ).textContent =
-    "Seviye: " +
-    Number(research.crystal_level || 0);
-
+function updateLevels(r){
+  setLevel("productionLevel",r.production_level);
+  setLevel("combatLevel",r.combat_level);
+  setLevel("defenseLevel",r.defense_level);
+  setLevel("crystalLevel",r.crystal_level);
+  setLevel("generalPowerLevel",r.general_power_level);
+  setLevel("unitAttackLevel",r.unit_attack_level);
+  setLevel("unitDefenseLevel",r.unit_defense_level);
+  setLevel("unitHpLevel",r.unit_hp_level);
+  setLevel("travelSpeedLevel",r.travel_speed_level);
 }
 
-async function loadResearch() {
-
-  const token =
-    localStorage.getItem("nexora_token");
-
-  if (!token) {
-    showStatus("Oturum bulunamadı.");
-    return;
-  }
-
-  try {
-
-    const response = await fetch(
-      "/api/auth?action=research",
-      {
-        method: "POST",
-        headers: {
-          "Authorization":
-            "Bearer " + token
-        }
-      }
-    );
-
-    const data =
-      await response.json();
-
-    if (!response.ok || !data.success) {
-      showStatus(
-        data.message ||
-        "Araştırma verileri alınamadı."
-      );
-      return;
-    }
-
-    updateLevels(data.research);
-
-  } catch (error) {
-
-    console.error(
-      "Araştırma yükleme hatası:",
-      error
-    );
-
-    showStatus(
-      "Araştırma verileri yüklenemedi."
-    );
+async function loadResearch(){
+  const token=localStorage.getItem("nexora_token");
+  if(!token){showStatus("Oturum bulunamadı.");return}
+  try{
+    const response=await fetch("/api/auth?action=research",{method:"POST",headers:{"Authorization":"Bearer "+token}});
+    const data=await response.json();
+    if(!response.ok||!data.success){showStatus(data.message||"Araştırma verileri alınamadı.");return}
+    updateLevels(data.research||{});
+  }catch(error){
+    console.error(error);
+    showStatus("Araştırma verileri yüklenemedi.");
   }
 }
 
-async function researchTechnology(type) {
+async function researchTechnology(type){
+  const token=localStorage.getItem("nexora_token");
+  if(!token){showStatus("Oturum bulunamadı.");return}
 
-  const token =
-    localStorage.getItem("nexora_token");
-
-  if (!token) {
-    showStatus("Oturum bulunamadı.");
-    return;
-  }
-
-  const buttons =
-    document.querySelectorAll(
-      ".research-button"
-    );
-
-  buttons.forEach(function(button) {
-    button.disabled = true;
-  });
-
+  const buttons=document.querySelectorAll(".research-button");
+  buttons.forEach(b=>b.disabled=true);
   showStatus("Araştırma yapılıyor...");
 
-  try {
+  try{
+    const response=await fetch("/api/auth?action=upgradeResearch",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+token
+      },
+      body:JSON.stringify({researchType:type})
+    });
+    const data=await response.json();
 
-    const response = await fetch(
-      "/api/auth?action=upgradeResearch",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-          "Authorization":
-            "Bearer " + token
-        },
-        body: JSON.stringify({
-          researchType: type
-        })
-      }
-    );
-
-    const data =
-      await response.json();
-
-    if (!response.ok || !data.success) {
-
-      showStatus(
-        data.message ||
-        "Araştırma gerçekleştirilemedi."
-      );
-
+    if(!response.ok||!data.success){
+      showStatus(data.message||"Araştırma gerçekleştirilemedi.");
       return;
     }
 
-    updateLevels(data.research);
-
-    showStatus(
-      "✅ Araştırma tamamlandı. Seviye yükseltildi."
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Araştırma hatası:",
-      error
-    );
-
-    showStatus(
-      "Araştırma sırasında bir hata oluştu."
-    );
-
-  } finally {
-
-    buttons.forEach(function(button) {
-      button.disabled = false;
-    });
+    updateLevels(data.research||{});
+    showStatus("✅ Araştırma tamamlandı. Seviye yükseltildi.");
+  }catch(error){
+    console.error(error);
+    showStatus("Araştırma sırasında bir hata oluştu.");
+  }finally{
+    buttons.forEach(b=>b.disabled=false);
   }
 }
 
 loadResearch();
-
 </script>
-
 </body>
 </html>
