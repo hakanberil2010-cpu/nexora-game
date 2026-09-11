@@ -796,7 +796,12 @@ setTimeout(function() {
 
     const data =
       await response.json();
+const fleet =
+  document.querySelector("#attackFleet .attack-fleet");
 
+if (fleet) {
+  fleet.remove();
+}
     if (!response.ok || !data.success) {
 
       alert(
