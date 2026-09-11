@@ -1052,54 +1052,37 @@ function selectPlayerColony(
       "⚔️ Saldır";
   }
 }
-function createPlayerColony(
-  player,
-  index
-) {
-  const colony =
-    document.createElement("div");
+function createPlayerColony(player, index) {
+  const colony = document.createElement("div");
 
-  /*
-    Öncelik veritabanındaki kayıtlı koordinatlar.
-    Eski oyuncularda koordinat yoksa
-    mevcut mapPositions sistemi kullanılır.
-  */
-  let x = Number(player.coordinate_x);
-  let y = Number(player.coordinate_y);
+  const positions = [
+    { x: 18, y: 22 },
+    { x: 42, y: 18 },
+    { x: 68, y: 25 },
+    { x: 82, y: 42 },
+    { x: 60, y: 58 },
+    { x: 32, y: 64 },
+    { x: 15, y: 48 },
+    { x: 45, y: 40 },
+    { x: 75, y: 70 },
+    { x: 25, y: 78 }
+  ];
 
-  if (
-    !Number.isFinite(x) ||
-    !Number.isFinite(y)
-  ) {
-    const position =
-      mapPositions[
-        Number(player.player_id) %
-        mapPositions.length
-      ];
-
-    x = position.x;
-    y = position.y;
-  }
+  const position =
+    positions[
+      Number(player.player_id) % positions.length
+    ];
 
   colony.className = "colony";
 
   colony.style.left =
-    x + "%";
+    position.x + "%";
 
   colony.style.top =
-    y + "%";
+    position.y + "%";
 
   colony.style.position =
     "absolute";
-
-  const isMine =
-    savedUser &&
-    Number(player.player_id) ===
-    Number(savedUser.id);
-
-  if (isMine) {
-    return null;
-  }
 
   colony.innerHTML =
     '<div class="colony-icon">🏠</div>' +
@@ -1116,15 +1099,14 @@ function createPlayerColony(
       selectPlayerColony(
         colony,
         player,
-        x,
-        y
+        position.x,
+        position.y
       );
     }
   );
 
   return colony;
 }
-
 function escapeHtml(text) {
 
   const div =
