@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NEXORA - Görevler & Başarımlar</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
+.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
+.container{max-width:1200px;margin:30px auto;padding:0 20px}
+.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
+.topBack:hover{filter:brightness(1.08)}
+h1{margin:0 0 8px}
+.sub{color:#7196b8;margin-bottom:22px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 24px}
+.summaryBox{background:#091a2c;border:1px solid #173b5d;border-radius:12px;padding:14px}
+.summaryBox span{display:block;color:#7faecb;font-size:12px;margin-bottom:6px}
+.summaryBox b{font-size:21px;color:#18bfff}
+.sectionTitle{margin:30px 0 14px;font-size:23px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.card{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:18px;position:relative;overflow:hidden}
+.card.done{border-color:#2b8f66}
+.card.claimed{border-color:#315879;opacity:.78}
+.card.lockedAchievement{opacity:.72}
+.card h2{font-size:19px;margin:0 0 7px}
+.card p{color:#9cc6e2;min-height:42px;line-height:1.45}
+.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#102a44;color:#8bdcff;font-size:12px;font-weight:bold;margin-bottom:10px}
+.badge.done{background:#153d2f;color:#64f0aa}
+.badge.claimed{background:#253245;color:#a9bdd0}
+.badge.achievement{background:#2e2440;color:#cfa9ff}
+.progressText{display:flex;justify-content:space-between;gap:12px;color:#8db0cf;font-size:12px;margin-top:12px}
+.progress{height:9px;background:#061321;border-radius:999px;overflow:hidden;border:1px solid #173b5d;margin:7px 0 13px}
+.progressBar{height:100%;background:linear-gradient(90deg,#138dcc,#20c6ff);width:0}
+.reward{font-size:13px;color:#ffd36e;line-height:1.55;min-height:42px}
+.button{width:100%;padding:11px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer;margin-top:12px}
+.button:hover:not(:disabled){filter:brightness(1.08)}
+.button:disabled{opacity:.5;cursor:not-allowed}
+.status{margin:14px 0 4px;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff;display:none}
+.empty{padding:18px;background:#091a2c;border:1px solid #173b5d;border-radius:12px;color:#8db0cf}
+.icon{font-size:34px;margin-bottom:8px}
+.back{display:inline-block;margin-top:28px;color:#18bfff;text-decoration:none}
+.back:hover{text-decoration:underline}
+@media(max-width:800px){
+  .top{padding:0 15px}
+  .logo{font-size:22px;letter-spacing:4px}
+  .container{padding:0 12px;margin-top:20px}
+  .summary{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">NEXORA</div>
+  <div>Oyuncu: <strong id="playerName">Oyuncu</strong></div>
+</div>
+
+<div class="container">
+  <a class="topBack" href="game.html">← Koloniye Dön</a>
+  <h1>🎯 Görevler & Başarımlar</h1>
+  <div class="sub">Kolonini geliştir, hedefleri tamamla ve kalıcı başarımlar aç.</div>
+
+  <div class="summary">
+    <div class="summaryBox"><span>Tamamlanan Görev</span><b id="completedMissionCount">0</b></div>
+    <div class="summaryBox"><span>Alınan Ödül</span><b id="claimedMissionCount">0</b></div>
+    <div class="summaryBox"><span>Açılan Başarım</span><b id="achievementCount">0</b></div>
+    <div class="summaryBox"><span>Stratejik Nokta</span><b id="strategicSiteCount">0</b></div>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div class="sectionTitle">📋 Görevler</div>
+  <div id="missionGrid" class="grid"></div>
+
+  <div class="sectionTitle">🏆 Başarımlar</div>
+  <div id="achievementGrid" class="grid"></div>
+
+  <a class="back" href="game.html">← Koloniye Dön</a>
+</div>
+
+<script>
+const token=localStorage.getItem('nexora_token');
+const user=JSON.parse(localStorage.getItem('nexora_player')||'null');
+if(!token)location.href='login.html';
+if(user?.username)document.getElementById('playerName').textContent=user.username;
+
+let snapshot=null;
+let claimPending=false;
+
+function escapeHtml(value){
+  return String(value??'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+function numberValue(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
+}
+
+function progressPercent(progress,target){
+  const p=numberValue(progress);
+  const t=Math.max(1,numberValue(target));
+  return Math.max(0,Math.min(100,Math.round((p/t)*100)));
+}
+
+function rewardText(reward){
+  const r=reward&&typeof reward==='object'?reward:{};
+  const parts=[];
+  const values=[
+    ['⛏️',r.metal,'Metal'],
+    ['⚡',r.energy,'Enerji'],
+    ['💧',r.water,'Su'],
+    ['💎',r.crystal,'Kristal']
+  ];
+  values.forEach(([icon,value,label])=>{
+    const n=numberValue(value);
+    if(n>0)parts.push(icon+' '+n.toLocaleString('tr-TR')+' '+label);
+  });
+  return parts.length?parts.join(' · '):'Ödül yok';
+}
+
+function showStatus(message){
+  const el=document.getElementById('status');
+  el.textContent=message||'';
+  el.style.display=message?'block':'none';
+}
+
+function render(data){
+  snapshot=data||{};
+  const missions=Array.isArray(snapshot.missions)?snapshot.missions:[];
+  const achievements=Array.isArray(snapshot.achievements)?snapshot.achievements:[];
+  const metrics=snapshot.metrics&&typeof snapshot.metrics==='object'?snapshot.metrics:{};
+
+  document.getElementById('completedMissionCount').textContent=
+    missions.filter(m=>m?.completed===true).length;
+  document.getElementById('claimedMissionCount').textContent=
+    missions.filter(m=>m?.claimed===true).length;
+  document.getElementById('achievementCount').textContent=
+    achievements.filter(a=>a?.unlocked===true).length;
+  document.getElementById('strategicSiteCount').textContent=
+    numberValue(metrics.strategicSites);
+
+  const missionGrid=document.getElementById('missionGrid');
+  if(!missions.length){
+    missionGrid.innerHTML='<div class="empty">Aktif görev bulunmuyor.</div>';
+  }else{
+    missionGrid.innerHTML=missions.map(m=>{
+      const progress=numberValue(m.progress);
+      const target=Math.max(1,numberValue(m.target));
+      const completed=m.completed===true;
+      const claimed=m.claimed===true;
+      const pct=progressPercent(progress,target);
+      const badge=claimed?'Ödül Alındı':completed?'Tamamlandı':'Devam Ediyor';
+      const badgeClass=claimed?'claimed':completed?'done':'';
+      const cardClass=claimed?'claimed':completed?'done':'';
+      const buttonText=claimed?'Ödül Alındı':completed?'🎁 Ödülü Al':'Henüz Tamamlanmadı';
+      return '<div class="card '+cardClass+'">'+
+        '<span class="badge '+badgeClass+'">'+badge+'</span>'+
+        '<h2>'+escapeHtml(m.title||'Görev')+'</h2>'+
+        '<p>'+escapeHtml(m.description||'')+'</p>'+
+        '<div class="progressText"><span>İlerleme</span><strong>'+progress.toLocaleString('tr-TR')+' / '+target.toLocaleString('tr-TR')+'</strong></div>'+
+        '<div class="progress"><div class="progressBar" style="width:'+pct+'%"></div></div>'+
+        '<div class="reward">🎁 '+escapeHtml(rewardText(m.reward))+'</div>'+
+        '<button class="button" '+(!completed||claimed||claimPending?'disabled':'')+
+          ' onclick="claimMission(\''+escapeHtml(m.id||'')+'\')">'+buttonText+'</button>'+
+      '</div>';
+    }).join('');
+  }
+
+  const achievementGrid=document.getElementById('achievementGrid');
+  if(!achievements.length){
+    achievementGrid.innerHTML='<div class="empty">Aktif başarım bulunmuyor.</div>';
+  }else{
+    achievementGrid.innerHTML=achievements.map(a=>{
+      const progress=numberValue(a.progress);
+      const target=Math.max(1,numberValue(a.target));
+      const unlocked=a.unlocked===true;
+      const pct=progressPercent(progress,target);
+      return '<div class="card '+(unlocked?'done':'lockedAchievement')+'">'+
+        '<div class="icon">'+escapeHtml(a.icon||'🏆')+'</div>'+
+        '<span class="badge achievement">'+(unlocked?'Açıldı':'Kilitli')+'</span>'+
+        '<h2>'+escapeHtml(a.title||'Başarım')+'</h2>'+
+        '<p>'+escapeHtml(a.description||'')+'</p>'+
+        '<div class="progressText"><span>İlerleme</span><strong>'+progress.toLocaleString('tr-TR')+' / '+target.toLocaleString('tr-TR')+'</strong></div>'+
+        '<div class="progress"><div class="progressBar" style="width:'+pct+'%"></div></div>'+
+      '</div>';
+    }).join('');
+  }
+}
+
+async function loadObjectives(silent=false){
+  if(!silent)showStatus('Görevler yükleniyor...');
+  try{
+    const response=await fetch('/api/auth?action=gameobjectives',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const data=await response.json();
+    if(response.status===401){
+      localStorage.removeItem('nexora_token');
+      location.href='login.html';
+      return;
+    }
+    if(!response.ok||!data.success){
+      showStatus(data.message||'Görevler yüklenemedi.');
+      return;
+    }
+    render(data);
+    if(!silent)showStatus('');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }
+}
+
+async function claimMission(missionId){
+  if(claimPending||!missionId)return;
+  claimPending=true;
+  showStatus('Görev ödülü alınıyor...');
+  if(snapshot)render(snapshot);
+  try{
+    const response=await fetch('/api/auth?action=claimgamemission',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        Authorization:'Bearer '+token
+      },
+      body:JSON.stringify({missionId})
+    });
+    const data=await response.json();
+    if(response.status===401){
+      localStorage.removeItem('nexora_token');
+      location.href='login.html';
+      return;
+    }
+    if(!response.ok||!data.success){
+      showStatus(data.message||'Görev ödülü alınamadı.');
+      return;
+    }
+    const next=data.snapshot&&typeof data.snapshot==='object'?data.snapshot:null;
+    if(next)render(next);
+    else await loadObjectives(true);
+    showStatus(data.message||'Görev ödülü alındı.');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    claimPending=false;
+    if(snapshot)render(snapshot);
+  }
+}
+
+loadObjectives();
+setInterval(()=>loadObjectives(true),10000);
+</script>
+</body>
+</html>
