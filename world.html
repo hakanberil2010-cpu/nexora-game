@@ -457,6 +457,7 @@ h1 {
     <h3>🔭 Keşif Sistemi</h3>
     <div id="exploreSiteMeta" class="explore-site-meta">Haritadaki nötr, kaynak ve terk edilmiş noktaları seçerek keşif başlatabilirsin.</div>
     <button id="exploreButton" class="explore-button" style="display:none" onclick="startWorldExploration()">🔭 Keşif Başlat</button>
+    <button id="claimWorldSiteButton" class="explore-button" style="display:none" onclick="claimSelectedWorldSite()">🏳️ Kontrol Altına Al</button>
     <div class="site-legend">
       <span>🏔️ Nötr Bölge</span><span>💎 Kaynak Bölgesi</span><span>🏚️ Terk Edilmiş Koloni</span><span>🛡️ İttifak Bölgesi (gelecek)</span>
     </div>
@@ -705,6 +706,7 @@ function updateSelectedInfo(
 }
 
 function selectColony(name, isMine, playerId = null) {
+  selectedWorldSite=null;updateWorldClaimButton();
   const info = document.getElementById("info");
   const attackButton = document.getElementById("attackButton");
   const moveButton = document.getElementById("moveButton");
@@ -791,6 +793,7 @@ function selectPlayerColony(
   x,
   y
 ) {
+  selectedWorldSite=null;updateWorldClaimButton();
   document.querySelectorAll(".colony.selected").forEach(
     function(item) {
       item.classList.remove("selected");
@@ -1472,6 +1475,28 @@ function escapeHtml(text) {
 let worldSites = [];
 let selectedWorldSite = null;
 let explorationPolling = false;
+let worldClaimPending = false;
+
+function updateWorldClaimButton(){
+  const button=document.getElementById("claimWorldSiteButton");
+  if(!button)return;
+  button.style.display=selectedWorldSite?.can_claim===true&&selectedWorldSite.site_type!=="alliance"&&selectedWorldSite.owner_player_id==null?'inline-block':'none';
+  button.disabled=worldClaimPending;
+}
+async function claimSelectedWorldSite(){
+  const token=localStorage.getItem("nexora_token");
+  if(!token||!selectedWorldSite||worldClaimPending||selectedWorldSite.can_claim!==true)return;
+  const siteId=Number(selectedWorldSite.id);
+  worldClaimPending=true;updateWorldClaimButton();
+  try{
+    const r=await fetch("/api/auth?action=claimworldsite",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({siteId})});
+    const d=await r.json();
+    if(!r.ok||!d.success)throw new Error(d.message||"Nokta kontrol altına alınamadı.");
+    alert("🏳️ "+d.message);
+  }catch(e){alert("❌ "+e.message);}finally{
+    await loadWorldPlayers();worldClaimPending=false;updateWorldClaimButton();
+  }
+}
 
 function siteTypeLabel(type) {
   return ({neutral:"Nötr Bölge",resource:"Kaynak Bölgesi",abandoned:"Terk Edilmiş Koloni",alliance:"İttifak Bölgesi"})[type] || "Dünya Noktası";
@@ -1502,9 +1527,12 @@ function selectWorldSite(site, element) {
   const distance=Math.round(Math.sqrt(Math.pow(Number(site.coordinate_x)-myCoordinateX,2)+Math.pow(Number(site.coordinate_y)-myCoordinateY,2)));
   const meta=document.getElementById("exploreSiteMeta");
   const button=document.getElementById("exploreButton");
+  const ownership=site.owner_player_id==null?"Sahipsiz Stratejik Nokta":Number(site.owner_player_id)===Number(savedUser?.id)?"Senin Kontrolünde":"Kontrol Eden: "+(site.owner_username||"Oyuncu");
   if(meta){
     meta.innerHTML='<strong>'+escapeHtml(siteIcon(site.site_type)+' '+site.name)+'</strong><br>'+escapeHtml(siteTypeLabel(site.site_type))+' · 📍 X:'+Number(site.coordinate_x)+' Y:'+Number(site.coordinate_y)+' · 📏 Mesafe: '+distance+' km<br>'+escapeHtml(site.description||"Bu nokta keşfedilmeyi bekliyor.")+(site.site_type==="alliance"?' <br>🛡️ İttifak bölgeleri ileride aktif edilecek.':'');
   }
+  if(meta)meta.innerHTML+='<br>'+escapeHtml(ownership);
+  updateWorldClaimButton();
   if(button){button.style.display=site.site_type==="alliance"?'none':'inline-block';button.disabled=false;button.textContent="🔭 Keşif Başlat";}
   document.getElementById("info").style.display="block";
 }
@@ -1535,6 +1563,7 @@ async function pollWorldExploration(id){
           const reward=m.result?.reward||{};
           alert("🔭 Keşif tamamlandı!\n\n"+(m.result?.message||"")+"\n\nMetal: "+(reward.metal||0)+"\nEnerji: "+(reward.energy||0)+"\nSu: "+(reward.water||0)+"\nKristal: "+(reward.crystal||0));
           const btn=document.getElementById("exploreButton"); if(btn){btn.disabled=false;btn.textContent="🔭 Keşif Başlat";}
+          await loadWorldPlayers();
           break;
         }
       }
@@ -1590,6 +1619,11 @@ async function loadWorldPlayers() {
 
     worldSites = data.sites || [];
     renderWorldSites();
+    if(selectedWorldSite){
+      const refreshed=worldSites.find(function(site){return Number(site.id)===Number(selectedWorldSite.id);});
+      if(refreshed)selectWorldSite(refreshed,null);
+      else{selectedWorldSite=null;updateWorldClaimButton();}
+    }
 
     const otherPlayers =
       (data.players || [])
