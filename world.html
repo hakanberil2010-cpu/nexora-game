@@ -1170,26 +1170,37 @@ function getAttackUnitInputs() {
 function renderAttackUnitSelector() {
   const box = document.getElementById("attackUnitSelector");
   const list = document.getElementById("attackUnitList");
+  const attackButton = document.getElementById("attackButton");
   if (!box || !list) return;
   const token = localStorage.getItem("nexora_token");
   if (!token) return;
+  box.style.display = "block";
+  list.innerHTML = '<div style="color:#8db0cf">Birlikler yükleniyor...</div>';
+  if (attackButton) attackButton.disabled = true;
   fetch("/api/auth?action=city", { method:"POST", headers:{ "Authorization":"Bearer "+token } })
-    .then(function(r){return r.json();})
-    .then(function(data){
+    .then(function(r){return r.json().then(function(data){return {ok:r.ok,data:data};});})
+    .then(function(result){
+      const data=result.data||{};
+      if (!result.ok || !data.success) throw new Error(data.message||"Ordu verisi alınamadı.");
       const units = Array.isArray(data.units) ? data.units : (Array.isArray(data.army) ? data.army : []);
-      if (!units.length) {
-        list.innerHTML = '<div style="color:#8db0cf">Gönderilebilir birlik bulunmuyor.</div>';
-        box.style.display = "block";
+      const available = units.filter(function(u){return Number(u.quantity||0)>0;});
+      if (!available.length) {
+        list.innerHTML = '<div style="color:#ffb0b0">Gönderilebilir birlik bulunmuyor.</div>';
+        if (attackButton) attackButton.disabled = true;
         return;
       }
-      list.innerHTML = units.filter(function(u){return Number(u.quantity||0)>0;}).map(function(u){
+      list.innerHTML = available.map(function(u){
         const type=String(u.unit_type||"");
         const max=Math.max(0,Number(u.quantity||0));
         const label={piyade:"Piyade",savunma:"Savunma Birliği",saldiri:"Saldırı Birliği",okcu:"Okçu",tank:"Tank",hava:"Hava Birliği"}[type]||type;
         return '<div class="attack-unit-row"><span>'+label+'</span><input type="number" min="0" max="'+max+'" value="0" data-unit-type="'+type+'" data-max="'+max+'"><span class="attack-unit-max">Max '+max+'</span></div>';
       }).join("");
-      box.style.display = "block";
-    }).catch(function(){});
+      if (attackButton) attackButton.disabled = false;
+    })
+    .catch(function(error){
+      list.innerHTML = '<div style="color:#ffb0b0">Birlikler yüklenemedi: '+String(error.message||error)+'</div>';
+      if (attackButton) attackButton.disabled = true;
+    });
 }
 
 async function attack() {
@@ -1207,6 +1218,13 @@ async function attack() {
   const fleetContainer = document.getElementById("attackFleet");
 
   try {
+    const selectedUnits = getAttackUnitInputs();
+    const totalSelected = Object.values(selectedUnits).reduce(function(sum, value){ return sum + Number(value||0); }, 0);
+    if (totalSelected <= 0) {
+      attackButton.disabled = false;
+      alert("En az bir birlik miktarı seçmelisin.");
+      return;
+    }
     attackButton.disabled = true;
     attackButton.textContent = "⚔️ Sefer hazırlanıyor...";
 
@@ -1216,12 +1234,14 @@ async function attack() {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + token
       },
-      body: JSON.stringify({ targetPlayerId: selectedPlayerId, units: getAttackUnitInputs() })
+      body: JSON.stringify({ targetPlayerId: selectedPlayerId, units: selectedUnits })
     });
 
     const data = await response.json();
     if (!response.ok || !data.success || !data.mission) {
       alert(data.message || "Sefer oluşturulamadı.");
+      attackButton.disabled = false;
+      attackButton.textContent = "⚔️ Saldır";
       return;
     }
 
