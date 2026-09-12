@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXORA - İttifak Savaşları</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
+.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
+.container{max-width:1100px;margin:30px auto;padding:0 20px}
+.panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:20px;margin:16px 0}
+.button{padding:11px 16px;border:0;border-radius:8px;background:#128fcb;color:#fff;font-weight:bold;cursor:pointer}
+.button:disabled{opacity:.45;cursor:not-allowed}
+.secondary{background:#244763}
+.danger{background:#a63333}
+.success{background:#23814e}
+.smallButton{padding:8px 10px;font-size:12px}
+.input{width:100%;padding:11px;margin:7px 0 12px;background:#071526;border:1px solid #285476;border-radius:8px;color:#fff}
+.item{padding:15px;background:#071526;border:1px solid #17344f;border-radius:10px;margin:10px 0}
+.itemHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.itemActions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.muted{color:#8db0cf}
+.hidden{display:none}
+.topNav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.topBack{display:inline-block;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
+.topBack.secondaryLink{background:#244763;border-color:#365b78}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#102e49;color:#8bdcff;font-size:12px;font-weight:bold}
+.badge.pending{background:#4a3c17;color:#ffd970}
+.badge.active{background:#174a30;color:#8ff0b6}
+.badge.finished{background:#26384b;color:#c4d9ea}
+.badge.rejected,.badge.cancelled{background:#4a2222;color:#ffaaaa}
+.score{font-size:24px;font-weight:bold;margin:12px 0}
+.score strong{color:#62d2ff}
+.warMeta{display:flex;gap:14px;flex-wrap:wrap;color:#8db0cf;font-size:14px}
+.empty{color:#7799b8;padding:8px 0}
+.notice{border-color:#33506b}
+@media(max-width:700px){
+  .top{padding:0 14px}.logo{font-size:23px;letter-spacing:4px}
+  .container{padding:0 12px;margin-top:20px}
+  .itemHead{flex-direction:column}
+  .itemActions{justify-content:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">NEXORA</div>
+  <div>Oyuncu: <strong id="player">Oyuncu</strong></div>
+</div>
+
+<div class="container">
+  <div class="topNav">
+    <a class="topBack" href="alliance.html">← İttifaka Dön</a>
+    <a class="topBack secondaryLink" href="game.html">← Koloniye Dön</a>
+  </div>
+
+  <h1>⚔️ İttifak Savaşları</h1>
+  <p class="muted">Rakip ittifaka savaş çağrısı gönder, çağrıları yanıtla ve aktif savaşın skorunu takip et.</p>
+
+  <div id="msg" class="panel notice">Hazır.</div>
+
+  <div id="noAlliance" class="panel hidden">
+    <h2>🤝 İttifak Gerekli</h2>
+    <p class="muted">İttifak savaşlarına katılmak için önce bir ittifaka üye olmalısın.</p>
+    <a class="topBack" href="alliance.html">İttifak Sayfasına Git</a>
+  </div>
+
+  <div id="mainContent" class="hidden">
+    <div class="panel">
+      <h2 id="allianceTitle">İttifak</h2>
+      <div id="allianceMeta" class="muted"></div>
+    </div>
+
+    <div id="declarePanel" class="panel hidden">
+      <h2>🎯 Savaş Çağrısı Gönder</h2>
+      <select class="input" id="targetAlliance"></select>
+      <button id="declareButton" class="button danger" onclick="declareWar()">Savaş Çağrısı Gönder</button>
+      <p class="muted">Çağrı kabul edilirse savaş 72 saat sürer. Aynı anda bir ittifak yalnızca bir aktif savaşta olabilir.</p>
+    </div>
+
+    <div class="panel">
+      <div class="itemHead">
+        <h2 style="margin-top:0">🛡️ Savaşlar</h2>
+        <button class="button secondary smallButton" onclick="loadWars()">Yenile</button>
+      </div>
+      <div id="wars">Yükleniyor...</div>
+    </div>
+  </div>
+
+  <a class="topBack secondaryLink" href="game.html">← Koloniye Dön</a>
+</div>
+
+<script>
+const token=localStorage.getItem('nexora_token');
+const u=JSON.parse(localStorage.getItem('nexora_player')||'null');
+if(!token)location.href='login.html';
+if(u?.username)document.getElementById('player').textContent=u.username;
+
+let snapshot=null;
+let clockTimer=null;
+
+const esc=s=>{
+  const d=document.createElement('div');
+  d.textContent=s??'';
+  return d.innerHTML;
+};
+
+function msg(t){
+  document.getElementById('msg').textContent=t||'';
+}
+
+function formatDate(value){
+  if(!value)return '-';
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?'-':d.toLocaleString('tr-TR');
+}
+
+function roleLabel(role){
+  if(role==='leader')return '👑 Lider';
+  if(role==='officer')return '⭐ Subay';
+  return '🛡️ Üye';
+}
+
+function statusLabel(status){
+  if(status==='pending')return 'Bekliyor';
+  if(status==='active')return 'Aktif';
+  if(status==='finished')return 'Tamamlandı';
+  if(status==='rejected')return 'Reddedildi';
+  if(status==='cancelled')return 'İptal';
+  return status||'-';
+}
+
+function secondsText(value){
+  let s=Math.max(0,Math.floor(Number(value)||0));
+  const days=Math.floor(s/86400);
+  s%=86400;
+  const hours=Math.floor(s/3600);
+  s%=3600;
+  const mins=Math.floor(s/60);
+  const secs=s%60;
+  if(days>0)return `${days}g ${hours}sa ${mins}dk`;
+  return `${hours}sa ${mins}dk ${secs}sn`;
+}
+
+function opponentLabel(w){
+  const tag=w.opponentAllianceTag?` [${esc(w.opponentAllianceTag)}]`:'';
+  return `${esc(w.opponentAllianceName||'Rakip İttifak')}${tag}`;
+}
+
+function resultText(w){
+  if(w.status!=='finished')return '';
+  if(!w.winnerAllianceId)return 'Sonuç: Berabere';
+  if(Number(w.winnerAllianceId)===Number(snapshot?.alliance?.id))return 'Sonuç: 🏆 Zafer';
+  return 'Sonuç: Mağlubiyet';
+}
+
+function renderTargets(){
+  const panel=document.getElementById('declarePanel');
+  const select=document.getElementById('targetAlliance');
+  const canManage=!!snapshot?.member?.canManageWars;
+  panel.classList.toggle('hidden',!canManage);
+
+  if(!canManage)return;
+
+  const targets=snapshot?.targets||[];
+  select.innerHTML=targets.map(a=>
+    `<option value="${Number(a.id)}">${esc(a.name)} [${esc(a.tag)}] · ${Number(a.memberCount||0)} üye</option>`
+  ).join('');
+
+  document.getElementById('declareButton').disabled=targets.length===0;
+  if(targets.length===0){
+    select.innerHTML='<option value="">Savaşılabilecek başka ittifak yok</option>';
+  }
+}
+
+function renderWars(){
+  const wars=snapshot?.wars||[];
+  const el=document.getElementById('wars');
+
+  if(!wars.length){
+    el.innerHTML='<div class="empty">Henüz ittifak savaşı yok.</div>';
+    return;
+  }
+
+  el.innerHTML=wars.map(w=>{
+    let actions='';
+    if(w.canRespond){
+      actions=`<div class="itemActions">
+        <button class="button success smallButton" onclick="respondWar(${Number(w.id)},true)">Kabul Et</button>
+        <button class="button danger smallButton" onclick="respondWar(${Number(w.id)},false)">Reddet</button>
+      </div>`;
+    }
+
+    const countdown=w.status==='active'
+      ?`<span>⏳ <b class="warCountdown" data-seconds="${Math.max(0,Number(w.remainingSeconds)||0)}">${secondsText(w.remainingSeconds)}</b></span>`
+      :'';
+
+    const result=resultText(w);
+
+    return `<div class="item">
+      <div class="itemHead">
+        <div>
+          <b>${opponentLabel(w)}</b><br>
+          <span class="badge ${esc(w.status)}">${esc(statusLabel(w.status))}</span>
+        </div>
+        ${actions}
+      </div>
+
+      <div class="score">
+        <strong>${Number(w.ownScore||0).toLocaleString('tr-TR')}</strong>
+        &nbsp;—&nbsp;
+        ${Number(w.opponentScore||0).toLocaleString('tr-TR')}
+      </div>
+
+      <div class="warMeta">
+        <span>⚔️ Savaş kaydı: ${Number(w.battleCount||0)}</span>
+        ${countdown}
+        <span>📅 Çağrı: ${esc(formatDate(w.createdAt))}</span>
+        ${w.startedAt?`<span>🚩 Başlangıç: ${esc(formatDate(w.startedAt))}</span>`:''}
+        ${w.endsAt?`<span>🏁 Bitiş: ${esc(formatDate(w.endsAt))}</span>`:''}
+      </div>
+
+      ${result?`<p><b>${esc(result)}</b></p>`:''}
+    </div>`;
+  }).join('');
+}
+
+function startCountdowns(){
+  if(clockTimer)clearInterval(clockTimer);
+  clockTimer=setInterval(()=>{
+    let needsRefresh=false;
+    document.querySelectorAll('.warCountdown').forEach(el=>{
+      let s=Math.max(0,Number(el.dataset.seconds)||0);
+      if(s>0)s-=1;
+      el.dataset.seconds=String(s);
+      el.textContent=secondsText(s);
+      if(s===0)needsRefresh=true;
+    });
+    if(needsRefresh){
+      clearInterval(clockTimer);
+      clockTimer=null;
+      loadWars();
+    }
+  },1000);
+}
+
+async function loadWars(){
+  try{
+    const r=await fetch('/api/auth?action=alliancewars',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const d=await r.json();
+
+    if(!r.ok||!d.success){
+      msg(d.message||'İttifak savaşları alınamadı.');
+      return;
+    }
+
+    snapshot=d;
+
+    if(!d.alliance){
+      document.getElementById('mainContent').classList.add('hidden');
+      document.getElementById('noAlliance').classList.remove('hidden');
+      msg('İttifak savaşlarına katılmak için bir ittifaka üye olmalısın.');
+      return;
+    }
+
+    document.getElementById('noAlliance').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+
+    document.getElementById('allianceTitle').innerHTML=
+      `${esc(d.alliance.name)} <small>[${esc(d.alliance.tag)}]</small>`;
+
+    document.getElementById('allianceMeta').textContent=
+      'Rol: '+roleLabel(d.member?.role)+' · Savaş yönetimi: '+(d.member?.canManageWars?'Yetkili':'Yetkisiz');
+
+    renderTargets();
+    renderWars();
+    startCountdowns();
+    msg('İttifak savaşları güncel.');
+  }catch(e){
+    console.error(e);
+    msg('İttifak savaşları alınamadı.');
+  }
+}
+
+async function declareWar(){
+  const targetAllianceId=Number(document.getElementById('targetAlliance').value);
+  if(!Number.isInteger(targetAllianceId)||targetAllianceId<=0){
+    msg('Geçerli bir hedef ittifak seç.');
+    return;
+  }
+
+  if(!confirm('Bu ittifaka savaş çağrısı göndermek istiyor musun?'))return;
+
+  const r=await fetch('/api/auth?action=declarealliancewar',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({targetAllianceId})
+  });
+  const d=await r.json();
+  msg(d.message||'');
+
+  if(r.ok&&d.success)await loadWars();
+}
+
+async function respondWar(warId,accept){
+  const text=accept?'Bu savaş çağrısını kabul etmek istiyor musun?':'Bu savaş çağrısını reddetmek istiyor musun?';
+  if(!confirm(text))return;
+
+  const r=await fetch('/api/auth?action=respondalliancewar',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({warId:Number(warId),accept:!!accept})
+  });
+  const d=await r.json();
+  msg(d.message||'');
+
+  if(r.ok&&d.success)await loadWars();
+}
+
+loadWars();
+</script>
+</body>
+</html>
