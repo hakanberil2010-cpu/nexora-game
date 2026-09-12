@@ -1009,7 +1009,11 @@ async function getMilitaryMission(req,res){
   const lootPercent=result==="Zafer"?0.10:0; const loot={metal:targetCity?Math.floor(Number(targetCity.metal||0)*lootPercent):0,energy:targetCity?Math.floor(Number(targetCity.energy||0)*lootPercent):0,water:targetCity?Math.floor(Number(targetCity.water||0)*lootPercent):0,crystal:targetCity?Math.floor(Number(targetCity.crystal||0)*lootPercent):0};
   if(targetCity&&attackerCity&&result==="Zafer"){await supabase("cities?id=eq."+encodeURIComponent(targetCity.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({metal:Math.max(0,Number(targetCity.metal||0)-loot.metal),energy:Math.max(0,Number(targetCity.energy||0)-loot.energy),water:Math.max(0,Number(targetCity.water||0)-loot.water),crystal:Math.max(0,Number(targetCity.crystal||0)-loot.crystal)})});await supabase("cities?id=eq."+encodeURIComponent(attackerCity.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({metal:Number(attackerCity.metal||0)+loot.metal,energy:Number(attackerCity.energy||0)+loot.energy,water:Number(attackerCity.water||0)+loot.water,crystal:Number(attackerCity.crystal||0)+loot.crystal})});}
   const outbound=Math.max(10,Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000)); const returnAt=new Date(Date.now()+outbound*1000).toISOString();
-  const report={result,attackPower,defensePower,attackerLosses,defenderLosses,loot,survivorArmy,returnAt,battleAt:new Date().toISOString(),defenseBonus:defenseBonus(defB)};
+  const attackerX = Number(attackerCity?.coordinate_x);
+  const attackerY = Number(attackerCity?.coordinate_y);
+  const defenderX = Number(targetCity?.coordinate_x);
+  const defenderY = Number(targetCity?.coordinate_y);
+  const report={result,attackPower,defensePower,attackerLosses,defenderLosses,loot,survivorArmy,returnAt,battleAt:new Date().toISOString(),defenseBonus:defenseBonus(defB),attackerX:Number.isFinite(attackerX)?attackerX:null,attackerY:Number.isFinite(attackerY)?attackerY:null,defenderX:Number.isFinite(defenderX)?defenderX:null,defenderY:Number.isFinite(defenderY)?defenderY:null};
   await supabase("battle_reports",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({attacker_player_id:Number(mission.attacker_player_id),defender_player_id:Number(mission.defender_player_id),result,attack_power:attackPower,defense_power:defensePower,attacker_losses:attackerLosses,defender_losses:defenderLosses,loot})});
   const updated=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.resolving",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"returning",arrive_at:returnAt,attack_power:attackPower,result:report})});
   if(!updated.ok||!updated.data?.[0])return send(res,500,{success:false,message:"Savaş sonucu kaydedilemedi."});
@@ -1446,19 +1450,36 @@ async function getBattleReports(req, res) {
     playerMap[player.id] = player.username;
   });
 
-  const reports = (reportsResult.data || []).map(
-    function(report) {
+  const reportsRaw = reportsResult.data || [];
+  const playerIds = Array.from(new Set(
+    reportsRaw.flatMap(function(report){
+      return [Number(report.attacker_player_id), Number(report.defender_player_id)];
+    }).filter(function(id){ return Number.isInteger(id) && id > 0; })
+  ));
+  let cityMap = {};
+  if (playerIds.length) {
+    const cityQuery = "cities?select=player_id,coordinate_x,coordinate_y&player_id=in.(" + playerIds.join(",") + ")";
+    const citiesResult = await supabase(cityQuery);
+    if (citiesResult.ok) {
+      (citiesResult.data || []).forEach(function(city){
+        cityMap[Number(city.player_id)] = city;
+      });
+    }
+  }
 
+  const reports = reportsRaw.map(
+    function(report) {
+      const battle = report.result && typeof report.result === "object" ? report.result : {};
+      const attackerCity = cityMap[Number(report.attacker_player_id)] || {};
+      const defenderCity = cityMap[Number(report.defender_player_id)] || {};
       return {
         ...report,
-
-        attacker_username:
-          playerMap[report.attacker_player_id] ||
-          "Bilinmeyen Oyuncu",
-
-        defender_username:
-          playerMap[report.defender_player_id] ||
-          "Bilinmeyen Oyuncu"
+        attacker_username: playerMap[report.attacker_player_id] || "Bilinmeyen Oyuncu",
+        defender_username: playerMap[report.defender_player_id] || "Bilinmeyen Oyuncu",
+        attacker_x: battle.attackerX ?? attackerCity.coordinate_x ?? null,
+        attacker_y: battle.attackerY ?? attackerCity.coordinate_y ?? null,
+        defender_x: battle.defenderX ?? defenderCity.coordinate_x ?? null,
+        defender_y: battle.defenderY ?? defenderCity.coordinate_y ?? null
       };
     }
   );
