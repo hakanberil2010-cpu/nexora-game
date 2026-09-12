@@ -1,1 +1,385 @@
-<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>NEXORA - İttifak</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.container{max-width:1100px;margin:30px auto;padding:0 20px}.panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:20px;margin:16px 0}.input{width:100%;padding:11px;margin:7px 0 12px;background:#071526;border:1px solid #285476;border-radius:8px;color:#fff}.button{padding:11px 16px;border:0;border-radius:8px;background:#128fcb;color:#fff;font-weight:bold;cursor:pointer}.danger{background:#a63333}.item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px;background:#071526;border:1px solid #17344f;border-radius:9px;margin:9px 0}.muted{color:#8db0cf}.hidden{display:none}.back{color:#18bfff;text-decoration:none}.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}.topBack:hover{filter:brightness(1.08)}</style></head><body><div class="top"><div class="logo">NEXORA</div><div>Oyuncu: <strong id="player">Oyuncu</strong></div></div><div class="container"><a class="topBack" href="game.html">← Koloniye Dön</a><h1>🤝 İttifak</h1><p class="muted">Oyuncularla birleş, ittifak gücünü yükselt ve birlikte ilerle.</p><div id="msg" class="panel"></div><div id="create" class="panel"><h2>🏛️ İttifak Oluştur</h2><input class="input" id="name" maxlength="30" placeholder="İttifak adı"><input class="input" id="tag" maxlength="5" placeholder="Etiket (2-5 karakter)"><button class="button" onclick="createAlliance()">İttifak Oluştur</button></div><div id="mine" class="panel hidden"><h2 id="myTitle"></h2><div id="myStats" class="muted"></div><div id="members"></div><button class="button danger" onclick="leaveAlliance()">İttifaktan Ayrıl</button></div><div class="panel"><h2>🌌 İttifaklar</h2><div id="list">Yükleniyor...</div></div><a class="back" href="game.html">← Koloniye Dön</a></div><script>const token=localStorage.getItem('nexora_token');const u=JSON.parse(localStorage.getItem('nexora_player')||'null');if(!token)location.href='login.html';if(u?.username)player.textContent=u.username;const esc=s=>{const d=document.createElement('div');d.textContent=s??'';return d.innerHTML};function msg(t){document.getElementById('msg').textContent=t}async function kickMember(playerId){if(!confirm('Bu oyuncuyu ittifaktan çıkarmak istiyor musun?'))return;const r=await fetch('/api/auth?action=kickalliance',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({playerId:Number(playerId)})});const d=await r.json();msg(d.message||'');if(r.ok&&d.success)loadMine()}function showMine(a,m,members){create.classList.add('hidden');mine.classList.remove('hidden');myTitle.innerHTML=esc(a.name)+' <small>['+esc(a.tag)+']</small>';myStats.textContent='Rol: '+(m?.role==='leader'?'👑 Lider':'🛡️ Üye')+' · Üye: '+(members||[]).length+' · İttifak gücü: '+Number(a.alliance_power||0).toLocaleString('tr-TR');membersEl=document.getElementById('members');membersEl.innerHTML=(members||[]).map(x=>`<div class="item"><span><b>${esc(x.username)}</b><br><small class="muted">${x.role==='leader'?'👑 Lider':'🛡️ Üye'}</small></span>${m?.role==='leader'&&Number(x.player_id)!==Number(m.player_id)?`<button class="button danger" onclick="kickMember(${Number(x.player_id)})">Çıkar</button>`:''}</div>`).join('')}async function loadMine(){const r=await fetch('/api/auth?action=myalliance',{method:'POST',headers:{Authorization:'Bearer '+token}});const d=await r.json();if(d.success&&d.alliance)showMine(d.alliance,d.member,d.members)}async function createAlliance(){const name=document.getElementById('name').value.trim(),tag=document.getElementById('tag').value.trim();const r=await fetch('/api/auth?action=createalliance',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({name,tag})});const d=await r.json();msg(d.message||'');if(r.ok&&d.success){loadMine();loadAll()}}async function loadAll(){const r=await fetch('/api/auth?action=alliances',{method:'POST',headers:{Authorization:'Bearer '+token}});const d=await r.json();if(!d.success){list.textContent=d.message||'İttifaklar alınamadı';return}list.innerHTML=(d.alliances||[]).map(a=>`<div class="item"><div><b>${esc(a.name)} [${esc(a.tag)}]</b><br><small class="muted">${Number(a.member_count||0)} üye · Güç ${Number(a.alliance_power||0).toLocaleString('tr-TR')}</small></div><button class="button" onclick="joinAlliance(${Number(a.id)})">Katıl</button></div>`).join('')||'Henüz ittifak yok.'}async function joinAlliance(id){const r=await fetch('/api/auth?action=joinalliance',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({allianceId:id})});const d=await r.json();msg(d.message||'');if(r.ok&&d.success){loadMine();loadAll()}}async function leaveAlliance(){if(!confirm('İttifaktan ayrılmak istediğine emin misin?'))return;const r=await fetch('/api/auth?action=leavealliance',{method:'POST',headers:{Authorization:'Bearer '+token}});const d=await r.json();msg(d.message||'');if(r.ok&&d.success){mine.classList.add('hidden');create.classList.remove('hidden');loadAll()}}loadAll();loadMine();</script></body></html>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXORA - İttifak</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
+.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
+.container{max-width:1100px;margin:30px auto;padding:0 20px}
+.panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:20px;margin:16px 0}
+.input{width:100%;padding:11px;margin:7px 0 12px;background:#071526;border:1px solid #285476;border-radius:8px;color:#fff}
+.textarea{min-height:100px;resize:vertical}
+.button{padding:11px 16px;border:0;border-radius:8px;background:#128fcb;color:#fff;font-weight:bold;cursor:pointer}
+.button:disabled{opacity:.45;cursor:not-allowed}
+.secondary{background:#244763}
+.danger{background:#a63333}
+.smallButton{padding:8px 10px;font-size:12px}
+.item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px;background:#071526;border:1px solid #17344f;border-radius:9px;margin:9px 0}
+.itemActions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.muted{color:#8db0cf}
+.hidden{display:none}
+.back{color:#18bfff;text-decoration:none}
+.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
+.topBack:hover{filter:brightness(1.08)}
+.sectionTitle{margin:24px 0 8px}
+.role{display:inline-block;margin-top:5px;padding:4px 8px;border-radius:999px;background:#102e49;color:#8bdcff;font-size:12px;font-weight:bold}
+.role.leader{background:#473815;color:#ffd970}
+.role.officer{background:#203a55;color:#79c8ff}
+.announcement{padding:14px;background:#071526;border:1px solid #17344f;border-radius:9px;margin:9px 0}
+.announcementHead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:7px}
+.activity{padding:10px 0;border-bottom:1px solid #17344f}
+.activity:last-child{border-bottom:0}
+.activity small{display:block;margin-top:4px;color:#6f94b4}
+.empty{color:#7799b8;padding:8px 0}
+@media(max-width:700px){
+  .top{padding:0 14px}.logo{font-size:23px;letter-spacing:4px}
+  .container{padding:0 12px;margin-top:20px}
+  .item{align-items:flex-start;flex-direction:column}
+  .itemActions{justify-content:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">NEXORA</div>
+  <div>Oyuncu: <strong id="player">Oyuncu</strong></div>
+</div>
+
+<div class="container">
+  <a class="topBack" href="game.html">← Koloniye Dön</a>
+  <h1>🤝 İttifak</h1>
+  <p class="muted">Oyuncularla birleş, roller ve yetkilerle ittifakını yönet.</p>
+
+  <div id="msg" class="panel">Hazır.</div>
+
+  <div id="create" class="panel">
+    <h2>🏛️ İttifak Oluştur</h2>
+    <input class="input" id="name" maxlength="30" placeholder="İttifak adı">
+    <input class="input" id="tag" maxlength="5" placeholder="Etiket (2-5 karakter)">
+    <button class="button" onclick="createAlliance()">İttifak Oluştur</button>
+  </div>
+
+  <div id="mine" class="panel hidden">
+    <h2 id="myTitle"></h2>
+    <div id="myStats" class="muted"></div>
+
+    <h3 class="sectionTitle">👥 Üyeler</h3>
+    <div id="members"></div>
+
+    <h3 class="sectionTitle">📢 Duyurular</h3>
+    <div id="announcementComposer" class="hidden">
+      <textarea class="input textarea" id="announcementText" maxlength="500" placeholder="İttifak duyurusu yaz..."></textarea>
+      <button class="button" onclick="postAnnouncement()">Duyuru Yayınla</button>
+    </div>
+    <div id="announcements"></div>
+
+    <h3 class="sectionTitle">🧭 Aktivite</h3>
+    <div id="activity"></div>
+
+    <button class="button danger" onclick="leaveAlliance()">İttifaktan Ayrıl</button>
+  </div>
+
+  <div class="panel">
+    <h2>🌌 İttifaklar</h2>
+    <div id="list">Yükleniyor...</div>
+  </div>
+
+  <a class="back" href="game.html">← Koloniye Dön</a>
+</div>
+
+<script>
+const token=localStorage.getItem('nexora_token');
+const u=JSON.parse(localStorage.getItem('nexora_player')||'null');
+if(!token)location.href='login.html';
+if(u?.username)document.getElementById('player').textContent=u.username;
+
+let currentAlliance=null;
+let currentMember=null;
+
+const esc=s=>{
+  const d=document.createElement('div');
+  d.textContent=s??'';
+  return d.innerHTML;
+};
+
+function msg(t){
+  document.getElementById('msg').textContent=t||'';
+}
+
+function roleOf(x){
+  return x?.effective_role||(x?.role==='leader'?'leader':x?.role_v2==='officer'?'officer':'member');
+}
+
+function roleLabel(role){
+  if(role==='leader')return '👑 Lider';
+  if(role==='officer')return '⭐ Subay';
+  return '🛡️ Üye';
+}
+
+function roleClass(role){
+  return role==='leader'?'leader':role==='officer'?'officer':'';
+}
+
+function formatDate(value){
+  if(!value)return '';
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?'':d.toLocaleString('tr-TR');
+}
+
+function canKick(target){
+  const mineRole=roleOf(currentMember);
+  const targetRole=roleOf(target);
+  if(Number(target.player_id)===Number(currentMember?.player_id))return false;
+  if(targetRole==='leader')return false;
+  if(mineRole==='leader')return true;
+  return mineRole==='officer'&&targetRole==='member';
+}
+
+function canManageRole(target){
+  return roleOf(currentMember)==='leader'
+    && roleOf(target)!=='leader'
+    && Number(target.player_id)!==Number(currentMember?.player_id);
+}
+
+async function kickMember(playerId){
+  if(!confirm('Bu oyuncuyu ittifaktan çıkarmak istiyor musun?'))return;
+  const r=await fetch('/api/auth?action=kickalliance',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({playerId:Number(playerId)})
+  });
+  const d=await r.json();
+  msg(d.message||'');
+  if(r.ok&&d.success){
+    await loadMine();
+    loadAll();
+  }
+}
+
+async function setRole(playerId,role){
+  const label=role==='officer'?'subay':'üye';
+  if(!confirm('Bu oyuncunun rolünü '+label+' yapmak istiyor musun?'))return;
+  const r=await fetch('/api/auth?action=setalliancerole',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({playerId:Number(playerId),role})
+  });
+  const d=await r.json();
+  msg(d.message||'');
+  if(r.ok&&d.success)await loadMine();
+}
+
+async function postAnnouncement(){
+  const box=document.getElementById('announcementText');
+  const message=box.value.trim();
+  if(!message){msg('Duyuru metni boş olamaz.');return;}
+  const r=await fetch('/api/auth?action=postallianceannouncement',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({message})
+  });
+  const d=await r.json();
+  msg(d.message||'');
+  if(r.ok&&d.success){
+    box.value='';
+    await loadMine();
+  }
+}
+
+async function deleteAnnouncement(id){
+  if(!confirm('Bu duyuruyu silmek istiyor musun?'))return;
+  const r=await fetch('/api/auth?action=deleteallianceannouncement',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({announcementId:Number(id)})
+  });
+  const d=await r.json();
+  msg(d.message||'');
+  if(r.ok&&d.success)await loadMine();
+}
+
+function renderMembers(members){
+  const el=document.getElementById('members');
+  el.innerHTML=(members||[]).map(x=>{
+    const r=roleOf(x);
+    let controls='';
+    if(canManageRole(x)){
+      controls+=r==='officer'
+        ?`<button class="button secondary smallButton" onclick="setRole(${Number(x.player_id)},'member')">Üye Yap</button>`
+        :`<button class="button secondary smallButton" onclick="setRole(${Number(x.player_id)},'officer')">Subay Yap</button>`;
+    }
+    if(canKick(x)){
+      controls+=`<button class="button danger smallButton" onclick="kickMember(${Number(x.player_id)})">Çıkar</button>`;
+    }
+    return `<div class="item">
+      <span>
+        <b>${esc(x.username)}</b><br>
+        <span class="role ${roleClass(r)}">${roleLabel(r)}</span>
+      </span>
+      <span class="itemActions">${controls}</span>
+    </div>`;
+  }).join('')||'<div class="empty">Üye bulunamadı.</div>';
+}
+
+function renderAnnouncements(items){
+  const el=document.getElementById('announcements');
+  const mineRole=roleOf(currentMember);
+  el.innerHTML=(items||[]).map(x=>{
+    const canDelete=mineRole==='leader'
+      ||(mineRole==='officer'&&Number(x.author_player_id)===Number(currentMember?.player_id));
+    return `<div class="announcement">
+      <div class="announcementHead">
+        <div><b>${esc(x.author_username||'Oyuncu')}</b><br><small class="muted">${esc(formatDate(x.created_at))}</small></div>
+        ${canDelete?`<button class="button danger smallButton" onclick="deleteAnnouncement(${Number(x.id)})">Sil</button>`:''}
+      </div>
+      <div>${esc(x.message)}</div>
+    </div>`;
+  }).join('')||'<div class="empty">Henüz duyuru yok.</div>';
+}
+
+function activityText(x){
+  const actor=esc(x.actor_username||'Oyuncu');
+  const target=esc(x.target_username||'Oyuncu');
+  const meta=x.metadata||{};
+  switch(x.event_type){
+    case 'alliance_created': return `${actor} ittifakı kurdu.`;
+    case 'member_joined': return `${actor} ittifaka katıldı.`;
+    case 'member_left': return `${actor} ittifaktan ayrıldı.`;
+    case 'member_kicked': return `${actor}, ${target} oyuncusunu ittifaktan çıkardı.`;
+    case 'role_changed':
+      return `${actor}, ${target} oyuncusunun rolünü ${roleLabel(String(meta.newRole||'member'))} yaptı.`;
+    case 'leadership_transferred': return `Liderlik ${target} oyuncusuna devredildi.`;
+    case 'announcement_posted': return `${actor} yeni bir duyuru yayınladı.`;
+    case 'announcement_deleted': return `${actor} bir duyuruyu sildi.`;
+    default: return 'İttifak aktivitesi güncellendi.';
+  }
+}
+
+function renderActivity(items){
+  document.getElementById('activity').innerHTML=(items||[]).map(x=>
+    `<div class="activity">${activityText(x)}<small>${esc(formatDate(x.created_at))}</small></div>`
+  ).join('')||'<div class="empty">Henüz aktivite yok.</div>';
+}
+
+function showMine(a,m,members,announcements,activity){
+  currentAlliance=a;
+  currentMember=m;
+  document.getElementById('create').classList.add('hidden');
+  document.getElementById('mine').classList.remove('hidden');
+  document.getElementById('myTitle').innerHTML=esc(a.name)+' <small>['+esc(a.tag)+']</small>';
+
+  const r=roleOf(m);
+  document.getElementById('myStats').textContent=
+    'Rol: '+roleLabel(r)+' · Üye: '+(members||[]).length+
+    ' · İttifak gücü: '+Number(a.alliance_power||0).toLocaleString('tr-TR');
+
+  document.getElementById('announcementComposer')
+    .classList.toggle('hidden',!['leader','officer'].includes(r));
+
+  renderMembers(members);
+  renderAnnouncements(announcements);
+  renderActivity(activity);
+}
+
+function showNoAlliance(){
+  currentAlliance=null;
+  currentMember=null;
+  document.getElementById('mine').classList.add('hidden');
+  document.getElementById('create').classList.remove('hidden');
+}
+
+async function loadMine(){
+  try{
+    const r=await fetch('/api/auth?action=myalliance',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const d=await r.json();
+    if(!r.ok||!d.success){
+      msg(d.message||'İttifak bilgisi alınamadı.');
+      return;
+    }
+    if(d.alliance){
+      showMine(d.alliance,d.member,d.members,d.announcements,d.activity);
+    }else{
+      showNoAlliance();
+    }
+  }catch(e){
+    console.error(e);
+    msg('İttifak bilgisi alınamadı.');
+  }
+}
+
+async function createAlliance(){
+  const name=document.getElementById('name').value.trim();
+  const tag=document.getElementById('tag').value.trim();
+  const r=await fetch('/api/auth?action=createalliance',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({name,tag})
+  });
+  const d=await r.json();
+  msg(d.message||'');
+  if(r.ok&&d.success){
+    await loadMine();
+    loadAll();
+  }
+}
+
+async function loadAll(){
+  const r=await fetch('/api/auth?action=alliances',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token}
+  });
+  const d=await r.json();
+  const list=document.getElementById('list');
+  if(!d.success){
+    list.textContent=d.message||'İttifaklar alınamadı';
+    return;
+  }
+  list.innerHTML=(d.alliances||[]).map(a=>
+    `<div class="item">
+      <div><b>${esc(a.name)} [${esc(a.tag)}]</b><br>
+      <small class="muted">${Number(a.member_count||0)} üye · Güç ${Number(a.alliance_power||0).toLocaleString('tr-TR')}</small></div>
+      <button class="button" onclick="joinAlliance(${Number(a.id)})">Katıl</button>
+    </div>`
+  ).join('')||'Henüz ittifak yok.';
+}
+
+async function joinAlliance(id){
+  const r=await fetch('/api/auth?action=joinalliance',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({allianceId:id})
+  });
+  const d=await r.json();
+  msg(d.message||'');
+  if(r.ok&&d.success){
+    await loadMine();
+    loadAll();
+  }
+}
+
+async function leaveAlliance(){
+  if(!confirm('İttifaktan ayrılmak istediğine emin misin?'))return;
+  const r=await fetch('/api/auth?action=leavealliance',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token}
+  });
+  const d=await r.json();
+  msg(d.message||'');
+  if(r.ok&&d.success){
+    showNoAlliance();
+    loadAll();
+  }
+}
+
+loadAll();
+loadMine();
+</script>
+</body>
+</html>
