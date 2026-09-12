@@ -848,6 +848,7 @@ function showCoordinates() {
     "📍 Koloni Koordinatı\n\n" +
     coordinates
   );
+
 }
 
 function copyCoordinates() {
@@ -972,8 +973,7 @@ async function changeCoordinates() {
     return;
   }
 
-  let serverClockOffset = 0;
-const token = localStorage.getItem("nexora_token");
+  const token = localStorage.getItem("nexora_token");
 
   if (!token) {
     alert("Oturum bulunamadı.");
@@ -1094,7 +1094,6 @@ async function refreshMissionPanel() {
       const data = await response.json();
       if (!response.ok || !data.success || !data.mission) continue;
 
-      if(data.serverTime) serverClockOffset=new Date(data.serverTime).getTime()-Date.now();
       const serverMission = data.mission;
       const merged = {
         ...saved,
@@ -1106,9 +1105,9 @@ async function refreshMissionPanel() {
       };
 
       if (merged.status === "completed") {
-        const completedAt = Number(saved.completedAt || Date.now()+serverClockOffset);
+        const completedAt = Number(saved.completedAt || Date.now());
         merged.completedAt = completedAt;
-        if (Date.now()+serverClockOffset - completedAt > 15000) continue;
+        if (Date.now() - completedAt > 15000) continue;
       }
 
       updated.push(merged);
@@ -1134,7 +1133,7 @@ async function loadServerMissions() {
     (data.missions || []).forEach(function(m) {
       const mine = Number(m.attacker_player_id) === Number(savedUser && savedUser.id);
       upsertSavedMission({
-        id:m.id, status:m.status, remainingSeconds: m.status === "completed" ? 0 : Math.max(0, Math.ceil((new Date(m.arrive_at).getTime()-Date.now()+serverClockOffset)/1000)),
+        id:m.id, status:m.status, remainingSeconds: m.status === "completed" ? 0 : Math.max(0, Math.ceil((new Date(m.arrive_at).getTime()-Date.now())/1000)),
         targetName: mine ? "Hedef Koloni" : "Sana gelen saldırı", targetX:"-", targetY:"-", result:m.result||null
       });
     });
@@ -1181,7 +1180,6 @@ async function attack() {
       return;
     }
 
-    if(data.serverTime) serverClockOffset=new Date(data.serverTime).getTime()-Date.now();
     const missionId = data.mission.id;
     const arriveAt = new Date(data.mission.arriveAt).getTime();
     const targetName = (document.getElementById("selectedName") || {}).textContent || "Hedef Koloni";
@@ -1216,7 +1214,7 @@ async function attack() {
     }
 
     while (true) {
-      const remaining = Math.max(0, Math.ceil((arriveAt - Date.now()+serverClockOffset) / 1000));
+      const remaining = Math.max(0, Math.ceil((arriveAt - Date.now()) / 1000));
       attackButton.textContent = remaining > 0
         ? "⚔️ Saldırı yolda... " + remaining + " sn"
         : "⚔️ Savaş sonucu alınıyor...";
@@ -1241,7 +1239,7 @@ async function attack() {
         upsertSavedMission({
           id: missionId,
           status: "returning",
-          remainingSeconds: Number(serverMission.remainingSeconds || Math.max(0, Math.ceil((returnAt - Date.now()+serverClockOffset) / 1000))),
+          remainingSeconds: Number(serverMission.remainingSeconds || Math.max(0, Math.ceil((returnAt - Date.now()) / 1000))),
           arriveAt: serverMission.arriveAt || serverMission.arrive_at,
           targetName: targetName,
           targetX: targetX,
@@ -1270,7 +1268,7 @@ async function attack() {
           targetX: targetX,
           targetY: targetY,
           result: result,
-          completedAt: Date.now()+serverClockOffset
+          completedAt: Date.now()
         });
 
         if (fleetContainer) {
