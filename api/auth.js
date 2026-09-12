@@ -1694,6 +1694,75 @@ async function getRankings(req,res){
   return send(res,200,{success:true,rankings,me});
 }
 
+
+const TRADE_RESOURCES = new Set(["metal","energy","water","crystal"]);
+const TRADE_MAX_AMOUNT = 1000000000;
+
+function normalizeTradeResource(value){
+  const resource=String(value||"").trim().toLowerCase();
+  return TRADE_RESOURCES.has(resource) ? resource : null;
+}
+
+async function getTradeCity(playerId){
+  const r=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
+  if(!r.ok||!r.data?.[0])return {error:"Koloni bulunamadı."};
+  return {city:r.data[0]};
+}
+
+async function getTradeOffers(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const r=await supabase("trade_offers?select=id,creator_player_id,give_resource,give_amount,want_resource,want_amount,status,expires_at,created_at,accepted_by_player_id,accepted_at&order=created_at.desc&limit=100");
+  if(!r.ok)return send(res,500,{success:false,message:"Ticaret teklifleri alınamadı."});
+  const offers=(r.data||[]).filter(x=>x.status==="open"&&(!x.expires_at||new Date(x.expires_at).getTime()>Date.now())||x.creator_player_id===playerId||x.accepted_by_player_id===playerId);
+  const ids=[...new Set(offers.map(x=>Number(x.creator_player_id)).filter(Boolean))];
+  const names={};
+  if(ids.length){
+    const pr=await supabase("players?select=id,username&id=in.("+ids.join(",")+")");
+    for(const p of (pr.data||[]))names[p.id]=p.username;
+  }
+  return send(res,200,{success:true,offers:offers.map(x=>({...x,creator_username:names[x.creator_player_id]||"Oyuncu"})),serverTime:new Date().toISOString()});
+}
+
+async function createTradeOffer(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const body=await readBody(req);
+  const giveResource=normalizeTradeResource(body.giveResource);
+  const wantResource=normalizeTradeResource(body.wantResource);
+  const giveAmount=Math.floor(Number(body.giveAmount||0));
+  const wantAmount=Math.floor(Number(body.wantAmount||0));
+  const hours=Math.min(72,Math.max(1,Math.floor(Number(body.durationHours||24))));
+  if(!giveResource||!wantResource||giveResource===wantResource)return send(res,400,{success:false,message:"Geçerli ve farklı iki kaynak seçmelisin."});
+  if(giveAmount<1||wantAmount<1||giveAmount>TRADE_MAX_AMOUNT||wantAmount>TRADE_MAX_AMOUNT)return send(res,400,{success:false,message:"Ticaret miktarı geçersiz."});
+  const rpc=await supabase("rpc/create_trade_offer",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_give_resource:giveResource,p_give_amount:giveAmount,p_want_resource:wantResource,p_want_amount:wantAmount,p_expires_at:new Date(Date.now()+hours*3600000).toISOString()})});
+  if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{success:false,message:rpc.data?.message||"Ticaret teklifi oluşturulamadı."});
+  return send(res,200,{success:true,message:"🤝 Ticaret teklifi oluşturuldu.",offer:rpc.data?.offer||rpc.data,serverTime:new Date().toISOString()});
+}
+
+async function acceptTradeOffer(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const body=await readBody(req); const offerId=Math.floor(Number(body.offerId||0));
+  if(!offerId)return send(res,400,{success:false,message:"Geçerli teklif seçilmedi."});
+  const rpc=await supabase("rpc/accept_trade_offer",{method:"POST",body:JSON.stringify({p_offer_id:offerId,p_acceptor_player_id:Number(playerId)})});
+  if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{success:false,message:rpc.data?.message||"Ticaret gerçekleştirilemedi."});
+  return send(res,200,{success:true,message:"✅ Ticaret tamamlandı.",transaction:rpc.data?.transaction||rpc.data,serverTime:new Date().toISOString()});
+}
+
+async function cancelTradeOffer(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const body=await readBody(req); const offerId=Math.floor(Number(body.offerId||0));
+  if(!offerId)return send(res,400,{success:false,message:"Geçerli teklif seçilmedi."});
+  const rpc=await supabase("rpc/cancel_trade_offer",{method:"POST",body:JSON.stringify({p_offer_id:offerId,p_player_id:Number(playerId)})});
+  if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{success:false,message:rpc.data?.message||"Ticaret teklifi iptal edilemedi."});
+  return send(res,200,{success:true,message:"↩️ Teklif iptal edildi ve kaynakların iade edildi.",serverTime:new Date().toISOString()});
+}
+
+async function getTradeHistory(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const r=await supabase("trade_transactions?select=id,offer_id,seller_player_id,buyer_player_id,give_resource,give_amount,want_resource,want_amount,created_at&or=(seller_player_id.eq."+encodeURIComponent(playerId)+",buyer_player_id.eq."+encodeURIComponent(playerId)+")&order=created_at.desc&limit=50");
+  if(!r.ok)return send(res,500,{success:false,message:"Ticaret geçmişi alınamadı."});
+  return send(res,200,{success:true,history:r.data||[]});
+}
+
 module.exports = async function handler(req, res) {
   try {
     if (
@@ -1785,6 +1854,21 @@ if (action === "upgrade") {
 
     if (action === "upgraderesearch") {
   return await upgradeResearch(req, res);
+}
+    if (action === "tradeoffers") {
+  return await getTradeOffers(req, res);
+}
+    if (action === "createtrade") {
+  return await createTradeOffer(req, res);
+}
+    if (action === "accepttrade") {
+  return await acceptTradeOffer(req, res);
+}
+    if (action === "canceltrade") {
+  return await cancelTradeOffer(req, res);
+}
+    if (action === "tradehistory") {
+  return await getTradeHistory(req, res);
 }
     return send(res, 400, {
       success: false,
