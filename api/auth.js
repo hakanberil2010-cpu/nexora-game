@@ -1404,24 +1404,110 @@ async function joinAlliance(req, res) {
 }
 async function getMyAlliance(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
-  const m=await supabase("alliance_members?select=id,alliance_id,player_id,role&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
+  const m=await supabase("alliance_members?select=id,alliance_id,player_id,role,role_v2&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
   if(!m.ok)return send(res,500,{success:false,message:"İttifak üyeliği alınamadı."});
-  if(!m.data?.[0])return send(res,200,{success:true,alliance:null,member:null,members:[]});
-  const a=await supabase("alliances?select=*&id=eq."+encodeURIComponent(m.data[0].alliance_id)+"&limit=1");
-  const members=await supabase("alliance_members?select=player_id,role&alliance_id=eq."+encodeURIComponent(m.data[0].alliance_id));
-  const ids=(members.data||[]).map(x=>x.player_id).filter(Boolean);
+  if(!m.data?.[0])return send(res,200,{success:true,alliance:null,member:null,members:[],announcements:[],activity:[]});
+  const allianceId=Number(m.data[0].alliance_id);
+  const [a,members,announcements,activity]=await Promise.all([
+    supabase("alliances?select=*&id=eq."+encodeURIComponent(allianceId)+"&limit=1"),
+    supabase("alliance_members?select=player_id,role,role_v2&alliance_id=eq."+encodeURIComponent(allianceId)),
+    supabase("alliance_announcements?select=id,author_player_id,message,created_at&alliance_id=eq."+encodeURIComponent(allianceId)+"&order=created_at.desc,id.desc&limit=20"),
+    supabase("alliance_activity?select=id,event_type,actor_player_id,target_player_id,metadata,created_at&alliance_id=eq."+encodeURIComponent(allianceId)+"&order=created_at.desc,id.desc&limit=30")
+  ]);
+  if(!a.ok||!a.data?.[0])return send(res,500,{success:false,message:"İttifak bilgisi alınamadı."});
+  if(!members.ok)return send(res,500,{success:false,message:"İttifak üyeleri alınamadı."});
+  if(!announcements.ok)return send(res,500,{success:false,message:"İttifak duyuruları alınamadı."});
+  if(!activity.ok)return send(res,500,{success:false,message:"İttifak aktivitesi alınamadı."});
+
+  const ids=Array.from(new Set([
+    ...(members.data||[]).map(x=>Number(x.player_id)),
+    ...(announcements.data||[]).map(x=>Number(x.author_player_id)),
+    ...(activity.data||[]).flatMap(x=>[Number(x.actor_player_id),Number(x.target_player_id)])
+  ].filter(x=>Number.isInteger(x)&&x>0)));
   const pr=ids.length?await supabase("players?select=id,username&id=in.("+ids.join(",")+")"):({ok:true,data:[]});
-  const names={};for(const p of pr.data||[])names[p.id]=p.username;
-  const memberIds=ids.join(",");
+  const names={};for(const p of pr.data||[])names[Number(p.id)]=p.username;
+
+  const memberIds=(members.data||[]).map(x=>x.player_id).filter(Boolean).join(",");
   let alliancePower=0;
   if(memberIds){
     const cities=await supabase("cities?select=id&player_id=in.("+memberIds+")");
     const cityIds=(cities.data||[]).map(x=>x.id);
-    if(cityIds.length){const units=await supabase("units?select=quantity,attack,defense,hp&city_id=in.("+cityIds.join(",")+")");for(const u of units.data||[])alliancePower+=Number(u.quantity||0)*(Number(u.attack||0)+Number(u.defense||0)+Number(u.hp||0)*0.5);}
+    if(cityIds.length){
+      const units=await supabase("units?select=quantity,attack,defense,hp&city_id=in.("+cityIds.join(",")+")");
+      for(const u of units.data||[])alliancePower+=Number(u.quantity||0)*(Number(u.attack||0)+Number(u.defense||0)+Number(u.hp||0)*0.5);
+    }
   }
-  const alliance={...(a.data?.[0]||{}),member_count:ids.length,alliance_power:Math.round(alliancePower)};
-  return send(res,200,{success:true,alliance,member:m.data[0],members:(members.data||[]).map(x=>({player_id:x.player_id,username:names[x.player_id]||"Oyuncu",role:x.role}))});
+
+  const effectiveRole=x=>x?.role==="leader"?"leader":(x?.role_v2==="officer"?"officer":"member");
+  const alliance={...a.data[0],member_count:(members.data||[]).length,alliance_power:Math.round(alliancePower)};
+  const member={...m.data[0],effective_role:effectiveRole(m.data[0])};
+  const memberList=(members.data||[]).map(x=>({
+    player_id:x.player_id,
+    username:names[Number(x.player_id)]||"Oyuncu",
+    role:x.role,
+    role_v2:x.role_v2,
+    effective_role:effectiveRole(x)
+  }));
+  const announcementList=(announcements.data||[]).map(x=>({
+    id:x.id,
+    author_player_id:x.author_player_id,
+    author_username:names[Number(x.author_player_id)]||"Oyuncu",
+    message:x.message,
+    created_at:x.created_at
+  }));
+  const activityList=(activity.data||[]).map(x=>({
+    id:x.id,
+    event_type:x.event_type,
+    actor_player_id:x.actor_player_id,
+    actor_username:names[Number(x.actor_player_id)]||null,
+    target_player_id:x.target_player_id,
+    target_username:names[Number(x.target_player_id)]||null,
+    metadata:x.metadata||{},
+    created_at:x.created_at
+  }));
+  return send(res,200,{success:true,alliance,member,members:memberList,announcements:announcementList,activity:activityList});
 }
+async function setAllianceMemberRole(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  const targetPlayerId=Number(body?.playerId);
+  const role=String(body?.role||"").trim().toLowerCase();
+  if(!Number.isInteger(targetPlayerId)||targetPlayerId<=0)return send(res,400,{success:false,message:"Geçersiz oyuncu."});
+  if(!["officer","member"].includes(role))return send(res,400,{success:false,message:"Geçersiz ittifak rolü."});
+  const result=await supabase("rpc/nexora_alliance_set_member_role",{method:"POST",body:JSON.stringify({p_actor_player_id:playerId,p_target_player_id:targetPlayerId,p_role:role})});
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("İttifak rol RPC hatası:",result.data);
+    return send(res,500,{success:false,message:"İttifak rolü güncellenemedi."});
+  }
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function postAllianceAnnouncement(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  const message=String(body?.message||"").trim();
+  if(!message||message.length>500)return send(res,400,{success:false,message:"Duyuru 1-500 karakter arasında olmalı."});
+  const result=await supabase("rpc/nexora_alliance_post_announcement",{method:"POST",body:JSON.stringify({p_actor_player_id:playerId,p_message:message})});
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("İttifak duyuru RPC hatası:",result.data);
+    return send(res,500,{success:false,message:"İttifak duyurusu yayınlanamadı."});
+  }
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function deleteAllianceAnnouncement(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  const announcementId=Number(body?.announcementId);
+  if(!Number.isInteger(announcementId)||announcementId<=0)return send(res,400,{success:false,message:"Geçersiz duyuru."});
+  const result=await supabase("rpc/nexora_alliance_delete_announcement",{method:"POST",body:JSON.stringify({p_actor_player_id:playerId,p_announcement_id:announcementId})});
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("İttifak duyuru silme RPC hatası:",result.data);
+    return send(res,500,{success:false,message:"İttifak duyurusu silinemedi."});
+  }
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function leaveAlliance(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
   const result=await supabase("rpc/nexora_leave_alliance",{method:"POST",body:JSON.stringify({p_player_id:playerId})});
@@ -1955,6 +2041,15 @@ if (action === "upgrade") {
     }
   if (action === "myalliance") {
       return await getMyAlliance(req, res);
+    }
+    if (action === "setalliancerole") {
+      return await setAllianceMemberRole(req, res);
+    }
+    if (action === "postallianceannouncement") {
+      return await postAllianceAnnouncement(req, res);
+    }
+    if (action === "deleteallianceannouncement") {
+      return await deleteAllianceAnnouncement(req, res);
     }
     if (action === "leavealliance") {
       return await leaveAlliance(req, res);
