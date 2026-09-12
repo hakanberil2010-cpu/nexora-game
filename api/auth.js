@@ -888,6 +888,51 @@ async function moveColony(req, res) {
   return send(res,200,{success:true,message:"Koloni taşındı.",city:updated.data[0]});
 }
 
+
+const COMBAT_ROLE_V2 = {
+  piyade:{attack:1.00,defense:1.00,hp:1.00,loss:1.00},
+  savunma:{attack:0.92,defense:1.15,hp:1.08,loss:0.82},
+  saldiri:{attack:1.14,defense:0.90,hp:0.96,loss:1.08},
+  okcu:{attack:1.18,defense:0.88,hp:0.94,loss:1.06},
+  tank:{attack:1.03,defense:1.25,hp:1.15,loss:0.68},
+  hava:{attack:1.10,defense:0.96,hp:1.02,loss:0.90}
+};
+const MATCHUP_V2 = {
+  piyade:{tank:0.88,hava:0.94,okcu:1.04,saldiri:0.98,savunma:1.02},
+  savunma:{piyade:1.05,saldiri:1.08,okcu:0.96,tank:0.90,hava:0.94},
+  saldiri:{piyade:1.04,savunma:1.12,tank:1.06,hava:0.92,okcu:0.98},
+  okcu:{piyade:1.06,savunma:1.04,tank:1.12,hava:0.82,saldiri:1.03},
+  tank:{piyade:1.12,savunma:1.10,okcu:0.90,saldiri:0.96,hava:0.88},
+  hava:{piyade:1.06,savunma:1.08,tank:1.18,saldiri:1.10,okcu:1.12}
+};
+function matchupMultiplier(attackerType, defenderType){
+  return Number(MATCHUP_V2[attackerType]?.[defenderType] || 1);
+}
+function safeBattleResult(value){
+  if(value && typeof value === 'object') return String(value.result || '');
+  return String(value || '');
+}
+function calculateBattlePoints(result, attackPower, defensePower){
+  const a=Math.max(0,Number(attackPower)||0), d=Math.max(0,Number(defensePower)||0);
+  const margin=a+d>0?Math.min(1,Math.abs(a-d)/(a+d)):0;
+  if(result==='Zafer') return Math.round(100+100*margin);
+  if(result==='Beraberlik') return 10;
+  return 0;
+}
+function regionForCoordinates(x,y){
+  const regions=[
+    {name:'Çöl Bölgesi',x:10,y:18,bonus:'Metal üretimi +5%'},
+    {name:'Orman Bölgesi',x:42,y:12,bonus:'Su üretimi +5%'},
+    {name:'Buz Bölgesi',x:91,y:17,bonus:'Enerji üretimi +5%'},
+    {name:'Dağ Bölgesi',x:30,y:83,bonus:'Savunma +5%'},
+    {name:'Volkanik Bölge',x:72,y:85,bonus:'Kristal üretimi +5%'},
+    {name:'Okyanus',x:95,y:55,bonus:'Seyahat süresi -5%'}
+  ];
+  let best=regions[0], dist=Infinity;
+  for(const r of regions){const dd=Math.hypot(Number(x)-r.x,Number(y)-r.y);if(dd<dist){dist=dd;best=r;}}
+  return best;
+}
+
 async function createMilitaryMission(req, res) {
   const playerId = authPlayerId(req);
   if (playerId === null) return send(res,401,{success:false,message:"Oturum bulunamadı."});
@@ -946,6 +991,11 @@ async function createMilitaryMission(req, res) {
 }
 
 async function completeMissionReturn(mission,res){
+  const claim=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.returning",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"completed",completed_at:new Date().toISOString()})});
+  if(!claim.ok || !claim.data?.[0]){
+    const current=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&limit=1");
+    return send(res,200,{success:true,mission:current.data?.[0]||mission});
+  }
   const result=mission.result||{};
   const survivors=await hydrateArmyStats(Array.isArray(result.survivorArmy)?result.survivorArmy:[]);
   for(const u of survivors){
@@ -958,8 +1008,7 @@ async function completeMissionReturn(mission,res){
       await supabase("units",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({city_id:mission.attacker_city_id,unit_type:u.unit_type,quantity:Number(u.quantity),level:Number(u.level),attack:Number(u.attack),defense:Number(u.defense),hp:Number(u.hp),speed:Number(u.speed),population_cost:Number(u.population_cost)})});
     }
   }
-  const updated=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.returning",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"completed",completed_at:new Date().toISOString()})});
-  return send(res,200,{success:true,mission:updated.data?.[0]||{...mission,status:"completed"}});
+  return send(res,200,{success:true,mission:claim.data[0]});
 }
 
 async function getMilitaryMission(req,res){
@@ -986,35 +1035,60 @@ async function getMilitaryMission(req,res){
   const rawDefenders=defUnitsResult.data||[], defR=defResearchResult.data?.[0]||{}, defB=defBuildingsResult.data||[], attR=attResearchResult.data?.[0]||{};
   const army=await hydrateArmyStats(Array.isArray(mission.army)?mission.army:[]);
   const defenders=await hydrateArmyStats(rawDefenders.filter(u=>Number(u.quantity||0)>0).map(u=>({unit_type:u.unit_type,quantity:Number(u.quantity||0),level:Number(u.level||1),population_cost:Number(u.population_cost||1)})));
-  const attGeneral=1+Number(attR.general_power_level||0)*0.05, attCombat=1+Number(attR.combat_level||0)*0.05, attAttack=1+Number(attR.unit_attack_level||0)*0.05, attHp=1+Number(attR.unit_hp_level||0)*0.05;
-  const COMBAT_ROLE={
-    piyade:{attack:1.00,defense:1.00,hp:1.00,loss:1.00},
-    savunma:{attack:0.92,defense:1.15,hp:1.08,loss:0.82},
-    saldiri:{attack:1.14,defense:0.90,hp:0.96,loss:1.08},
-    okcu:{attack:1.18,defense:0.88,hp:0.94,loss:1.06},
-    tank:{attack:1.03,defense:1.25,hp:1.15,loss:0.68},
-    hava:{attack:1.10,defense:0.96,hp:1.02,loss:0.90}
-  };
-  const roleOf=(type)=>COMBAT_ROLE[type]||COMBAT_ROLE.piyade;
-  const attackPower=Math.round(army.reduce((sum,u)=>{const r=roleOf(u.unit_type),q=Number(u.quantity||0);return sum+q*Number(u.attack||0)*r.attack*attGeneral*attCombat*attAttack+q*Number(u.hp||0)*0.15*r.hp*attHp;},0));
-  const defGeneral=1+Number(defR.general_power_level||0)*0.05, defBase=1+Number(defR.defense_level||0)*0.05, defDefense=1+Number(defR.unit_defense_level||0)*0.05, defHp=1+Number(defR.unit_hp_level||0)*0.05;
-  const defensePower=Math.round((defenders.reduce((sum,u)=>{const r=roleOf(u.unit_type),q=Number(u.quantity||0);return sum+q*Number(u.defense||0)*r.defense*defGeneral*defBase*defDefense+q*Number(u.hp||0)*0.15*r.hp*defHp;},0))*defenseBonus(defB));
+  const attGeneral=1+Number(attR.general_power_level||0)*0.05;
+  const attCombat=1+Number(attR.combat_level||0)*0.05;
+  const attAttack=1+Number(attR.unit_attack_level||0)*0.05;
+  const attHp=1+Number(attR.unit_hp_level||0)*0.05;
+  const roleOf=(type)=>COMBAT_ROLE_V2[type]||COMBAT_ROLE_V2.piyade;
+  const attackPower=Math.round(army.reduce((sum,u)=>{
+    const r=roleOf(u.unit_type),q=Number(u.quantity||0);
+    let unitPower=q*Number(u.attack||0)*r.attack*attGeneral*attCombat*attAttack+q*Number(u.hp||0)*0.15*r.hp*attHp;
+    const targetTypes=defenders.filter(d=>Number(d.quantity||0)>0);
+    if(targetTypes.length){
+      const totalDef=targetTypes.reduce((z,d)=>z+Number(d.quantity||0),0);
+      const weighted=targetTypes.reduce((z,d)=>z+Number(d.quantity||0)*matchupMultiplier(u.unit_type,d.unit_type),0)/Math.max(1,totalDef);
+      unitPower*=weighted;
+    }
+    return sum+unitPower;
+  },0));
+  const defGeneral=1+Number(defR.general_power_level||0)*0.05;
+  const defBase=1+Number(defR.defense_level||0)*0.05;
+  const defDefense=1+Number(defR.unit_defense_level||0)*0.05;
+  const defHp=1+Number(defR.unit_hp_level||0)*0.05;
+  const defensePower=Math.round(defenders.reduce((sum,u)=>{
+    const r=roleOf(u.unit_type),q=Number(u.quantity||0);
+    const attackerTypes=army.filter(a=>Number(a.quantity||0)>0);
+    let unitPower=q*Number(u.defense||0)*r.defense*defGeneral*defBase*defDefense+q*Number(u.hp||0)*0.15*r.hp*defHp;
+    if(attackerTypes.length){
+      const totalAtt=attackerTypes.reduce((z,a)=>z+Number(a.quantity||0),0);
+      const weighted=attackerTypes.reduce((z,a)=>z+Number(a.quantity||0)*matchupMultiplier(a.unit_type,u.unit_type),0)/Math.max(1,totalAtt);
+      unitPower*=Math.max(0.75,2-weighted);
+    }
+    return sum+unitPower;
+  },0)*defenseBonus(defB));
   const result=attackPower>defensePower?"Zafer":attackPower===defensePower?"Beraberlik":"Yenilgi";
-  const attackerLossPercent=result==="Zafer"?0.20:result==="Beraberlik"?0.40:0.70, defenderLossPercent=result==="Zafer"?0.60:result==="Beraberlik"?0.40:0.20;
-  const attackerLosses={},survivorArmy=[]; for(const u of army){const q=Number(u.quantity||0),r=roleOf(u.unit_type),loss=Math.min(q,Math.max(0,Math.ceil(q*attackerLossPercent*r.loss))),sur=q-loss;attackerLosses[u.unit_type]=(attackerLosses[u.unit_type]||0)+loss;survivorArmy.push({...u,quantity:sur});}
-  const defenderLosses={}; for(const u of defenders){const q=Number(u.quantity||0);if(q<=0)continue;const r=roleOf(u.unit_type);defenderLosses[u.unit_type]=(defenderLosses[u.unit_type]||0)+Math.min(q,Math.max(0,Math.ceil(q*defenderLossPercent*r.loss)));}
+  const attackerLossPercent=result==="Zafer"?0.20:result==="Beraberlik"?0.40:0.70;
+  const defenderLossPercent=result==="Zafer"?0.60:result==="Beraberlik"?0.40:0.20;
+  const attackerLosses={},survivorArmy=[];
+  for(const u of army){const q=Number(u.quantity||0),r=roleOf(u.unit_type),loss=Math.min(q,Math.max(0,Math.ceil(q*attackerLossPercent*r.loss))),sur=q-loss;attackerLosses[u.unit_type]=(attackerLosses[u.unit_type]||0)+loss;survivorArmy.push({...u,quantity:sur});}
+  const defenderLosses={};
+  for(const u of defenders){const q=Number(u.quantity||0);if(q<=0)continue;const r=roleOf(u.unit_type);defenderLosses[u.unit_type]=(defenderLosses[u.unit_type]||0)+Math.min(q,Math.max(0,Math.ceil(q*defenderLossPercent*r.loss)));}
   for(const u of defenders){const loss=Number(defenderLosses[u.unit_type]||0);if(loss)await supabase("units?id=eq."+encodeURIComponent(u.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({quantity:Math.max(0,Number(u.quantity||0)-loss)})});}
-  const targetCityResult=await supabase("cities?select=*&id=eq."+encodeURIComponent(mission.defender_city_id)+"&limit=1"); const attackerCityResult=await supabase("cities?select=*&id=eq."+encodeURIComponent(mission.attacker_city_id)+"&limit=1");
+  const targetCityResult=await supabase("cities?select=*&id=eq."+encodeURIComponent(mission.defender_city_id)+"&limit=1");
+  const attackerCityResult=await supabase("cities?select=*&id=eq."+encodeURIComponent(mission.attacker_city_id)+"&limit=1");
   const targetCity=targetCityResult.data?.[0],attackerCity=attackerCityResult.data?.[0];
-  const lootPercent=result==="Zafer"?0.10:0; const loot={metal:targetCity?Math.floor(Number(targetCity.metal||0)*lootPercent):0,energy:targetCity?Math.floor(Number(targetCity.energy||0)*lootPercent):0,water:targetCity?Math.floor(Number(targetCity.water||0)*lootPercent):0,crystal:targetCity?Math.floor(Number(targetCity.crystal||0)*lootPercent):0};
-  if(targetCity&&attackerCity&&result==="Zafer"){await supabase("cities?id=eq."+encodeURIComponent(targetCity.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({metal:Math.max(0,Number(targetCity.metal||0)-loot.metal),energy:Math.max(0,Number(targetCity.energy||0)-loot.energy),water:Math.max(0,Number(targetCity.water||0)-loot.water),crystal:Math.max(0,Number(targetCity.crystal||0)-loot.crystal)})});await supabase("cities?id=eq."+encodeURIComponent(attackerCity.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({metal:Number(attackerCity.metal||0)+loot.metal,energy:Number(attackerCity.energy||0)+loot.energy,water:Number(attackerCity.water||0)+loot.water,crystal:Number(attackerCity.crystal||0)+loot.crystal})});}
-  const outbound=Math.max(10,Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000)); const returnAt=new Date(Date.now()+outbound*1000).toISOString();
-  const attackerX = Number(attackerCity?.coordinate_x);
-  const attackerY = Number(attackerCity?.coordinate_y);
-  const defenderX = Number(targetCity?.coordinate_x);
-  const defenderY = Number(targetCity?.coordinate_y);
-  const report={result,attackPower,defensePower,attackerLosses,defenderLosses,loot,survivorArmy,returnAt,battleAt:new Date().toISOString(),defenseBonus:defenseBonus(defB),attackerX:Number.isFinite(attackerX)?attackerX:null,attackerY:Number.isFinite(attackerY)?attackerY:null,defenderX:Number.isFinite(defenderX)?defenderX:null,defenderY:Number.isFinite(defenderY)?defenderY:null};
-  await supabase("battle_reports",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({attacker_player_id:Number(mission.attacker_player_id),defender_player_id:Number(mission.defender_player_id),result,attack_power:attackPower,defense_power:defensePower,attacker_losses:attackerLosses,defender_losses:defenderLosses,loot})});
+  const lootPercent=result==="Zafer"?0.10:0;
+  const loot={metal:targetCity?Math.floor(Number(targetCity.metal||0)*lootPercent):0,energy:targetCity?Math.floor(Number(targetCity.energy||0)*lootPercent):0,water:targetCity?Math.floor(Number(targetCity.water||0)*lootPercent):0,crystal:targetCity?Math.floor(Number(targetCity.crystal||0)*lootPercent):0};
+  if(targetCity&&attackerCity&&result==="Zafer"){
+    await supabase("cities?id=eq."+encodeURIComponent(targetCity.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({metal:Math.max(0,Number(targetCity.metal||0)-loot.metal),energy:Math.max(0,Number(targetCity.energy||0)-loot.energy),water:Math.max(0,Number(targetCity.water||0)-loot.water),crystal:Math.max(0,Number(targetCity.crystal||0)-loot.crystal)})});
+    await supabase("cities?id=eq."+encodeURIComponent(attackerCity.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({metal:Number(attackerCity.metal||0)+loot.metal,energy:Number(attackerCity.energy||0)+loot.energy,water:Number(attackerCity.water||0)+loot.water,crystal:Number(attackerCity.crystal||0)+loot.crystal})});
+  }
+  const outbound=Math.max(10,Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000));
+  const returnAt=new Date(Date.now()+outbound*1000).toISOString();
+  const attackerX=Number(mission.depart_x), attackerY=Number(mission.depart_y), defenderX=Number(mission.target_x), defenderY=Number(mission.target_y);
+  const battlePoints=calculateBattlePoints(result,attackPower,defensePower);
+  const report={result,attackPower,defensePower,attackerLosses,defenderLosses,loot,survivorArmy,returnAt,battleAt:new Date().toISOString(),defenseBonus:defenseBonus(defB),battlePoints,winnerPlayerId:result==="Zafer"?Number(mission.attacker_player_id):result==="Yenilgi"?Number(mission.defender_player_id):null,attackerX:Number.isFinite(attackerX)?attackerX:null,attackerY:Number.isFinite(attackerY)?attackerY:null,defenderX:Number.isFinite(defenderX)?defenderX:null,defenderY:Number.isFinite(defenderY)?defenderY:null};
+  await supabase("battle_reports",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({attacker_player_id:Number(mission.attacker_player_id),defender_player_id:Number(mission.defender_player_id),result:JSON.stringify(report),attack_power:attackPower,defense_power:defensePower,attacker_losses:attackerLosses,defender_losses:defenderLosses,loot,battle_points:battlePoints,winner_player_id:report.winnerPlayerId})});
   const updated=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.resolving",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"returning",arrive_at:returnAt,attack_power:attackPower,result:report})});
   if(!updated.ok||!updated.data?.[0])return send(res,500,{success:false,message:"Savaş sonucu kaydedilemedi."});
   return send(res,200,{success:true,mission:{...updated.data[0],remainingSeconds:outbound}});
@@ -1323,44 +1397,55 @@ async function joinAlliance(req, res) {
     member: memberResult.data[0]
   });
 }
-async function getAlliances(req, res) {
-  const authHeader = String(
-    req.headers.authorization || ""
-  );
-
-  if (!authHeader.startsWith("Bearer ")) {
-    return send(res, 401, {
-      success: false,
-      message: "Oturum bulunamadı."
-    });
+async function getMyAlliance(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+  const m=await supabase("alliance_members?select=id,alliance_id,role&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
+  if(!m.ok)return send(res,500,{success:false,message:"İttifak üyeliği alınamadı."});
+  if(!m.data?.[0])return send(res,200,{success:true,alliance:null,member:null,members:[]});
+  const a=await supabase("alliances?select=*&id=eq."+encodeURIComponent(m.data[0].alliance_id)+"&limit=1");
+  const members=await supabase("alliance_members?select=player_id,role&alliance_id=eq."+encodeURIComponent(m.data[0].alliance_id));
+  const ids=(members.data||[]).map(x=>x.player_id).filter(Boolean);
+  const pr=ids.length?await supabase("players?select=id,username&id=in.("+ids.join(",")+")"):({ok:true,data:[]});
+  const names={};for(const p of pr.data||[])names[p.id]=p.username;
+  const memberIds=ids.join(",");
+  let alliancePower=0;
+  if(memberIds){
+    const cities=await supabase("cities?select=id&player_id=in.("+memberIds+")");
+    const cityIds=(cities.data||[]).map(x=>x.id);
+    if(cityIds.length){const units=await supabase("units?select=quantity,attack,defense,hp&city_id=in.("+cityIds.join(",")+")");for(const u of units.data||[])alliancePower+=Number(u.quantity||0)*(Number(u.attack||0)+Number(u.defense||0)+Number(u.hp||0)*0.5);}
   }
-
-  const token = authHeader.slice(7).trim();
-  const decoded = verifyToken(token);
-
-  if (!decoded || !decoded.id) {
-    return send(res, 401, {
-      success: false,
-      message: "Geçersiz oturum."
-    });
-  }
-
-  const result = await supabase(
-    "alliances?select=id,name,tag,owner_player_id,created_at&order=name.asc"
-  );
-
-  if (!result.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "İttifaklar alınamadı."
-    });
-  }
-
-  return send(res, 200, {
-    success: true,
-    alliances: result.data || []
-  });
+  const alliance={...(a.data?.[0]||{}),member_count:ids.length,alliance_power:Math.round(alliancePower)};
+  return send(res,200,{success:true,alliance,member:m.data[0],members:(members.data||[]).map(x=>({player_id:x.player_id,username:names[x.player_id]||"Oyuncu",role:x.role}))});
 }
+async function leaveAlliance(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+  const m=await supabase("alliance_members?select=id,alliance_id,role&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
+  if(!m.ok||!m.data?.[0])return send(res,400,{success:false,message:"Bir ittifaka üye değilsin."});
+  const row=m.data[0];
+  if(row.role==='leader')return send(res,400,{success:false,message:"Lider ittifaktan ayrılamaz. Önce liderliği devretme sistemi eklenmeli."});
+  const d=await supabase("alliance_members?id=eq."+encodeURIComponent(row.id),{method:"DELETE"});
+  if(!d.ok)return send(res,500,{success:false,message:"İttifaktan ayrılınamadı."});
+  return send(res,200,{success:true,message:"İttifaktan ayrıldın."});
+}
+async function getAlliances(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+  const result=await supabase("alliances?select=id,name,tag,owner_player_id,created_at&order=name.asc");
+  if(!result.ok)return send(res,500,{success:false,message:"İttifaklar alınamadı."});
+  const list=[];
+  for(const a of result.data||[]){
+    const m=await supabase("alliance_members?select=player_id&alliance_id=eq."+encodeURIComponent(a.id));
+    const ids=(m.data||[]).map(x=>x.player_id).filter(Boolean);
+    let power=0;
+    if(ids.length){
+      const c=await supabase("cities?select=id,player_id&player_id=in.("+ids.join(",")+")");
+      const cityIds=(c.data||[]).map(x=>x.id);
+      if(cityIds.length){const u=await supabase("units?select=quantity,attack,defense,hp&city_id=in.("+cityIds.join(",")+")");for(const x of u.data||[])power+=Number(x.quantity||0)*(Number(x.attack||0)+Number(x.defense||0)+Number(x.hp||0)*0.5);}
+    }
+    list.push({...a,member_count:ids.length,alliance_power:Math.round(power)});
+  }
+  return send(res,200,{success:true,alliances:list});
+}
+
 async function getResearch(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
   const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
@@ -1501,6 +1586,20 @@ async function upgradeBuilding(req,res){
   if(building?.is_under_construction)return send(res,400,{success:false,message:"Bu bina zaten inşa ediliyor.",finishAt:building.upgrade_ready_at});
   const current=building?Math.max(0,Number(building.level||0)):0;
   const maxLevel=buildingMaxLevel(buildingType);
+  const prerequisites={
+    "Kristal Madeni":{"Merkez Bina":2},
+    "Kristal Deposu":{"Merkez Bina":2},
+    "Kışla":{"Merkez Bina":2},
+    "Konut":{"Merkez Bina":2},
+    "Sur":{"Merkez Bina":3},
+    "Savunma Kulesi":{"Merkez Bina":5,"Sur":2}
+  };
+  const allBuildings=await supabase("buildings?select=building_type,level&city_id=eq."+encodeURIComponent(city.id));
+  const prerequisiteLevels={}; for(const b of (allBuildings.data||[]))prerequisiteLevels[b.building_type]=Math.max(0,Number(b.level||0));
+  const reqs=prerequisites[buildingType]||{};
+  for(const [reqName,reqLevel] of Object.entries(reqs)){
+    if(Number(prerequisiteLevels[reqName]||0)<Number(reqLevel))return send(res,400,{success:false,message:buildingType+" için "+reqName+" seviye "+reqLevel+" gerekli.",required:{building:reqName,level:reqLevel}});
+  }
   if(current>=maxLevel)return send(res,400,{success:false,message:buildingType+" maksimum seviye olan "+maxLevel+" seviyeye ulaştı."});
   const multiplier=current+1;
   const cost={metal:costs[buildingType].metal*multiplier,energy:costs[buildingType].energy*multiplier,water:costs[buildingType].water*multiplier,crystal:costs[buildingType].crystal*multiplier};
@@ -1516,11 +1615,37 @@ async function upgradeBuilding(req,res){
 
 async function getWorldPlayers(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const citiesResult=await supabase("cities?select=id,player_id,name,level,coordinate_x,coordinate_y");if(!citiesResult.ok)return send(res,500,{success:false,message:"Koloniler alınamadı."});
-  const playersResult=await supabase("players?select=id,username");if(!playersResult.ok)return send(res,500,{success:false,message:"Oyuncular alınamadı."});
-  const map={};for(const p of playersResult.data||[])map[p.id]=p.username;
-  const players=(citiesResult.data||[]).map(c=>({id:c.id,player_id:c.player_id,username:map[c.player_id]||"Oyuncu",name:c.name,level:c.level,coordinate_x:c.coordinate_x,coordinate_y:c.coordinate_y}));
-  return send(res,200,{success:true,players});
+  const citiesResult=await supabase("cities?select=id,player_id,name,level,coordinate_x,coordinate_y"); if(!citiesResult.ok)return send(res,500,{success:false,message:"Koloniler alınamadı."});
+  const playersResult=await supabase("players?select=id,username"); if(!playersResult.ok)return send(res,500,{success:false,message:"Oyuncular alınamadı."});
+  const map={}; for(const p of playersResult.data||[])map[p.id]=p.username;
+  const players=(citiesResult.data||[]).map(c=>{const region=regionForCoordinates(Number(c.coordinate_x||0),Number(c.coordinate_y||0));return {id:c.id,player_id:c.player_id,username:map[c.player_id]||"Oyuncu",name:c.name,level:c.level,coordinate_x:c.coordinate_x,coordinate_y:c.coordinate_y,region:region.name,region_bonus:region.bonus};});
+  const sitesResult=await supabase("world_sites?select=id,site_type,name,coordinate_x,coordinate_y,reward&active=eq.true");
+  return send(res,200,{success:true,players,sites:sitesResult.ok?(sitesResult.data||[]):[],regions:[
+    {name:"Çöl Bölgesi",bonus:"Metal üretimi +5%"},{name:"Orman Bölgesi",bonus:"Su üretimi +5%"},{name:"Buz Bölgesi",bonus:"Enerji üretimi +5%"},{name:"Dağ Bölgesi",bonus:"Savunma +5%"},{name:"Volkanik Bölge",bonus:"Kristal üretimi +5%"},{name:"Okyanus",bonus:"Seyahat süresi -5%"}
+  ]});
+}
+
+async function exploreWorld(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const cityR=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"); if(!cityR.ok||!cityR.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
+  const city=cityR.data[0], now=Date.now(), last=new Date(city.last_explored_at||0).getTime();
+  const buildingsR=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id));
+  const buildings=buildingsR.ok?(buildingsR.data||[]):[];
+  const cooldown=10*60*1000;
+  if(last && now-last<cooldown)return send(res,400,{success:false,message:"Keşif için henüz hazır değilsin.",remainingSeconds:Math.ceil((cooldown-(now-last))/1000)});
+  const region=regionForCoordinates(Number(city.coordinate_x||0),Number(city.coordinate_y||0));
+  const rewards={
+    "Çöl Bölgesi":{metal:180,energy:20,water:10,crystal:5},
+    "Orman Bölgesi":{metal:40,energy:20,water:180,crystal:5},
+    "Buz Bölgesi":{metal:40,energy:180,water:30,crystal:5},
+    "Dağ Bölgesi":{metal:120,energy:80,water:40,crystal:20},
+    "Volkanik Bölge":{metal:60,energy:80,water:20,crystal:80},
+    "Okyanus":{metal:80,energy:100,water:120,crystal:30}
+  }[region.name];
+  const next={metal:Math.min(storageCapacity(buildings),Number(city.metal||0)+rewards.metal),energy:Math.min(storageCapacity(buildings),Number(city.energy||0)+rewards.energy),water:Math.min(storageCapacity(buildings),Number(city.water||0)+rewards.water),crystal:Math.min(crystalStorageCapacity(buildings),Number(city.crystal||0)+rewards.crystal),last_explored_at:new Date(now).toISOString()};
+  const updated=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(next)});
+  if(!updated.ok)return send(res,500,{success:false,message:"Keşif ödülü kaydedilemedi."});
+  return send(res,200,{success:true,message:region.name+" keşfi tamamlandı.",region:region.name,reward:rewards,city:updated.data[0],cooldownSeconds:600});
 }
 
 
@@ -1534,17 +1659,34 @@ async function getMilitaryMissions(req,res){
 async function getRankings(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const [playersR,citiesR,buildingsR,unitsR,reportsR,researchR]=await Promise.all([
-    supabase("players?select=id,username"),supabase("cities?select=id,player_id,level"),supabase("buildings?select=city_id,level"),supabase("units?select=city_id,quantity,attack,defense,hp"),supabase("battle_reports?select=attacker_player_id,defender_player_id,result"),supabase("research?select=player_id,production_level,combat_level,defense_level,crystal_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level,travel_speed_level")
+    supabase("players?select=id,username"),
+    supabase("cities?select=id,player_id,level"),
+    supabase("buildings?select=city_id,level"),
+    supabase("units?select=city_id,quantity,attack,defense,hp"),
+    supabase("battle_reports?select=attacker_player_id,defender_player_id,result,battle_points,winner_player_id"),
+    supabase("research?select=player_id,production_level,combat_level,defense_level,crystal_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level,travel_speed_level")
   ]);
-  const cityByPlayer={};for(const c of citiesR.data||[])cityByPlayer[c.player_id]=c;
-  const score={};for(const p of playersR.data||[])score[p.id]={player_id:p.id,username:p.username,colony_level:Number(cityByPlayer[p.id]?.level||1),army_power:0,war_score:0,research_level:0,buildings_level:0,score:0};
-  for(const b of buildingsR.data||[]){const c=Object.values(cityByPlayer).find(x=>x.id===b.city_id); if(c&&score[c.player_id])score[c.player_id].buildings_level+=Number(b.level||0);}
-  const cityPlayer={};for(const c of citiesR.data||[])cityPlayer[c.id]=c.player_id;
+  const cityByPlayer={}; for(const c of citiesR.data||[])cityByPlayer[c.player_id]=c;
+  const score={}; for(const p of playersR.data||[])score[p.id]={player_id:p.id,username:p.username,colony_level:Number(cityByPlayer[p.id]?.level||1),army_power:0,battle_points:0,wins:0,losses:0,draws:0,research_level:0,buildings_level:0,score:0};
+  const cityPlayer={}; for(const c of citiesR.data||[])cityPlayer[c.id]=c.player_id;
+  for(const b of buildingsR.data||[]){const pid=cityPlayer[b.city_id];if(score[pid])score[pid].buildings_level+=Number(b.level||0);}
   for(const u of unitsR.data||[]){const pid=cityPlayer[u.city_id];if(score[pid])score[pid].army_power+=Number(u.quantity||0)*(Number(u.attack||0)+Number(u.defense||0)+Number(u.hp||0)*0.5);}
   for(const r of researchR.data||[]){if(score[r.player_id])score[r.player_id].research_level+=Object.keys(r).filter(k=>k.endsWith('_level')).reduce((s,k)=>s+Number(r[k]||0),0);}
-  for(const r of reportsR.data||[]){if(r.result==="Zafer"&&score[r.attacker_player_id])score[r.attacker_player_id].war_score+=100;if(r.result==="Yenilgi"&&score[r.attacker_player_id])score[r.attacker_player_id].war_score-=50;if(r.result==="Zafer"&&score[r.defender_player_id])score[r.defender_player_id].war_score-=50;}
-  const rankings=Object.values(score).map(x=>({...x,score:Math.round(x.colony_level*100+x.army_power+x.war_score+x.research_level*30+x.buildings_level*20)})).sort((a,b)=>b.score-a.score).map((x,i)=>({...x,rank:i+1}));
-  return send(res,200,{success:true,rankings});
+  for(const r of reportsR.data||[]){
+    const raw=r.result&&typeof r.result==='object'?r.result:safeBattleResult(r.result);
+    const result=typeof raw==='object'?String(raw.result||''):String(raw||'');
+    const points=Number(r.battle_points ?? (typeof raw==='object'?raw.battlePoints:0))||0;
+    const winner=Number(r.winner_player_id ?? (typeof raw==='object'?raw.winnerPlayerId:0))||0;
+    if(winner && score[winner])score[winner].battle_points+=points;
+    else if(result==='Zafer' && score[r.attacker_player_id])score[r.attacker_player_id].battle_points+=points;
+    if(result==='Zafer'&&winner&&score[winner])score[winner].wins+=1;
+    else if(result==='Yenilgi'){const loser=winner===Number(r.attacker_player_id)?Number(r.defender_player_id):Number(r.attacker_player_id);if(score[loser])score[loser].losses+=1;}
+    else if(result==='Beraberlik'){if(score[r.attacker_player_id])score[r.attacker_player_id].draws+=1;if(score[r.defender_player_id])score[r.defender_player_id].draws+=1;}
+  }
+  for(const x of Object.values(score))x.score=Math.round(x.colony_level*100+x.army_power+x.battle_points+x.research_level*30+x.buildings_level*20+x.wins*25);
+  const rankings=Object.values(score).sort((a,b)=>b.score-a.score||b.battle_points-a.battle_points||b.army_power-a.army_power||b.wins-a.wins||a.username.localeCompare(b.username,'tr')).map((x,i)=>({...x,rank:i+1,is_me:x.player_id===playerId}));
+  const me=rankings.find(x=>x.player_id===playerId)||null;
+  return send(res,200,{success:true,rankings,me});
 }
 
 module.exports = async function handler(req, res) {
@@ -1583,6 +1725,9 @@ module.exports = async function handler(req, res) {
 }
     if (action === "world") {
   return await getWorldPlayers(req, res);
+}
+if (action === "explore") {
+  return await exploreWorld(req, res);
 }
 if (action === "move") {
   return await moveColony(req, res);
@@ -1625,6 +1770,15 @@ if (action === "upgrade") {
 } 
   if (action === "joinalliance") {
       return await joinAlliance(req, res);
+    }
+  if (action === "myalliance") {
+      return await getMyAlliance(req, res);
+    }
+    if (action === "leavealliance") {
+      return await leaveAlliance(req, res);
+    }
+    if (action === "kickalliance") {
+      return await kickAllianceMember(req, res);
     }
 
     if (action === "upgraderesearch") {
