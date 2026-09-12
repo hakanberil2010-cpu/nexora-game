@@ -1404,7 +1404,7 @@ async function joinAlliance(req, res) {
 }
 async function getMyAlliance(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
-  const m=await supabase("alliance_members?select=id,alliance_id,role&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
+  const m=await supabase("alliance_members?select=id,alliance_id,player_id,role&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
   if(!m.ok)return send(res,500,{success:false,message:"İttifak üyeliği alınamadı."});
   if(!m.data?.[0])return send(res,200,{success:true,alliance:null,member:null,members:[]});
   const a=await supabase("alliances?select=*&id=eq."+encodeURIComponent(m.data[0].alliance_id)+"&limit=1");
@@ -1424,13 +1424,23 @@ async function getMyAlliance(req,res){
 }
 async function leaveAlliance(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
-  const m=await supabase("alliance_members?select=id,alliance_id,role&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
-  if(!m.ok||!m.data?.[0])return send(res,400,{success:false,message:"Bir ittifaka üye değilsin."});
-  const row=m.data[0];
-  if(row.role==='leader')return send(res,400,{success:false,message:"Lider ittifaktan ayrılamaz. Önce liderliği devretme sistemi eklenmeli."});
-  const d=await supabase("alliance_members?id=eq."+encodeURIComponent(row.id),{method:"DELETE"});
-  if(!d.ok)return send(res,500,{success:false,message:"İttifaktan ayrılınamadı."});
-  return send(res,200,{success:true,message:"İttifaktan ayrıldın."});
+  const result=await supabase("rpc/nexora_leave_alliance",{method:"POST",body:JSON.stringify({p_player_id:playerId})});
+  if(!result.ok){console.error("İttifaktan ayrılma RPC hatası:",result.data);return send(res,500,{success:false,message:"İttifaktan ayrılınamadı."});}
+  const data=result.data||{};
+  if(!data.success)return send(res,400,data);
+  return send(res,200,data);
+}
+
+async function kickAllianceMember(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+  const body=await readBody(req);
+  const targetPlayerId=Number(body.playerId);
+  if(!Number.isInteger(targetPlayerId)||targetPlayerId<=0)return send(res,400,{success:false,message:"Geçersiz oyuncu."});
+  const result=await supabase("rpc/nexora_kick_alliance_member",{method:"POST",body:JSON.stringify({p_leader_player_id:playerId,p_target_player_id:targetPlayerId})});
+  if(!result.ok){console.error("İttifak üyesi çıkarma RPC hatası:",result.data);return send(res,500,{success:false,message:"Oyuncu ittifaktan çıkarılamadı."});}
+  const data=result.data||{};
+  if(!data.success)return send(res,400,data);
+  return send(res,200,data);
 }
 async function getAlliances(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
@@ -1632,25 +1642,59 @@ async function getWorldPlayers(req,res){
 
 async function exploreWorld(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const cityR=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"); if(!cityR.ok||!cityR.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
-  const city=cityR.data[0], now=Date.now(), last=new Date(city.last_explored_at||0).getTime();
-  const buildingsR=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id));
-  const buildings=buildingsR.ok?(buildingsR.data||[]):[];
-  const cooldown=10*60*1000;
-  if(last && now-last<cooldown)return send(res,400,{success:false,message:"Keşif için henüz hazır değilsin.",remainingSeconds:Math.ceil((cooldown-(now-last))/1000)});
-  const region=regionForCoordinates(Number(city.coordinate_x||0),Number(city.coordinate_y||0));
-  const rewards={
-    "Çöl Bölgesi":{metal:180,energy:20,water:10,crystal:5},
-    "Orman Bölgesi":{metal:40,energy:20,water:180,crystal:5},
-    "Buz Bölgesi":{metal:40,energy:180,water:30,crystal:5},
-    "Dağ Bölgesi":{metal:120,energy:80,water:40,crystal:20},
-    "Volkanik Bölge":{metal:60,energy:80,water:20,crystal:80},
-    "Okyanus":{metal:80,energy:100,water:120,crystal:30}
-  }[region.name];
-  const next={metal:Math.min(storageCapacity(buildings),Number(city.metal||0)+rewards.metal),energy:Math.min(storageCapacity(buildings),Number(city.energy||0)+rewards.energy),water:Math.min(storageCapacity(buildings),Number(city.water||0)+rewards.water),crystal:Math.min(crystalStorageCapacity(buildings),Number(city.crystal||0)+rewards.crystal),last_explored_at:new Date(now).toISOString()};
-  const updated=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(next)});
-  if(!updated.ok)return send(res,500,{success:false,message:"Keşif ödülü kaydedilemedi."});
-  return send(res,200,{success:true,message:region.name+" keşfi tamamlandı.",region:region.name,reward:rewards,city:updated.data[0],cooldownSeconds:600});
+  const body=await readBody(req);
+  const siteId=Number(body.siteId);
+  if(!Number.isInteger(siteId)||siteId<=0)return send(res,400,{success:false,message:"Geçersiz keşif noktası."});
+
+  const [cityR,siteR,researchR]=await Promise.all([
+    supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
+    supabase("world_sites?select=id,site_type,name,coordinate_x,coordinate_y,active&id=eq."+encodeURIComponent(siteId)+"&limit=1"),
+    supabase("research?select=travel_speed_level&player_id=eq."+encodeURIComponent(playerId)+"&limit=1")
+  ]);
+  if(!cityR.ok||!cityR.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
+  if(!siteR.ok||!siteR.data?.[0]||siteR.data[0].active===false)return send(res,404,{success:false,message:"Keşif noktası bulunamadı veya aktif değil."});
+
+  const city=cityR.data[0], site=siteR.data[0];
+  if(site.site_type==="alliance")return send(res,400,{success:false,message:"İttifak bölgeleri henüz keşfe açık değil."});
+
+  const distance=Math.sqrt(Math.pow(Number(site.coordinate_x||0)-Number(city.coordinate_x||0),2)+Math.pow(Number(site.coordinate_y||0)-Number(city.coordinate_y||0),2));
+  const research=researchR.ok&&researchR.data?.[0]?researchR.data[0]:{};
+  const speedResearch=Math.max(0.25,1-Number(research.travel_speed_level||0)*0.05);
+  const scoutSpeed=100;
+  const travelSeconds=Math.max(10,Math.round(Math.max(1,distance)*120/scoutSpeed*speedResearch));
+
+  const started=await supabase("rpc/nexora_start_world_exploration",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId,p_site_id:siteId,p_travel_seconds:travelSeconds,p_distance:Number(distance.toFixed(2))})
+  });
+  if(!started.ok){console.error("Keşif başlatma RPC hatası:",started.data);return send(res,500,{success:false,message:"Keşif görevi başlatılamadı."});}
+  const result=started.data||{};
+  if(!result.success&&result.code==="ACTIVE_EXPLORATION"&&Number.isInteger(Number(result.missionId))){
+    const active=await supabase("rpc/nexora_resolve_world_exploration",{
+      method:"POST",
+      body:JSON.stringify({p_player_id:playerId,p_mission_id:Number(result.missionId)})
+    });
+    if(active.ok&&active.data?.success&&active.data.mission){
+      const mission=active.data.mission;
+      return send(res,200,{success:true,message:"Aktif keşif görevin devam ediyor.",mission:{...mission,travelSeconds:Number(mission.remainingSeconds||0)}});
+    }
+  }
+  if(!result.success)return send(res,result.code==="SITE_NOT_FOUND"?404:400,result);
+  return send(res,200,result);
+}
+
+async function getWorldExploration(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const missionId=Number(req.query.id);
+  if(!Number.isInteger(missionId)||missionId<=0)return send(res,400,{success:false,message:"Geçersiz keşif görevi."});
+  const resolved=await supabase("rpc/nexora_resolve_world_exploration",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId,p_mission_id:missionId})
+  });
+  if(!resolved.ok){console.error("Keşif sonuçlandırma RPC hatası:",resolved.data);return send(res,500,{success:false,message:"Keşif durumu alınamadı."});}
+  const result=resolved.data||{};
+  if(!result.success)return send(res,result.code==="MISSION_NOT_FOUND"?404:400,result);
+  return send(res,200,result);
 }
 
 
@@ -1803,6 +1847,9 @@ module.exports = async function handler(req, res) {
 if (action === "explore") {
   return await exploreWorld(req, res);
 }
+if (action === "explorestatus") {
+  return await getWorldExploration(req, res);
+}
 if (action === "move") {
   return await moveColony(req, res);
 }
@@ -1850,6 +1897,9 @@ if (action === "upgrade") {
     }
     if (action === "leavealliance") {
       return await leaveAlliance(req, res);
+    }
+    if (action === "kickalliance") {
+      return await kickAllianceMember(req, res);
     }
 
     if (action === "upgraderesearch") {
