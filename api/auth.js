@@ -1508,6 +1508,84 @@ async function deleteAllianceAnnouncement(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getAllianceWars(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+
+  const result=await supabase("rpc/nexora_alliance_wars_snapshot",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("İttifak savaşları snapshot RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"İttifak savaşları şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function declareAllianceWar(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+
+  const targetAllianceId=Number(body?.targetAllianceId);
+  if(!Number.isInteger(targetAllianceId)||targetAllianceId<=0){
+    return send(res,400,{success:false,message:"Geçersiz hedef ittifak."});
+  }
+
+  const result=await supabase("rpc/nexora_alliance_war_declare",{
+    method:"POST",
+    body:JSON.stringify({
+      p_actor_player_id:playerId,
+      p_target_alliance_id:targetAllianceId
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("İttifak savaş ilanı RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Savaş çağrısı gönderilemedi."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function respondAllianceWar(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+
+  const warId=Number(body?.warId);
+  const accept=body?.accept;
+
+  if(!Number.isInteger(warId)||warId<=0||typeof accept!=="boolean"){
+    return send(res,400,{success:false,message:"Geçersiz savaş yanıtı."});
+  }
+
+  const result=await supabase("rpc/nexora_alliance_war_respond",{
+    method:"POST",
+    body:JSON.stringify({
+      p_actor_player_id:playerId,
+      p_war_id:warId,
+      p_accept:accept
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("İttifak savaş yanıtı RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Savaş çağrısı yanıtlanamadı."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function leaveAlliance(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
   const result=await supabase("rpc/nexora_leave_alliance",{method:"POST",body:JSON.stringify({p_player_id:playerId})});
@@ -2041,6 +2119,15 @@ if (action === "upgrade") {
     }
   if (action === "myalliance") {
       return await getMyAlliance(req, res);
+    }
+    if (action === "alliancewars") {
+      return await getAllianceWars(req, res);
+    }
+    if (action === "declarealliancewar") {
+      return await declareAllianceWar(req, res);
+    }
+    if (action === "respondalliancewar") {
+      return await respondAllianceWar(req, res);
     }
     if (action === "setalliancerole") {
       return await setAllianceMemberRole(req, res);
