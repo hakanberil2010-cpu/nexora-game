@@ -907,9 +907,18 @@ async function createMilitaryMission(req, res) {
 
   const unitsResult=await supabase("units?select=*&city_id=eq."+encodeURIComponent(attackerCity.id));
   if (!unitsResult.ok) return send(res,500,{success:false,message:"Ordu verisi alınamadı."});
-  let army=(unitsResult.data||[]).filter(u=>Number(u.quantity)>0).map(u=>({unit_type:u.unit_type,quantity:Number(u.quantity),level:Number(u.level||1),attack:Number(u.attack||0),defense:Number(u.defense||0),hp:Number(u.hp||0),speed:Number(u.speed||100),population_cost:Number(u.population_cost||1)}));
+  const requestedUnits=body.units&&typeof body.units==="object"?body.units:{};
+  let army=(unitsResult.data||[]).filter(u=>Number(u.quantity)>0).map(u=>{
+    const available=Number(u.quantity||0);
+    const requested=Number(requestedUnits[u.unit_type]||0);
+    return {unit_type:u.unit_type,quantity:requested,available,level:Number(u.level||1),attack:Number(u.attack||0),defense:Number(u.defense||0),hp:Number(u.hp||0),speed:Number(u.speed||100),population_cost:Number(u.population_cost||1)};
+  }).filter(u=>Number.isInteger(u.quantity)&&u.quantity>0);
+  for(const u of army){
+    if(u.quantity>u.available) return send(res,400,{success:false,message:u.unit_type+" için gönderilecek miktar mevcut ordudan fazla."});
+  }
+  army=army.map(u=>{const x={...u};delete x.available;return x;});
   army=await hydrateArmyStats(army);
-  if (!army.length) return send(res,400,{success:false,message:"Gönderilecek asker bulunmuyor."});
+  if (!army.length) return send(res,400,{success:false,message:"En az bir birlik miktarı seçmelisin."});
 
   const distance=Math.sqrt(Math.pow(Number(targetCity.coordinate_x||0)-Number(attackerCity.coordinate_x||0),2)+Math.pow(Number(targetCity.coordinate_y||0)-Number(attackerCity.coordinate_y||0),2));
   const researchResult=await supabase("research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
@@ -954,6 +963,7 @@ async function completeMissionReturn(mission,res){
 }
 
 async function getMilitaryMission(req,res){
+
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
   const missionId=Number(req.query.id); if(!Number.isInteger(missionId))return send(res,400,{success:false,message:"Geçersiz sefer."});
   const m=await supabase("military_missions?id=eq."+encodeURIComponent(missionId)+"&limit=1"); if(!m.ok||!m.data?.[0])return send(res,404,{success:false,message:"Sefer bulunamadı."});
