@@ -801,6 +801,10 @@ function selectPlayerColony(
   document.getElementById("attackButton").style.display =
     "inline-block";
 
+  if (typeof renderAttackUnitSelector === "function") {
+    renderAttackUnitSelector();
+  }
+
   const moveButton = document.getElementById("moveButton");
   if (moveButton) {
     moveButton.style.display = "none";
