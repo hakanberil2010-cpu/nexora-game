@@ -1956,7 +1956,8 @@ async function getRankings(req,res){
 
 
 const TRADE_RESOURCES = new Set(["metal","energy","water","crystal"]);
-const TRADE_MAX_AMOUNT = 1000000000;
+const TRADE_MIN_AMOUNT = 10;
+const TRADE_MAX_AMOUNT = 100000000;
 
 function normalizeTradeResource(value){
   const resource=String(value||"").trim().toLowerCase();
@@ -1969,18 +1970,54 @@ async function getTradeCity(playerId){
   return {city:r.data[0]};
 }
 
+async function syncTradePlayer(playerId){
+  return await supabase("rpc/nexora_trade_sync_player",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:Number(playerId)})
+  });
+}
+
 async function getTradeOffers(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const sync=await syncTradePlayer(playerId);
+  if(!sync.ok||sync.data?.success===false){
+    console.error("Trade V2 sync hatası:",sync.data);
+    return send(res,503,{success:false,message:"Ticaret sistemi şu anda kullanılamıyor."});
+  }
+
   const r=await supabase("trade_offers?select=id,creator_player_id,give_resource,give_amount,want_resource,want_amount,status,expires_at,created_at,accepted_by_player_id,accepted_at&order=created_at.desc&limit=100");
   if(!r.ok)return send(res,500,{success:false,message:"Ticaret teklifleri alınamadı."});
-  const offers=(r.data||[]).filter(x=>x.status==="open"&&(!x.expires_at||new Date(x.expires_at).getTime()>Date.now())||x.creator_player_id===playerId||x.accepted_by_player_id===playerId);
+
+  const serverTime=sync.data?.serverTime||new Date().toISOString();
+  const serverNow=new Date(serverTime).getTime();
+  const offers=(r.data||[]).filter(x=>{
+    if(x.status!=="open")return false;
+    const own=Number(x.creator_player_id)===Number(playerId);
+    const expired=x.expires_at&&new Date(x.expires_at).getTime()<=serverNow;
+    return !expired||own;
+  });
+
   const ids=[...new Set(offers.map(x=>Number(x.creator_player_id)).filter(Boolean))];
   const names={};
   if(ids.length){
     const pr=await supabase("players?select=id,username&id=in.("+ids.join(",")+")");
     for(const p of (pr.data||[]))names[p.id]=p.username;
   }
-  return send(res,200,{success:true,offers:offers.map(x=>({...x,creator_username:names[x.creator_player_id]||"Oyuncu"})),serverTime:new Date().toISOString()});
+
+  return send(res,200,{
+    success:true,
+    playerId,
+    offers:offers.map(x=>({...x,creator_username:names[x.creator_player_id]||"Oyuncu"})),
+    serverTime,
+    config:sync.data?.config||{},
+    delivery: {
+      checked:Number(sync.data?.checked||0),
+      delivered:Number(sync.data?.delivered||0),
+      blocked:Number(sync.data?.blocked||0),
+      pending:Number(sync.data?.pending||0)
+    }
+  });
 }
 
 async function createTradeOffer(req,res){
@@ -1991,36 +2028,143 @@ async function createTradeOffer(req,res){
   const giveAmount=Math.floor(Number(body.giveAmount||0));
   const wantAmount=Math.floor(Number(body.wantAmount||0));
   const hours=Math.min(72,Math.max(1,Math.floor(Number(body.durationHours||24))));
+
   if(!giveResource||!wantResource||giveResource===wantResource)return send(res,400,{success:false,message:"Geçerli ve farklı iki kaynak seçmelisin."});
-  if(giveAmount<1||wantAmount<1||giveAmount>TRADE_MAX_AMOUNT||wantAmount>TRADE_MAX_AMOUNT)return send(res,400,{success:false,message:"Ticaret miktarı geçersiz."});
-  const rpc=await supabase("rpc/create_trade_offer",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_give_resource:giveResource,p_give_amount:giveAmount,p_want_resource:wantResource,p_want_amount:wantAmount,p_expires_at:new Date(Date.now()+hours*3600000).toISOString()})});
-  if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{success:false,message:rpc.data?.message||"Ticaret teklifi oluşturulamadı."});
-  return send(res,200,{success:true,message:"🤝 Ticaret teklifi oluşturuldu.",offer:rpc.data?.offer||rpc.data,serverTime:new Date().toISOString()});
+  if(
+    giveAmount<TRADE_MIN_AMOUNT||wantAmount<TRADE_MIN_AMOUNT||
+    giveAmount>TRADE_MAX_AMOUNT||wantAmount>TRADE_MAX_AMOUNT
+  )return send(res,400,{success:false,message:"Ticaret miktarı 10 ile 100000000 arasında olmalı."});
+
+  const rpc=await supabase("rpc/create_trade_offer",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_give_resource:giveResource,
+      p_give_amount:giveAmount,
+      p_want_resource:wantResource,
+      p_want_amount:wantAmount,
+      p_expires_at:new Date(Date.now()+hours*3600000).toISOString()
+    })
+  });
+
+  if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{
+    success:false,
+    message:rpc.data?.message||"Ticaret teklifi oluşturulamadı."
+  });
+
+  const data=rpc.data||{};
+  return send(res,200,{
+    ...data,
+    success:true,
+    message:data.message||"🤝 Ticaret teklifi oluşturuldu.",
+    offer:data.offer||null,
+    serverTime:new Date().toISOString()
+  });
 }
 
 async function acceptTradeOffer(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const body=await readBody(req); const offerId=Math.floor(Number(body.offerId||0));
+  const body=await readBody(req);
+  const offerId=Math.floor(Number(body.offerId||0));
   if(!offerId)return send(res,400,{success:false,message:"Geçerli teklif seçilmedi."});
-  const rpc=await supabase("rpc/accept_trade_offer",{method:"POST",body:JSON.stringify({p_offer_id:offerId,p_acceptor_player_id:Number(playerId)})});
-  if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{success:false,message:rpc.data?.message||"Ticaret gerçekleştirilemedi."});
-  return send(res,200,{success:true,message:"✅ Ticaret tamamlandı.",transaction:rpc.data?.transaction||rpc.data,serverTime:new Date().toISOString()});
+
+  const rpc=await supabase("rpc/accept_trade_offer",{
+    method:"POST",
+    body:JSON.stringify({
+      p_offer_id:offerId,
+      p_acceptor_player_id:Number(playerId)
+    })
+  });
+
+  if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{
+    success:false,
+    message:rpc.data?.message||"Ticaret gerçekleştirilemedi."
+  });
+
+  const data=rpc.data||{};
+  return send(res,200,{
+    ...data,
+    success:true,
+    message:data.message||"🚚 Ticaret kabul edildi. Kaynaklar teslimata çıktı.",
+    transaction:data.transaction||null,
+    remainingSeconds:Number(data.remainingSeconds||data.transaction?.delivery_seconds||0),
+    serverTime:data.serverTime||new Date().toISOString()
+  });
 }
 
 async function cancelTradeOffer(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const body=await readBody(req); const offerId=Math.floor(Number(body.offerId||0));
+  const body=await readBody(req);
+  const offerId=Math.floor(Number(body.offerId||0));
   if(!offerId)return send(res,400,{success:false,message:"Geçerli teklif seçilmedi."});
-  const rpc=await supabase("rpc/cancel_trade_offer",{method:"POST",body:JSON.stringify({p_offer_id:offerId,p_player_id:Number(playerId)})});
-  if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{success:false,message:rpc.data?.message||"Ticaret teklifi iptal edilemedi."});
-  return send(res,200,{success:true,message:"↩️ Teklif iptal edildi ve kaynakların iade edildi.",serverTime:new Date().toISOString()});
+
+  const rpc=await supabase("rpc/cancel_trade_offer",{
+    method:"POST",
+    body:JSON.stringify({
+      p_offer_id:offerId,
+      p_player_id:Number(playerId)
+    })
+  });
+
+  if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{
+    success:false,
+    message:rpc.data?.message||"Ticaret teklifi iptal edilemedi."
+  });
+
+  const data=rpc.data||{};
+  return send(res,200,{
+    ...data,
+    success:true,
+    message:data.message||"↩️ Teklif kapatıldı ve kaynak iade edildi.",
+    serverTime:new Date().toISOString()
+  });
 }
 
 async function getTradeHistory(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const r=await supabase("trade_transactions?select=id,offer_id,seller_player_id,buyer_player_id,give_resource,give_amount,want_resource,want_amount,created_at&or=(seller_player_id.eq."+encodeURIComponent(playerId)+",buyer_player_id.eq."+encodeURIComponent(playerId)+")&order=created_at.desc&limit=50");
+
+  const sync=await syncTradePlayer(playerId);
+  if(!sync.ok||sync.data?.success===false){
+    console.error("Trade V2 history sync hatası:",sync.data);
+    return send(res,503,{success:false,message:"Ticaret geçmişi şu anda kullanılamıyor."});
+  }
+
+  const r=await supabase(
+    "trade_transactions?select=id,offer_id,seller_player_id,buyer_player_id,give_resource,give_amount,want_resource,want_amount,status,tax_rate,seller_tax_amount,buyer_tax_amount,seller_receive_amount,buyer_receive_amount,distance,delivery_seconds,delivery_at,delivered_at,delivery_block_reason,created_at"+
+    "&or=(seller_player_id.eq."+encodeURIComponent(playerId)+",buyer_player_id.eq."+encodeURIComponent(playerId)+")"+
+    "&order=created_at.desc&limit=50"
+  );
   if(!r.ok)return send(res,500,{success:false,message:"Ticaret geçmişi alınamadı."});
-  return send(res,200,{success:true,history:r.data||[]});
+
+  const history=r.data||[];
+  const ids=[...new Set(history.flatMap(x=>[
+    Number(x.seller_player_id),
+    Number(x.buyer_player_id)
+  ]).filter(Boolean))];
+
+  const names={};
+  if(ids.length){
+    const pr=await supabase("players?select=id,username&id=in.("+ids.join(",")+")");
+    for(const p of (pr.data||[]))names[Number(p.id)]=p.username;
+  }
+
+  return send(res,200,{
+    success:true,
+    playerId,
+    history:history.map(x=>({
+      ...x,
+      seller_username:names[Number(x.seller_player_id)]||"Oyuncu",
+      buyer_username:names[Number(x.buyer_player_id)]||"Oyuncu"
+    })),
+    serverTime:sync.data?.serverTime||new Date().toISOString(),
+    config:sync.data?.config||{},
+    delivery: {
+      checked:Number(sync.data?.checked||0),
+      delivered:Number(sync.data?.delivered||0),
+      blocked:Number(sync.data?.blocked||0),
+      pending:Number(sync.data?.pending||0)
+    }
+  });
 }
 
 module.exports = async function handler(req, res) {
