@@ -77,7 +77,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
       <h2>🎯 Savaş Çağrısı Gönder</h2>
       <select class="input" id="targetAlliance"></select>
       <button id="declareButton" class="button danger" onclick="declareWar()">Savaş Çağrısı Gönder</button>
-      <p class="muted">Çağrı kabul edilirse savaş 72 saat sürer. Aynı anda bir ittifak yalnızca bir aktif savaşta olabilir.</p>
+      <p class="muted" id="declareHint">Çağrı kabul edilirse savaş 72 saat sürer. Aynı anda bir ittifak yalnızca bir aktif savaşta olabilir.</p>
     </div>
 
     <div class="panel">
@@ -159,9 +159,12 @@ function resultText(w){
 function renderTargets(){
   const panel=document.getElementById('declarePanel');
   const select=document.getElementById('targetAlliance');
+  const button=document.getElementById('declareButton');
+  const hint=document.getElementById('declareHint');
   const canManage=!!snapshot?.member?.canManageWars;
-  panel.classList.toggle('hidden',!canManage);
+  const hasActiveWar=(snapshot?.wars||[]).some(w=>w.status==='active');
 
+  panel.classList.toggle('hidden',!canManage);
   if(!canManage)return;
 
   const targets=snapshot?.targets||[];
@@ -169,7 +172,15 @@ function renderTargets(){
     `<option value="${Number(a.id)}">${esc(a.name)} [${esc(a.tag)}] · ${Number(a.memberCount||0)} üye</option>`
   ).join('');
 
-  document.getElementById('declareButton').disabled=targets.length===0;
+  select.disabled=hasActiveWar;
+  button.disabled=hasActiveWar||targets.length===0;
+
+  if(hasActiveWar){
+    hint.textContent='Aktif savaş devam ederken yeni savaş çağrısı gönderilemez.';
+  }else{
+    hint.textContent='Çağrı kabul edilirse savaş 72 saat sürer. Aynı anda bir ittifak yalnızca bir aktif savaşta olabilir.';
+  }
+
   if(targets.length===0){
     select.innerHTML='<option value="">Savaşılabilecek başka ittifak yok</option>';
   }
@@ -288,6 +299,11 @@ async function loadWars(){
 }
 
 async function declareWar(){
+  if((snapshot?.wars||[]).some(w=>w.status==='active')){
+    msg('İttifaklardan biri zaten aktif bir savaşta. Yeni savaş çağrısı gönderilemez.');
+    return;
+  }
+
   const targetAllianceId=Number(document.getElementById('targetAlliance').value);
   if(!Number.isInteger(targetAllianceId)||targetAllianceId<=0){
     msg('Geçerli bir hedef ittifak seç.');
