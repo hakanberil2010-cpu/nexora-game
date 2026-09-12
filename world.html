@@ -356,6 +356,7 @@ h1 {
   text-decoration: underline;
 }
 
+.attack-unit-selector{margin:16px 0;padding:14px;background:#091a2c;border:1px solid #173b5d;border-radius:12px}.attack-unit-selector h3{margin:0 0 12px}.attack-unit-row{display:grid;grid-template-columns:1fr 90px 70px;gap:8px;align-items:center;margin:7px 0}.attack-unit-row input{width:100%;padding:8px;border:1px solid #315879;border-radius:7px;background:#061321;color:#eaf4ff}.attack-unit-max{color:#8db0cf;font-size:12px;text-align:right}@media (max-width:700px){.attack-unit-row{grid-template-columns:1fr 80px 60px}}
 @media (max-width: 700px) {
   .topbar {
     padding: 0 15px;
@@ -451,6 +452,11 @@ h1 {
     </div>
 
     <p id="selectedText"></p>
+
+    <div id="attackUnitSelector" class="attack-unit-selector" style="display:none;">
+      <h3>⚔️ Gönderilecek Birlikler</h3>
+      <div id="attackUnitList"></div>
+    </div>
 
     <button
       class="attack"
@@ -698,6 +704,8 @@ function selectColony(name, isMine, playerId = null) {
     );
 
     attackButton.style.display = "none";
+    const attackUnitSelector = document.getElementById("attackUnitSelector");
+    if (attackUnitSelector) attackUnitSelector.style.display = "none";
 
     if (moveButton) {
       moveButton.style.display = "inline-block";
@@ -741,6 +749,7 @@ function selectColony(name, isMine, playerId = null) {
   );
 
   attackButton.style.display = "inline-block";
+  if (typeof renderAttackUnitSelector === "function") renderAttackUnitSelector();
 }
 
 function selectPlayerColony(
@@ -1147,6 +1156,42 @@ function startMissionPanel() {
   setInterval(refreshMissionPanel, 1000);
 }
 
+function getAttackUnitInputs() {
+  const result = {};
+  document.querySelectorAll("#attackUnitList input[data-unit-type]").forEach(function(input) {
+    const type = input.getAttribute("data-unit-type");
+    const max = Number(input.getAttribute("data-max") || 0);
+    const value = Math.max(0, Math.floor(Number(input.value || 0)));
+    result[type] = Math.min(value, max);
+  });
+  return result;
+}
+
+function renderAttackUnitSelector() {
+  const box = document.getElementById("attackUnitSelector");
+  const list = document.getElementById("attackUnitList");
+  if (!box || !list) return;
+  const token = localStorage.getItem("nexora_token");
+  if (!token) return;
+  fetch("/api/auth?action=city", { method:"POST", headers:{ "Authorization":"Bearer "+token } })
+    .then(function(r){return r.json();})
+    .then(function(data){
+      const units = Array.isArray(data.units) ? data.units : (Array.isArray(data.army) ? data.army : []);
+      if (!units.length) {
+        list.innerHTML = '<div style="color:#8db0cf">Gönderilebilir birlik bulunmuyor.</div>';
+        box.style.display = "block";
+        return;
+      }
+      list.innerHTML = units.filter(function(u){return Number(u.quantity||0)>0;}).map(function(u){
+        const type=String(u.unit_type||"");
+        const max=Math.max(0,Number(u.quantity||0));
+        const label={piyade:"Piyade",savunma:"Savunma Birliği",saldiri:"Saldırı Birliği",okcu:"Okçu",tank:"Tank",hava:"Hava Birliği"}[type]||type;
+        return '<div class="attack-unit-row"><span>'+label+'</span><input type="number" min="0" max="'+max+'" value="0" data-unit-type="'+type+'" data-max="'+max+'"><span class="attack-unit-max">Max '+max+'</span></div>';
+      }).join("");
+      box.style.display = "block";
+    }).catch(function(){});
+}
+
 async function attack() {
   if (!selectedPlayerId) {
     return;
@@ -1171,7 +1216,7 @@ async function attack() {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + token
       },
-      body: JSON.stringify({ targetPlayerId: selectedPlayerId })
+      body: JSON.stringify({ targetPlayerId: selectedPlayerId, units: getAttackUnitInputs() })
     });
 
     const data = await response.json();
