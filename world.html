@@ -356,6 +356,7 @@ h1 {
   text-decoration: underline;
 }
 
+.attack-unit-selector{margin:16px 0;padding:14px;background:#091a2c;border:1px solid #173b5d;border-radius:12px}.attack-unit-selector h3{margin:0 0 12px}.attack-unit-row{display:grid;grid-template-columns:1fr 90px 70px;gap:8px;align-items:center;margin:7px 0}.attack-unit-row input{width:100%;padding:8px;border:1px solid #315879;border-radius:7px;background:#061321;color:#eaf4ff}.attack-unit-max{color:#8db0cf;font-size:12px;text-align:right}@media (max-width:700px){.attack-unit-row{grid-template-columns:1fr 80px 60px}}
 @media (max-width: 700px) {
   .topbar {
     padding: 0 15px;
@@ -379,6 +380,29 @@ h1 {
     width: 100%;
   }
 }
+
+
+.world-site {
+  position:absolute; transform:translate(-50%,-50%); width:42px; height:42px;
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; z-index:7; font-size:21px;
+  background:rgba(5,15,28,.9); border:2px solid rgba(255,255,255,.35);
+  box-shadow:0 0 14px rgba(0,0,0,.45);
+}
+.world-site:hover { transform:translate(-50%,-50%) scale(1.15); filter:brightness(1.25); }
+.world-site.resource { border-color:#ffd35a; box-shadow:0 0 16px rgba(255,211,90,.35); }
+.world-site.neutral { border-color:#b7c7d9; }
+.world-site.abandoned { border-color:#ff8b68; box-shadow:0 0 16px rgba(255,139,104,.3); }
+.world-site.alliance { border-color:#b889ff; opacity:.72; }
+.world-site-label { position:absolute; top:43px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:10px; font-weight:bold; color:#dcecff; text-shadow:0 1px 3px #000; }
+.explore-panel { margin-top:16px; padding:16px; border-radius:14px; background:#091b2d; border:1px solid #173e5d; }
+.explore-panel h3 { margin:0 0 10px; color:#ffd35a; }
+.explore-site-meta { color:#9cc6e2; font-size:13px; line-height:1.5; }
+.explore-button { margin-top:10px; background:#b67bff; color:white; border:0; border-radius:8px; padding:10px 16px; font-weight:bold; cursor:pointer; }
+.explore-button:disabled { opacity:.55; cursor:not-allowed; }
+.site-legend { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0 0; font-size:12px; color:#9cc6e2; }
+.site-legend span { padding:6px 9px; border-radius:8px; background:rgba(255,255,255,.05); }
+
 </style>
 </head>
 
@@ -392,7 +416,7 @@ h1 {
   </div>
 </div>
 
-<div class="container"><a class="topBack" href="game.html">← Koloniye Dön</a>
+<div class="container">
 
   <h1>🗺️ Dünya Haritası</h1>
 
@@ -403,6 +427,7 @@ h1 {
   <div class="world">
 
     <div class="grid"></div>
+    <div id="worldSites"></div>
 
     <div class="region desert">🏜️ Çöl Bölgesi</div>
     <div class="region forest">🌲 Orman Bölgesi</div>
@@ -428,6 +453,15 @@ h1 {
     <div id="missionList" class="mission-empty">Aktif sefer bulunmuyor.</div>
   </div>
 
+  <div class="explore-panel">
+    <h3>🔭 Keşif Sistemi</h3>
+    <div id="exploreSiteMeta" class="explore-site-meta">Haritadaki nötr, kaynak ve terk edilmiş noktaları seçerek keşif başlatabilirsin.</div>
+    <button id="exploreButton" class="explore-button" style="display:none" onclick="startWorldExploration()">🔭 Keşif Başlat</button>
+    <div class="site-legend">
+      <span>🏔️ Nötr Bölge</span><span>💎 Kaynak Bölgesi</span><span>🏚️ Terk Edilmiş Koloni</span><span>🛡️ İttifak Bölgesi (gelecek)</span>
+    </div>
+  </div>
+
   <div class="info" id="info">
 
     <h2 id="selectedName">Koloni</h2>
@@ -451,6 +485,11 @@ h1 {
     </div>
 
     <p id="selectedText"></p>
+
+    <div id="attackUnitSelector" class="attack-unit-selector" style="display:none;">
+      <h3>⚔️ Gönderilecek Birlikler</h3>
+      <div id="attackUnitList"></div>
+    </div>
 
     <button
       class="attack"
@@ -501,7 +540,9 @@ h1 {
     </div>
   </div>
 
-  
+  <a class="back" href="game.html">
+    ← Koloniye Dön
+  </a>
 
 </div>
 
@@ -696,6 +737,8 @@ function selectColony(name, isMine, playerId = null) {
     );
 
     attackButton.style.display = "none";
+    const attackUnitSelector = document.getElementById("attackUnitSelector");
+    if (attackUnitSelector) attackUnitSelector.style.display = "none";
 
     if (moveButton) {
       moveButton.style.display = "inline-block";
@@ -739,6 +782,7 @@ function selectColony(name, isMine, playerId = null) {
   );
 
   attackButton.style.display = "inline-block";
+  if (typeof renderAttackUnitSelector === "function") renderAttackUnitSelector();
 }
 
 function selectPlayerColony(
@@ -789,6 +833,10 @@ function selectPlayerColony(
 
   document.getElementById("attackButton").style.display =
     "inline-block";
+
+  if (typeof renderAttackUnitSelector === "function") {
+    renderAttackUnitSelector();
+  }
 
   const moveButton = document.getElementById("moveButton");
   if (moveButton) {
@@ -1145,6 +1193,53 @@ function startMissionPanel() {
   setInterval(refreshMissionPanel, 1000);
 }
 
+function getAttackUnitInputs() {
+  const result = {};
+  document.querySelectorAll("#attackUnitList input[data-unit-type]").forEach(function(input) {
+    const type = input.getAttribute("data-unit-type");
+    const max = Number(input.getAttribute("data-max") || 0);
+    const value = Math.max(0, Math.floor(Number(input.value || 0)));
+    result[type] = Math.min(value, max);
+  });
+  return result;
+}
+
+function renderAttackUnitSelector() {
+  const box = document.getElementById("attackUnitSelector");
+  const list = document.getElementById("attackUnitList");
+  const attackButton = document.getElementById("attackButton");
+  if (!box || !list) return;
+  const token = localStorage.getItem("nexora_token");
+  if (!token) return;
+  box.style.display = "block";
+  list.innerHTML = '<div style="color:#8db0cf">Birlikler yükleniyor...</div>';
+  if (attackButton) attackButton.disabled = true;
+  fetch("/api/auth?action=city", { method:"POST", headers:{ "Authorization":"Bearer "+token } })
+    .then(function(r){return r.json().then(function(data){return {ok:r.ok,data:data};});})
+    .then(function(result){
+      const data=result.data||{};
+      if (!result.ok || !data.success) throw new Error(data.message||"Ordu verisi alınamadı.");
+      const units = Array.isArray(data.units) ? data.units : (Array.isArray(data.army) ? data.army : []);
+      const available = units.filter(function(u){return Number(u.quantity||0)>0;});
+      if (!available.length) {
+        list.innerHTML = '<div style="color:#ffb0b0">Gönderilebilir birlik bulunmuyor.</div>';
+        if (attackButton) attackButton.disabled = true;
+        return;
+      }
+      list.innerHTML = available.map(function(u){
+        const type=String(u.unit_type||"");
+        const max=Math.max(0,Number(u.quantity||0));
+        const label={piyade:"Piyade",savunma:"Savunma Birliği",saldiri:"Saldırı Birliği",okcu:"Okçu",tank:"Tank",hava:"Hava Birliği"}[type]||type;
+        return '<div class="attack-unit-row"><span>'+label+'</span><input type="number" min="0" max="'+max+'" value="0" data-unit-type="'+type+'" data-max="'+max+'"><span class="attack-unit-max">Max '+max+'</span></div>';
+      }).join("");
+      if (attackButton) attackButton.disabled = false;
+    })
+    .catch(function(error){
+      list.innerHTML = '<div style="color:#ffb0b0">Birlikler yüklenemedi: '+String(error.message||error)+'</div>';
+      if (attackButton) attackButton.disabled = true;
+    });
+}
+
 async function attack() {
   if (!selectedPlayerId) {
     return;
@@ -1160,6 +1255,13 @@ async function attack() {
   const fleetContainer = document.getElementById("attackFleet");
 
   try {
+    const selectedUnits = getAttackUnitInputs();
+    const totalSelected = Object.values(selectedUnits).reduce(function(sum, value){ return sum + Number(value||0); }, 0);
+    if (totalSelected <= 0) {
+      attackButton.disabled = false;
+      alert("En az bir birlik miktarı seçmelisin.");
+      return;
+    }
     attackButton.disabled = true;
     attackButton.textContent = "⚔️ Sefer hazırlanıyor...";
 
@@ -1169,12 +1271,14 @@ async function attack() {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + token
       },
-      body: JSON.stringify({ targetPlayerId: selectedPlayerId })
+      body: JSON.stringify({ targetPlayerId: selectedPlayerId, units: selectedUnits })
     });
 
     const data = await response.json();
     if (!response.ok || !data.success || !data.mission) {
       alert(data.message || "Sefer oluşturulamadı.");
+      attackButton.disabled = false;
+      attackButton.textContent = "⚔️ Saldır";
       return;
     }
 
@@ -1365,6 +1469,80 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+let worldSites = [];
+let selectedWorldSite = null;
+let explorationPolling = false;
+
+function siteTypeLabel(type) {
+  return ({neutral:"Nötr Bölge",resource:"Kaynak Bölgesi",abandoned:"Terk Edilmiş Koloni",alliance:"İttifak Bölgesi"})[type] || "Dünya Noktası";
+}
+function siteIcon(type) {
+  return ({neutral:"🏔️",resource:"💎",abandoned:"🏚️",alliance:"🛡️"})[type] || "📍";
+}
+function renderWorldSites() {
+  const box=document.getElementById("worldSites");
+  if(!box) return;
+  box.innerHTML="";
+  (worldSites||[]).forEach(function(site){
+    const el=document.createElement("div");
+    el.className="world-site "+String(site.site_type||"neutral");
+    el.style.left=Number(site.coordinate_x||0)+"%";
+    el.style.top=Number(site.coordinate_y||0)+"%";
+    el.title=site.name+" — "+siteTypeLabel(site.site_type);
+    el.innerHTML=siteIcon(site.site_type)+'<span class="world-site-label">'+escapeHtml(site.name||siteTypeLabel(site.site_type))+'</span>';
+    el.addEventListener("click",function(e){e.stopPropagation();selectWorldSite(site,el);});
+    box.appendChild(el);
+  });
+}
+function selectWorldSite(site, element) {
+  selectedWorldSite=site;
+  document.querySelectorAll(".world-site.selected").forEach(function(x){x.classList.remove("selected");});
+  if(element) element.classList.add("selected");
+  document.querySelectorAll(".colony.selected").forEach(function(x){x.classList.remove("selected");});
+  const distance=Math.round(Math.sqrt(Math.pow(Number(site.coordinate_x)-myCoordinateX,2)+Math.pow(Number(site.coordinate_y)-myCoordinateY,2)));
+  const meta=document.getElementById("exploreSiteMeta");
+  const button=document.getElementById("exploreButton");
+  if(meta){
+    meta.innerHTML='<strong>'+escapeHtml(siteIcon(site.site_type)+' '+site.name)+'</strong><br>'+escapeHtml(siteTypeLabel(site.site_type))+' · 📍 X:'+Number(site.coordinate_x)+' Y:'+Number(site.coordinate_y)+' · 📏 Mesafe: '+distance+' km<br>'+escapeHtml(site.description||"Bu nokta keşfedilmeyi bekliyor.")+(site.site_type==="alliance"?' <br>🛡️ İttifak bölgeleri ileride aktif edilecek.':'');
+  }
+  if(button){button.style.display=site.site_type==="alliance"?'none':'inline-block';button.disabled=false;button.textContent="🔭 Keşif Başlat";}
+  document.getElementById("info").style.display="block";
+}
+async function startWorldExploration(){
+  const token=localStorage.getItem("nexora_token");
+  if(!token||!selectedWorldSite)return;
+  const btn=document.getElementById("exploreButton");
+  if(btn){btn.disabled=true;btn.textContent="🔭 Keşif hazırlanıyor...";}
+  try{
+    const r=await fetch("/api/auth?action=explore",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({siteId:selectedWorldSite.id})});
+    const d=await r.json();
+    if(!r.ok||!d.success) throw new Error(d.message||"Keşif başlatılamadı.");
+    alert("🔭 Keşif başladı!\n\n"+(d.mission?.travelSeconds||0)+" saniye içinde hedefe ulaşacak.");
+    pollWorldExploration(d.mission.id);
+  }catch(e){alert("❌ "+e.message);if(btn){btn.disabled=false;btn.textContent="🔭 Keşif Başlat";}}
+}
+async function pollWorldExploration(id){
+  if(explorationPolling)return;
+  explorationPolling=true;
+  const token=localStorage.getItem("nexora_token");
+  try{
+    for(let i=0;i<900;i++){
+      const r=await fetch("/api/auth?action=explorestatus&id="+encodeURIComponent(id),{method:"POST",headers:{"Authorization":"Bearer "+token}});
+      const d=await r.json();
+      if(r.ok&&d.success){
+        const m=d.mission||{};
+        if(m.status==="completed"){
+          const reward=m.result?.reward||{};
+          alert("🔭 Keşif tamamlandı!\n\n"+(m.result?.message||"")+"\n\nMetal: "+(reward.metal||0)+"\nEnerji: "+(reward.energy||0)+"\nSu: "+(reward.water||0)+"\nKristal: "+(reward.crystal||0));
+          const btn=document.getElementById("exploreButton"); if(btn){btn.disabled=false;btn.textContent="🔭 Keşif Başlat";}
+          break;
+        }
+      }
+      await new Promise(function(resolve){setTimeout(resolve,1000);});
+    }
+  }catch(e){console.error("Keşif durumu:",e);}finally{explorationPolling=false;}
+}
+
 async function loadWorldPlayers() {
   const token =
     localStorage.getItem("nexora_token");
@@ -1409,6 +1587,9 @@ async function loadWorldPlayers() {
 
     playersContainer.innerHTML =
       "";
+
+    worldSites = data.sites || [];
+    renderWorldSites();
 
     const otherPlayers =
       (data.players || [])
