@@ -22,7 +22,7 @@ function readBody(req) {
       try {
         resolve(body ? JSON.parse(body) : {});
       } catch {
-        reject(new Error("GeÃ§ersiz JSON"));
+        reject(new Error("Geçersiz JSON"));
       }
     });
 
@@ -211,21 +211,21 @@ async function register(req, res) {
   if (!username || !email || !password) {
     return send(res, 400, {
       success: false,
-      message: "TÃ¼m alanlarÄ± doldurun."
+      message: "Tüm alanları doldurun."
     });
   }
 
   if (username.length < 3) {
     return send(res, 400, {
       success: false,
-      message: "KullanÄ±cÄ± adÄ± en az 3 karakter olmalÄ±."
+      message: "Kullanıcı adı en az 3 karakter olmalı."
     });
   }
 
   if (password.length < 6) {
     return send(res, 400, {
       success: false,
-      message: "Åifre en az 6 karakter olmalÄ±."
+      message: "Şifre en az 6 karakter olmalı."
     });
   }
 
@@ -236,18 +236,18 @@ async function register(req, res) {
   );
 
   if (!existingEmail.ok) {
-    console.error("Email kontrol hatasÄ±:", existingEmail.data);
+    console.error("Email kontrol hatası:", existingEmail.data);
 
     return send(res, 500, {
       success: false,
-      message: "VeritabanÄ±na baÄŸlanÄ±lamadÄ±."
+      message: "Veritabanına bağlanılamadı."
     });
   }
 
   if (existingEmail.data.length > 0) {
     return send(res, 409, {
       success: false,
-      message: "Bu e-posta zaten kayÄ±tlÄ±."
+      message: "Bu e-posta zaten kayıtlı."
     });
   }
 
@@ -259,20 +259,20 @@ async function register(req, res) {
 
   if (!existingUsername.ok) {
     console.error(
-      "Username kontrol hatasÄ±:",
+      "Username kontrol hatası:",
       existingUsername.data
     );
 
     return send(res, 500, {
       success: false,
-      message: "VeritabanÄ±na baÄŸlanÄ±lamadÄ±."
+      message: "Veritabanına bağlanılamadı."
     });
   }
 
   if (existingUsername.data.length > 0) {
     return send(res, 409, {
       success: false,
-      message: "Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor."
+      message: "Bu kullanıcı adı zaten kullanılıyor."
     });
   }
 
@@ -292,13 +292,13 @@ async function register(req, res) {
 
   if (!playerResult.ok) {
     console.error(
-      "Oyuncu oluÅŸturma hatasÄ±:",
+      "Oyuncu oluşturma hatası:",
       playerResult.data
     );
 
     return send(res, 500, {
       success: false,
-      message: "Oyuncu oluÅŸturulamadÄ±."
+      message: "Oyuncu oluşturulamadı."
     });
   }
 
@@ -322,13 +322,13 @@ async function register(req, res) {
 
   if (!cityResult.ok) {
     console.error(
-      "Åehir oluÅŸturma hatasÄ±:",
+      "Şehir oluşturma hatası:",
       cityResult.data
     );
 
     return send(res, 500, {
       success: false,
-      message: "BaÅŸlangÄ±Ã§ kolonisi oluÅŸturulamadÄ±."
+      message: "Başlangıç kolonisi oluşturulamadı."
     });
   }
 
@@ -336,7 +336,7 @@ async function register(req, res) {
 
   return send(res, 201, {
     success: true,
-    message: "HesabÄ±n baÅŸarÄ±yla oluÅŸturuldu.",
+    message: "Hesabın başarıyla oluşturuldu.",
     token,
     player: {
       id: player.id,
@@ -355,7 +355,7 @@ async function login(req, res) {
   if (!email || !password) {
     return send(res, 400, {
       success: false,
-      message: "E-posta ve ÅŸifre gerekli."
+      message: "E-posta ve şifre gerekli."
     });
   }
 
@@ -366,18 +366,18 @@ async function login(req, res) {
   );
 
   if (!result.ok) {
-    console.error("Login DB hatasÄ±:", result.data);
+    console.error("Login DB hatası:", result.data);
 
     return send(res, 500, {
       success: false,
-      message: "VeritabanÄ±na baÄŸlanÄ±lamadÄ±."
+      message: "Veritabanına bağlanılamadı."
     });
   }
 
   if (!result.data || result.data.length === 0) {
     return send(res, 401, {
       success: false,
-      message: "E-posta veya ÅŸifre hatalÄ±."
+      message: "E-posta veya şifre hatalı."
     });
   }
 
@@ -391,7 +391,7 @@ async function login(req, res) {
   if (!valid) {
     return send(res, 401, {
       success: false,
-      message: "E-posta veya ÅŸifre hatalÄ±."
+      message: "E-posta veya şifre hatalı."
     });
   }
 
@@ -399,7 +399,7 @@ async function login(req, res) {
 
   return send(res, 200, {
     success: true,
-    message: "GiriÅŸ baÅŸarÄ±lÄ±.",
+    message: "Giriş başarılı.",
     token,
     player: {
       id: player.id,
@@ -420,11 +420,11 @@ function authPlayerId(req) {
 
 const UNIT_CONFIG = {
   piyade: { label: "Piyade", metal: 100, energy: 20, population: 1, train: 20 },
-  savunma: { label: "Savunma BirliÄŸi", metal: 150, energy: 40, population: 1, train: 24 },
-  saldiri: { label: "SaldÄ±rÄ± BirliÄŸi", metal: 200, energy: 75, population: 1, train: 28 },
-  okcu: { label: "OkÃ§u", metal: 220, energy: 90, population: 1, train: 30 },
+  savunma: { label: "Savunma Birliği", metal: 150, energy: 40, population: 1, train: 24 },
+  saldiri: { label: "Saldırı Birliği", metal: 200, energy: 75, population: 1, train: 28 },
+  okcu: { label: "Okçu", metal: 220, energy: 90, population: 1, train: 30 },
   tank: { label: "Tank", metal: 700, energy: 220, population: 3, train: 55 },
-  hava: { label: "Hava BirliÄŸi", metal: 650, energy: 260, population: 2, train: 50 }
+  hava: { label: "Hava Birliği", metal: 650, energy: 260, population: 2, train: 50 }
 };
 
 async function getUnitLevelStats(unitType, level) {
@@ -465,7 +465,7 @@ function housingCapacity(buildings) {
 }
 
 function armyCapacity(buildings) {
-  const level = buildingLevel(buildings, "KÄ±ÅŸla");
+  const level = buildingLevel(buildings, "Kışla");
   return 50 + level * 50;
 }
 
@@ -474,9 +474,9 @@ function buildingMaxLevel(name) {
     "Merkez Bina": 30,
     "Metal Madeni": 30,
     "Enerji Santrali": 30,
-    "Su ArÄ±tma": 30,
+    "Su Arıtma": 30,
     "Kristal Madeni": 30,
-    "KÄ±ÅŸla": 30,
+    "Kışla": 30,
     "Depo": 25,
     "Kristal Deposu": 25,
     "Konut": 30,
@@ -578,30 +578,30 @@ function capResource(value, cap) { return Math.max(0, Math.min(Number(value || 0
 
 async function getCity(req, res) {
   const playerId = authPlayerId(req);
-  if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamadÄ±." });
+  if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamadı." });
 
   const result = await supabase("cities?select=*&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
-  if (!result.ok) return send(res, 500, { success: false, message: "Koloni veritabanÄ±ndan alÄ±namadÄ±." });
+  if (!result.ok) return send(res, 500, { success: false, message: "Koloni veritabanından alınamadı." });
 
   if (!result.data?.[0]) {
     const createResult = await supabase("cities", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({
       player_id: playerId, name: "Yeni Koloni", level: 1, metal: 1000, energy: 500, water: 500, crystal: 250
     }) });
-    if (!createResult.ok) return send(res, 500, { success: false, message: "Koloni oluÅŸturulamadÄ±." });
+    if (!createResult.ok) return send(res, 500, { success: false, message: "Koloni oluşturulamadı." });
     return send(res, 200, { success: true, city: createResult.data[0], buildings: [], units: [], productionQueue: [] });
   }
 
   let city = result.data[0];
   const buildingsResult = await supabase("buildings?select=*&city_id=eq." + encodeURIComponent(city.id) + "&order=building_type.asc");
-  if (!buildingsResult.ok) return send(res, 500, { success: false, message: "Bina verileri alÄ±namadÄ±." });
+  if (!buildingsResult.ok) return send(res, 500, { success: false, message: "Bina verileri alınamadı." });
   let buildings = [];
   for (const b of (buildingsResult.data || [])) buildings.push(await finalizeBuilding(b));
 
   const production = await syncProductionQueue(playerId, city.id);
-  if (!production.ok) return send(res, 500, { success: false, message: "Ãœretim kuyruÄŸu alÄ±namadÄ±." });
+  if (!production.ok) return send(res, 500, { success: false, message: "Üretim kuyruğu alınamadı." });
 
   const unitsResult = await supabase("units?select=*&city_id=eq." + encodeURIComponent(city.id));
-  if (!unitsResult.ok) return send(res, 500, { success: false, message: "Ordu verileri alÄ±namadÄ±." });
+  if (!unitsResult.ok) return send(res, 500, { success: false, message: "Ordu verileri alınamadı." });
   const units = unitsResult.data || [];
 
   const now = Date.now();
@@ -613,7 +613,7 @@ async function getCity(req, res) {
   const crystalMultiplier = 1 + Number(research.crystal_level || 0) * 0.08;
   const metalRate = buildingLevel(buildings, "Metal Madeni") * 10 * prodMultiplier;
   const energyRate = buildingLevel(buildings, "Enerji Santrali") * 10 * prodMultiplier;
-  const waterRate = buildingLevel(buildings, "Su ArÄ±tma") * 10 * prodMultiplier;
+  const waterRate = buildingLevel(buildings, "Su Arıtma") * 10 * prodMultiplier;
   const crystalRate = buildingLevel(buildings, "Kristal Madeni") * 5 * crystalMultiplier;
   const resourceCap = storageCapacity(buildings);
   const crystalCap = crystalStorageCapacity(buildings);
@@ -651,26 +651,26 @@ async function getCity(req, res) {
 
 async function produceArmy(req, res) {
   const playerId = authPlayerId(req);
-  if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamadÄ±." });
+  if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamadı." });
   const body = await readBody(req);
   const unitType = String(body.unitType || "").trim();
   const cfg = UNIT_CONFIG[unitType];
-  if (!cfg) return send(res, 400, { success: false, message: "GeÃ§ersiz birlik tÃ¼rÃ¼." });
+  if (!cfg) return send(res, 400, { success: false, message: "Geçersiz birlik türü." });
 
   const cityResult = await supabase("cities?select=*&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
-  if (!cityResult.ok || !cityResult.data?.[0]) return send(res, 404, { success: false, message: "Koloni bulunamadÄ±." });
+  if (!cityResult.ok || !cityResult.data?.[0]) return send(res, 404, { success: false, message: "Koloni bulunamadı." });
   const city = cityResult.data[0];
   const buildingsResult = await supabase("buildings?select=*&city_id=eq." + encodeURIComponent(city.id));
   const buildings = buildingsResult.ok ? (buildingsResult.data || []) : [];
   const production = await syncProductionQueue(playerId, city.id);
-  if (!production.ok) return send(res, 500, { success: false, message: "Ãœretim kuyruÄŸu okunamadÄ±." });
+  if (!production.ok) return send(res, 500, { success: false, message: "Üretim kuyruğu okunamadı." });
   const unitsResult = await supabase("units?select=*&city_id=eq." + encodeURIComponent(city.id));
   const units = unitsResult.ok ? (unitsResult.data || []) : [];
   const population = totalPopulation(units, production.queue);
   const capacity = housingCapacity(buildings);
   const armyCap = armyCapacity(buildings);
   if (population + cfg.population > capacity) return send(res, 400, { success: false, message: "Konut kapasitesi yetersiz.", population, population_capacity: capacity, army_capacity: armyCap });
-  if (population + cfg.population > armyCap) return send(res, 400, { success: false, message: "KÄ±ÅŸla/ordu kapasitesi yetersiz.", population, population_capacity: capacity, army_capacity: armyCap });
+  if (population + cfg.population > armyCap) return send(res, 400, { success: false, message: "Kışla/ordu kapasitesi yetersiz.", population, population_capacity: capacity, army_capacity: armyCap });
   const resourceCap = storageCapacity(buildings);
   const crystalCap = crystalStorageCapacity(buildings);
   const currentMetal = capResource(Number(city.metal), resourceCap);
@@ -686,16 +686,16 @@ async function produceArmy(req, res) {
   const cost = { metal: cfg.metal, energy: cfg.energy, crystal: Number(cfg.crystal || 0) };
   if (Number(city.metal) < cost.metal || Number(city.energy) < cost.energy || Number(city.crystal) < cost.crystal) return send(res, 400, { success: false, message: "Yeterli kaynak yok.", cost });
 
-  const barracks = Math.max(1, buildingLevel(buildings, "KÄ±ÅŸla"));
+  const barracks = Math.max(1, buildingLevel(buildings, "Kışla"));
   const duration = Math.max(10, Math.round(cfg.train * Math.max(0.35, 1 - barracks * 0.04)));
   const finishAt = new Date(Date.now() + duration * 1000).toISOString();
   const updatedCity = await supabase("cities?id=eq." + encodeURIComponent(city.id), {
     method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ metal: Number(city.metal)-cost.metal, energy: Number(city.energy)-cost.energy, crystal: Number(city.crystal)-cost.crystal, metal_capacity: resourceCap, energy_capacity: resourceCap, water_capacity: resourceCap, crystal_capacity: crystalCap })
   });
-  if (!updatedCity.ok) return send(res, 500, { success: false, message: "Kaynaklar gÃ¼ncellenemedi." });
+  if (!updatedCity.ok) return send(res, 500, { success: false, message: "Kaynaklar güncellenemedi." });
   const q = await supabase("unit_production_queue", { method:"POST", headers:{Prefer:"return=representation"}, body:JSON.stringify({ player_id:playerId, city_id:city.id, unit_type:unitType, quantity:1, finish_at:finishAt }) });
-  if (!q.ok) return send(res, 500, { success:false, message:"Ãœretim kuyruÄŸuna eklenemedi." });
-  return send(res, 200, { success:true, message: cfg.label + " Ã¼retim sÄ±rasÄ±na alÄ±ndÄ±.", production:q.data?.[0], city:updatedCity.data?.[0] || city, population, population_capacity:capacity, army_capacity:armyCap });
+  if (!q.ok) return send(res, 500, { success:false, message:"Üretim kuyruğuna eklenemedi." });
+  return send(res, 200, { success:true, message: cfg.label + " üretim sırasına alındı.", production:q.data?.[0], city:updatedCity.data?.[0] || city, population, population_capacity:capacity, army_capacity:armyCap });
 }
 
 async function upgradeUnit(req, res) {
@@ -704,7 +704,7 @@ async function upgradeUnit(req, res) {
   if (!authHeader.startsWith("Bearer ")) {
     return send(res, 401, {
       success: false,
-      message: "Oturum bulunamadÄ±."
+      message: "Oturum bulunamadı."
     });
   }
 
@@ -714,7 +714,7 @@ async function upgradeUnit(req, res) {
   if (!decoded || !decoded.id) {
     return send(res, 401, {
       success: false,
-      message: "GeÃ§ersiz oturum."
+      message: "Geçersiz oturum."
     });
   }
 
@@ -724,7 +724,7 @@ async function upgradeUnit(req, res) {
   if (!unitType) {
     return send(res, 400, {
       success: false,
-      message: "Birlik tÃ¼rÃ¼ belirtilmedi."
+      message: "Birlik türü belirtilmedi."
     });
   }
 
@@ -737,7 +737,7 @@ async function upgradeUnit(req, res) {
   if (!cityResult.ok || !cityResult.data || !cityResult.data[0]) {
     return send(res, 404, {
       success: false,
-      message: "Koloni bulunamadÄ±."
+      message: "Koloni bulunamadı."
     });
   }
 
@@ -754,14 +754,14 @@ async function upgradeUnit(req, res) {
   if (!unitResult.ok) {
     return send(res, 500, {
       success: false,
-      message: "Birlik verisi alÄ±namadÄ±."
+      message: "Birlik verisi alınamadı."
     });
   }
 
   if (!unitResult.data || !unitResult.data[0]) {
     return send(res, 404, {
       success: false,
-      message: "Bu tÃ¼rden birlik bulunamadÄ±."
+      message: "Bu türden birlik bulunamadı."
     });
   }
 
@@ -788,7 +788,7 @@ async function upgradeUnit(req, res) {
   if (!levelResult.ok || !levelResult.data || !levelResult.data[0]) {
     return send(res, 500, {
       success: false,
-      message: "Bir sonraki seviye verisi bulunamadÄ±."
+      message: "Bir sonraki seviye verisi bulunamadı."
     });
   }
 
@@ -808,7 +808,7 @@ async function upgradeUnit(req, res) {
     return send(res, 400, {
       success: false,
       message:
-        "Seviye yÃ¼kseltmek iÃ§in yeterli kaynak yok.",
+        "Seviye yükseltmek için yeterli kaynak yok.",
       cost: cost
     });
   }
@@ -831,7 +831,7 @@ async function upgradeUnit(req, res) {
   if (!cityUpdate.ok) {
     return send(res, 500, {
       success: false,
-      message: "Kaynaklar gÃ¼ncellenemedi."
+      message: "Kaynaklar güncellenemedi."
     });
   }
 
@@ -855,13 +855,13 @@ async function upgradeUnit(req, res) {
   if (!unitUpdate.ok) {
     return send(res, 500, {
       success: false,
-      message: "Birlik seviyesi gÃ¼ncellenemedi."
+      message: "Birlik seviyesi güncellenemedi."
     });
   }
 
   return send(res, 200, {
     success: true,
-    message: "Birlik seviyesi yÃ¼kseltildi.",
+    message: "Birlik seviyesi yükseltildi.",
     unit: unitUpdate.data[0],
     city: cityUpdate.data[0],
     cost: cost
@@ -871,45 +871,45 @@ async function upgradeUnit(req, res) {
 
 async function moveColony(req, res) {
   const playerId = authPlayerId(req);
-  if (playerId === null) return send(res,401,{success:false,message:"Oturum bulunamadÄ±."});
+  if (playerId === null) return send(res,401,{success:false,message:"Oturum bulunamadı."});
   const body = await readBody(req);
   const x = Number(body.x), y = Number(body.y);
-  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 1 || x > 100 || y < 1 || y > 100) return send(res,400,{success:false,message:"X ve Y koordinatlarÄ± 1-100 arasÄ±nda tam sayÄ± olmalÄ±."});
+  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 1 || x > 100 || y < 1 || y > 100) return send(res,400,{success:false,message:"X ve Y koordinatları 1-100 arasında tam sayı olmalı."});
   const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
-  if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadÄ±."});
+  if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
   const city=cityResult.data[0];
-  if(Number(city.coordinate_x)===x&&Number(city.coordinate_y)===y)return send(res,400,{success:false,message:"Zaten bu koordinattasÄ±n."});
+  if(Number(city.coordinate_x)===x&&Number(city.coordinate_y)===y)return send(res,400,{success:false,message:"Zaten bu koordinattasın."});
   const occupied=await supabase("cities?select=id&coordinate_x=eq."+encodeURIComponent(x)+"&coordinate_y=eq."+encodeURIComponent(y)+"&limit=1");
   if(occupied.ok&&occupied.data?.[0]&&Number(occupied.data[0].id)!==Number(city.id))return send(res,400,{success:false,message:"Bu koordinat dolu."});
   const active=await supabase("military_missions?select=id&attacker_player_id=eq."+encodeURIComponent(playerId)+"&status=in.(traveling,resolving,returning)&limit=1");
-  if(active.ok&&active.data?.[0])return send(res,400,{success:false,message:"Aktif askeri sefer varken koloni koordinatÄ± deÄŸiÅŸtirilemez."});
+  if(active.ok&&active.data?.[0])return send(res,400,{success:false,message:"Aktif askeri sefer varken koloni koordinatı değiştirilemez."});
   const updated=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({coordinate_x:x,coordinate_y:y,updated_at:new Date().toISOString()})});
-  if(!updated.ok||!updated.data?.[0])return send(res,500,{success:false,message:"Koloni koordinatÄ± gÃ¼ncellenemedi."});
-  return send(res,200,{success:true,message:"Koloni taÅŸÄ±ndÄ±.",city:updated.data[0]});
+  if(!updated.ok||!updated.data?.[0])return send(res,500,{success:false,message:"Koloni koordinatı güncellenemedi."});
+  return send(res,200,{success:true,message:"Koloni taşındı.",city:updated.data[0]});
 }
 
 async function createMilitaryMission(req, res) {
   const playerId = authPlayerId(req);
-  if (playerId === null) return send(res,401,{success:false,message:"Oturum bulunamadÄ±."});
+  if (playerId === null) return send(res,401,{success:false,message:"Oturum bulunamadı."});
   const body = await readBody(req);
   const targetPlayerId = Number(body.targetPlayerId);
-  if (!Number.isInteger(targetPlayerId) || targetPlayerId === playerId) return send(res,400,{success:false,message:"GeÃ§ersiz hedef oyuncu."});
+  if (!Number.isInteger(targetPlayerId) || targetPlayerId === playerId) return send(res,400,{success:false,message:"Geçersiz hedef oyuncu."});
 
   const [attackerCityResult,targetCityResult] = await Promise.all([
     supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
     supabase("cities?select=*&player_id=eq."+encodeURIComponent(targetPlayerId)+"&limit=1")
   ]);
-  if (!attackerCityResult.ok || !attackerCityResult.data?.[0]) return send(res,404,{success:false,message:"SaldÄ±ran koloni bulunamadÄ±."});
-  if (!targetCityResult.ok || !targetCityResult.data?.[0]) return send(res,404,{success:false,message:"Hedef koloni bulunamadÄ±."});
+  if (!attackerCityResult.ok || !attackerCityResult.data?.[0]) return send(res,404,{success:false,message:"Saldıran koloni bulunamadı."});
+  if (!targetCityResult.ok || !targetCityResult.data?.[0]) return send(res,404,{success:false,message:"Hedef koloni bulunamadı."});
   const attackerCity=attackerCityResult.data[0], targetCity=targetCityResult.data[0];
   const active = await supabase("military_missions?select=id,status&attacker_player_id=eq."+encodeURIComponent(playerId)+"&status=in.(traveling,resolving,returning)&limit=1");
   if (active.ok && active.data?.[0]) return send(res,400,{success:false,message:"Zaten aktif bir seferin bulunuyor."});
 
   const unitsResult=await supabase("units?select=*&city_id=eq."+encodeURIComponent(attackerCity.id));
-  if (!unitsResult.ok) return send(res,500,{success:false,message:"Ordu verisi alÄ±namadÄ±."});
+  if (!unitsResult.ok) return send(res,500,{success:false,message:"Ordu verisi alınamadı."});
   let army=(unitsResult.data||[]).filter(u=>Number(u.quantity)>0).map(u=>({unit_type:u.unit_type,quantity:Number(u.quantity),level:Number(u.level||1),attack:Number(u.attack||0),defense:Number(u.defense||0),hp:Number(u.hp||0),speed:Number(u.speed||100),population_cost:Number(u.population_cost||1)}));
   army=await hydrateArmyStats(army);
-  if (!army.length) return send(res,400,{success:false,message:"GÃ¶nderilecek asker bulunmuyor."});
+  if (!army.length) return send(res,400,{success:false,message:"Gönderilecek asker bulunmuyor."});
 
   const distance=Math.sqrt(Math.pow(Number(targetCity.coordinate_x||0)-Number(attackerCity.coordinate_x||0),2)+Math.pow(Number(targetCity.coordinate_y||0)-Number(attackerCity.coordinate_y||0),2));
   const researchResult=await supabase("research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
@@ -924,16 +924,16 @@ async function createMilitaryMission(req, res) {
 
   const departAt=new Date().toISOString();
   const missionResult=await supabase("military_missions",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({attacker_player_id:playerId,defender_player_id:targetPlayerId,attacker_city_id:attackerCity.id,defender_city_id:targetCity.id,mission_type:"attack",status:"traveling",depart_at:departAt,arrive_at:arriveAt,attack_power:attackPower,army,depart_x:Number(attackerCity.coordinate_x||0),depart_y:Number(attackerCity.coordinate_y||0),target_x:Number(targetCity.coordinate_x||0),target_y:Number(targetCity.coordinate_y||0),travel_seconds:travelSeconds,fleet_speed:fleetSpeed})});
-  if (!missionResult.ok || !missionResult.data?.[0]) return send(res,500,{success:false,message:"Sefer oluÅŸturulamadÄ±."});
+  if (!missionResult.ok || !missionResult.data?.[0]) return send(res,500,{success:false,message:"Sefer oluşturulamadı."});
   const missionId=missionResult.data[0].id;
   for(const u of army){
     const row=await supabase("units?select=id,quantity&city_id=eq."+encodeURIComponent(attackerCity.id)+"&unit_type=eq."+encodeURIComponent(u.unit_type)+"&limit=1");
-    if(!row.ok||!row.data?.[0]){await supabase("military_missions?id=eq."+encodeURIComponent(missionId),{method:"DELETE"});return send(res,500,{success:false,message:"Ordu sefer iÃ§in hazÄ±rlanamadÄ±."});}
-    if(Number(row.data[0].quantity)<u.quantity){await supabase("military_missions?id=eq."+encodeURIComponent(missionId),{method:"DELETE"});return send(res,400,{success:false,message:"Ordu miktarÄ± gÃ¼ncel deÄŸil. Tekrar deneyin."});}
+    if(!row.ok||!row.data?.[0]){await supabase("military_missions?id=eq."+encodeURIComponent(missionId),{method:"DELETE"});return send(res,500,{success:false,message:"Ordu sefer için hazırlanamadı."});}
+    if(Number(row.data[0].quantity)<u.quantity){await supabase("military_missions?id=eq."+encodeURIComponent(missionId),{method:"DELETE"});return send(res,400,{success:false,message:"Ordu miktarı güncel değil. Tekrar deneyin."});}
     const update=await supabase("units?id=eq."+encodeURIComponent(row.data[0].id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({quantity:Number(row.data[0].quantity)-u.quantity})});
-    if(!update.ok){await supabase("military_missions?id=eq."+encodeURIComponent(missionId),{method:"DELETE"});return send(res,500,{success:false,message:"Ordu sefer iÃ§in hazÄ±rlanamadÄ±."});}
+    if(!update.ok){await supabase("military_missions?id=eq."+encodeURIComponent(missionId),{method:"DELETE"});return send(res,500,{success:false,message:"Ordu sefer için hazırlanamadı."});}
   }
-  return send(res,200,{success:true,message:"âš”ï¸ Ordu sefere Ã§Ä±ktÄ±.",mission:{id:missionId,status:"traveling",arriveAt,travelSeconds,distance:Math.round(distance)}});
+  return send(res,200,{success:true,message:"⚔️ Ordu sefere çıktı.",mission:{id:missionId,status:"traveling",arriveAt,travelSeconds,distance:Math.round(distance)}});
 }
 
 async function completeMissionReturn(mission,res){
@@ -954,10 +954,10 @@ async function completeMissionReturn(mission,res){
 }
 
 async function getMilitaryMission(req,res){
-  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadÄ±."});
-  const missionId=Number(req.query.id); if(!Number.isInteger(missionId))return send(res,400,{success:false,message:"GeÃ§ersiz sefer."});
-  const m=await supabase("military_missions?id=eq."+encodeURIComponent(missionId)+"&limit=1"); if(!m.ok||!m.data?.[0])return send(res,404,{success:false,message:"Sefer bulunamadÄ±."});
-  let mission=m.data[0]; if(playerId!==Number(mission.attacker_player_id)&&playerId!==Number(mission.defender_player_id))return send(res,403,{success:false,message:"Bu sefere eriÅŸemezsin."});
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
+  const missionId=Number(req.query.id); if(!Number.isInteger(missionId))return send(res,400,{success:false,message:"Geçersiz sefer."});
+  const m=await supabase("military_missions?id=eq."+encodeURIComponent(missionId)+"&limit=1"); if(!m.ok||!m.data?.[0])return send(res,404,{success:false,message:"Sefer bulunamadı."});
+  let mission=m.data[0]; if(playerId!==Number(mission.attacker_player_id)&&playerId!==Number(mission.defender_player_id))return send(res,403,{success:false,message:"Bu sefere erişemezsin."});
   if(mission.status==="completed") return send(res,200,{success:true,mission});
   let remaining=Math.ceil((new Date(mission.arrive_at).getTime()-Date.now())/1000);
   if(mission.status==="returning"&&remaining<=0) return completeMissionReturn(mission,res);
@@ -1002,27 +1002,27 @@ async function getMilitaryMission(req,res){
   const report={result,attackPower,defensePower,attackerLosses,defenderLosses,loot,survivorArmy,returnAt,battleAt:new Date().toISOString(),defenseBonus:defenseBonus(defB)};
   await supabase("battle_reports",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({attacker_player_id:Number(mission.attacker_player_id),defender_player_id:Number(mission.defender_player_id),result,attack_power:attackPower,defense_power:defensePower,attacker_losses:attackerLosses,defender_losses:defenderLosses,loot})});
   const updated=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.resolving",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"returning",arrive_at:returnAt,attack_power:attackPower,result:report})});
-  if(!updated.ok||!updated.data?.[0])return send(res,500,{success:false,message:"SavaÅŸ sonucu kaydedilemedi."});
+  if(!updated.ok||!updated.data?.[0])return send(res,500,{success:false,message:"Savaş sonucu kaydedilemedi."});
   return send(res,200,{success:true,mission:{...updated.data[0],remainingSeconds:outbound}});
 }
 
 async function upgradeResearch(req,res){
-  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadÄ±."});
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
   const body=await readBody(req); const type=String(body.researchType||"").trim();
   const map={production:"production_level",combat:"combat_level",defense:"defense_level",crystal:"crystal_level",general_power:"general_power_level",unit_attack:"unit_attack_level",unit_defense:"unit_defense_level",unit_hp:"unit_hp_level",travel_speed:"travel_speed_level"};
-  const column=map[type]; if(!column)return send(res,400,{success:false,message:"GeÃ§ersiz araÅŸtÄ±rma tÃ¼rÃ¼."});
+  const column=map[type]; if(!column)return send(res,400,{success:false,message:"Geçersiz araştırma türü."});
   const base={production:{metal:500,energy:150,crystal:25},combat:{metal:700,energy:200,crystal:40},defense:{metal:600,energy:180,crystal:35},crystal:{metal:800,energy:250,crystal:60},general_power:{metal:1000,energy:300,crystal:50},unit_attack:{metal:900,energy:250,crystal:45},unit_defense:{metal:850,energy:250,crystal:45},unit_hp:{metal:950,energy:275,crystal:50},travel_speed:{metal:1200,energy:350,crystal:65}};
-  const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"); if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadÄ±."}); let city=cityResult.data[0];
+  const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"); if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."}); let city=cityResult.data[0];
   const rr=await supabase("research?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"); let research=rr.data?.[0];
-  if(!research){const cr=await supabase("research",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,production_level:0,combat_level:0,defense_level:0,crystal_level:0,general_power_level:0,unit_attack_level:0,unit_defense_level:0,unit_hp_level:0,travel_speed_level:0})});if(!cr.ok)return send(res,500,{success:false,message:"AraÅŸtÄ±rma kaydÄ± oluÅŸturulamadÄ±."});research=cr.data[0];}
+  if(!research){const cr=await supabase("research",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,production_level:0,combat_level:0,defense_level:0,crystal_level:0,general_power_level:0,unit_attack_level:0,unit_defense_level:0,unit_hp_level:0,travel_speed_level:0})});if(!cr.ok)return send(res,500,{success:false,message:"Araştırma kaydı oluşturulamadı."});research=cr.data[0];}
   if(research.upgrade_ready_at){research=await finalizeResearch(research);}
-  if(research.upgrade_ready_at)return send(res,400,{success:false,message:"BaÅŸka bir araÅŸtÄ±rma zaten sÃ¼rÃ¼yor.",finishAt:research.upgrade_ready_at});
-  const level=Math.max(0,Number(research[column]||0)); if(level>=15)return send(res,400,{success:false,message:"Bu araÅŸtÄ±rma zaten 15. seviyede."});
+  if(research.upgrade_ready_at)return send(res,400,{success:false,message:"Başka bir araştırma zaten sürüyor.",finishAt:research.upgrade_ready_at});
+  const level=Math.max(0,Number(research[column]||0)); if(level>=15)return send(res,400,{success:false,message:"Bu araştırma zaten 15. seviyede."});
   const mult=level+1; const cost={metal:base[type].metal*mult,energy:base[type].energy*mult,crystal:base[type].crystal*mult}; if(Number(city.metal)<cost.metal||Number(city.energy)<cost.energy||Number(city.crystal)<cost.crystal)return send(res,400,{success:false,message:"Yeterli kaynak yok.",cost});
   const duration=60+level*45; const finishAt=new Date(Date.now()+duration*1000).toISOString();
-  const cu=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({metal:Number(city.metal)-cost.metal,energy:Number(city.energy)-cost.energy,crystal:Number(city.crystal)-cost.crystal})}); if(!cu.ok)return send(res,500,{success:false,message:"Kaynaklar gÃ¼ncellenemedi."}); city=cu.data[0];
-  const ru=await supabase("research?id=eq."+encodeURIComponent(research.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({upgrade_ready_at:finishAt,pending_column:column})}); if(!ru.ok)return send(res,500,{success:false,message:"AraÅŸtÄ±rma baÅŸlatÄ±lamadÄ±."});
-  return send(res,200,{success:true,message:"ğŸ”¬ AraÅŸtÄ±rma baÅŸlatÄ±ldÄ±.",research:ru.data[0],city,finishAt,duration});
+  const cu=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({metal:Number(city.metal)-cost.metal,energy:Number(city.energy)-cost.energy,crystal:Number(city.crystal)-cost.crystal})}); if(!cu.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."}); city=cu.data[0];
+  const ru=await supabase("research?id=eq."+encodeURIComponent(research.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({upgrade_ready_at:finishAt,pending_column:column})}); if(!ru.ok)return send(res,500,{success:false,message:"Araştırma başlatılamadı."});
+  return send(res,200,{success:true,message:"🔬 Araştırma başlatıldı.",research:ru.data[0],city,finishAt,duration});
 }
 
 async function createAlliance(req, res) {
@@ -1033,7 +1033,7 @@ async function createAlliance(req, res) {
   if (!authHeader.startsWith("Bearer ")) {
     return send(res, 401, {
       success: false,
-      message: "Oturum bulunamadÄ±."
+      message: "Oturum bulunamadı."
     });
   }
 
@@ -1043,7 +1043,7 @@ async function createAlliance(req, res) {
   if (!decoded || !decoded.id) {
     return send(res, 401, {
       success: false,
-      message: "GeÃ§ersiz oturum."
+      message: "Geçersiz oturum."
     });
   }
 
@@ -1056,21 +1056,21 @@ async function createAlliance(req, res) {
   if (!name || !tag) {
     return send(res, 400, {
       success: false,
-      message: "Ä°ttifak adÄ± ve etiketi gerekli."
+      message: "İttifak adı ve etiketi gerekli."
     });
   }
 
   if (name.length < 3 || name.length > 30) {
     return send(res, 400, {
       success: false,
-      message: "Ä°ttifak adÄ± 3-30 karakter arasÄ±nda olmalÄ±."
+      message: "İttifak adı 3-30 karakter arasında olmalı."
     });
   }
 
   if (tag.length < 2 || tag.length > 5) {
     return send(res, 400, {
       success: false,
-      message: "Ä°ttifak etiketi 2-5 karakter arasÄ±nda olmalÄ±."
+      message: "İttifak etiketi 2-5 karakter arasında olmalı."
     });
   }
 
@@ -1085,7 +1085,7 @@ async function createAlliance(req, res) {
   ) {
     return send(res, 500, {
       success: false,
-      message: "Ä°ttifak Ã¼yeliÄŸi kontrol edilemedi."
+      message: "İttifak üyeliği kontrol edilemedi."
     });
   }
 
@@ -1095,7 +1095,7 @@ async function createAlliance(req, res) {
   ) {
     return send(res, 400, {
       success: false,
-      message: "Zaten bir ittifaka Ã¼yesin."
+      message: "Zaten bir ittifaka üyesin."
     });
   }
 
@@ -1118,7 +1118,7 @@ async function createAlliance(req, res) {
     return send(res, 400, {
       success: false,
       message:
-        "Ä°ttifak oluÅŸturulamadÄ±. Ä°sim veya etiket kullanÄ±lÄ±yor olabilir."
+        "İttifak oluşturulamadı. İsim veya etiket kullanılıyor olabilir."
     });
   }
 
@@ -1151,13 +1151,13 @@ async function createAlliance(req, res) {
 
     return send(res, 500, {
       success: false,
-      message: "Ä°ttifak Ã¼yeliÄŸi oluÅŸturulamadÄ±."
+      message: "İttifak üyeliği oluşturulamadı."
     });
   }
 
   return send(res, 201, {
     success: true,
-    message: "Ä°ttifak baÅŸarÄ±yla oluÅŸturuldu.",
+    message: "İttifak başarıyla oluşturuldu.",
     alliance: alliance,
     member: memberResult.data[0]
   });
@@ -1170,7 +1170,7 @@ async function joinAlliance(req, res) {
   if (!authHeader.startsWith("Bearer ")) {
     return send(res, 401, {
       success: false,
-      message: "Oturum bulunamadÄ±."
+      message: "Oturum bulunamadı."
     });
   }
 
@@ -1180,7 +1180,7 @@ async function joinAlliance(req, res) {
   if (!decoded || !decoded.id) {
     return send(res, 401, {
       success: false,
-      message: "GeÃ§ersiz oturum."
+      message: "Geçersiz oturum."
     });
   }
 
@@ -1191,7 +1191,7 @@ async function joinAlliance(req, res) {
   if (!Number.isInteger(allianceId)) {
     return send(res, 400, {
       success: false,
-      message: "GeÃ§ersiz ittifak."
+      message: "Geçersiz ittifak."
     });
   }
 
@@ -1205,7 +1205,7 @@ async function joinAlliance(req, res) {
   if (!membershipResult.ok) {
     return send(res, 500, {
       success: false,
-      message: "Ä°ttifak Ã¼yeliÄŸi kontrol edilemedi."
+      message: "İttifak üyeliği kontrol edilemedi."
     });
   }
 
@@ -1215,7 +1215,7 @@ async function joinAlliance(req, res) {
   ) {
     return send(res, 400, {
       success: false,
-      message: "Zaten bir ittifaka Ã¼yesin."
+      message: "Zaten bir ittifaka üyesin."
     });
   }
 
@@ -1232,7 +1232,7 @@ async function joinAlliance(req, res) {
   ) {
     return send(res, 404, {
       success: false,
-      message: "Ä°ttifak bulunamadÄ±."
+      message: "İttifak bulunamadı."
     });
   }
 
@@ -1254,13 +1254,13 @@ async function joinAlliance(req, res) {
   if (!memberResult.ok) {
     return send(res, 500, {
       success: false,
-      message: "Ä°ttifaka katÄ±lÄ±m baÅŸarÄ±sÄ±z."
+      message: "İttifaka katılım başarısız."
     });
   }
 
   return send(res, 201, {
     success: true,
-    message: "Ä°ttifaka baÅŸarÄ±yla katÄ±ldÄ±n.",
+    message: "İttifaka başarıyla katıldın.",
     alliance: allianceResult.data[0],
     member: memberResult.data[0]
   });
@@ -1273,7 +1273,7 @@ async function getAlliances(req, res) {
   if (!authHeader.startsWith("Bearer ")) {
     return send(res, 401, {
       success: false,
-      message: "Oturum bulunamadÄ±."
+      message: "Oturum bulunamadı."
     });
   }
 
@@ -1283,7 +1283,7 @@ async function getAlliances(req, res) {
   if (!decoded || !decoded.id) {
     return send(res, 401, {
       success: false,
-      message: "GeÃ§ersiz oturum."
+      message: "Geçersiz oturum."
     });
   }
 
@@ -1294,7 +1294,7 @@ async function getAlliances(req, res) {
   if (!result.ok) {
     return send(res, 500, {
       success: false,
-      message: "Ä°ttifaklar alÄ±namadÄ±."
+      message: "İttifaklar alınamadı."
     });
   }
 
@@ -1304,11 +1304,11 @@ async function getAlliances(req, res) {
   });
 }
 async function getResearch(req,res){
-  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadÄ±."});
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
   const result=await supabase("research?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
-  if(!result.ok)return send(res,500,{success:false,message:"AraÅŸtÄ±rma verileri alÄ±namadÄ±."});
+  if(!result.ok)return send(res,500,{success:false,message:"Araştırma verileri alınamadı."});
   let research=result.data?.[0];
-  if(!research){const cr=await supabase("research",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,production_level:0,combat_level:0,defense_level:0,crystal_level:0,general_power_level:0,unit_attack_level:0,unit_defense_level:0,unit_hp_level:0,travel_speed_level:0})});if(!cr.ok)return send(res,500,{success:false,message:"AraÅŸtÄ±rma kaydÄ± oluÅŸturulamadÄ±."});research=cr.data[0];}
+  if(!research){const cr=await supabase("research",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,production_level:0,combat_level:0,defense_level:0,crystal_level:0,general_power_level:0,unit_attack_level:0,unit_defense_level:0,unit_hp_level:0,travel_speed_level:0})});if(!cr.ok)return send(res,500,{success:false,message:"Araştırma kaydı oluşturulamadı."});research=cr.data[0];}
   research=await finalizeResearch(research);
   const remaining=research.upgrade_ready_at?Math.max(0,Math.ceil((new Date(research.upgrade_ready_at).getTime()-Date.now())/1000)):0;
   return send(res,200,{success:true,serverTime:new Date().toISOString(),research,remainingSeconds:remaining});
@@ -1322,7 +1322,7 @@ async function getBattleReports(req, res) {
   if (!authHeader.startsWith("Bearer ")) {
     return send(res, 401, {
       success: false,
-      message: "Oturum bulunamadÄ±."
+      message: "Oturum bulunamadı."
     });
   }
 
@@ -1332,7 +1332,7 @@ async function getBattleReports(req, res) {
   if (!decoded || !decoded.id) {
     return send(res, 401, {
       success: false,
-      message: "GeÃ§ersiz oturum."
+      message: "Geçersiz oturum."
     });
   }
 
@@ -1348,13 +1348,13 @@ async function getBattleReports(req, res) {
 
   if (!reportsResult.ok) {
     console.error(
-      "SavaÅŸ raporlarÄ± alÄ±namadÄ±:",
+      "Savaş raporları alınamadı:",
       reportsResult.data
     );
 
     return send(res, 500, {
       success: false,
-      message: "SavaÅŸ raporlarÄ± alÄ±namadÄ±."
+      message: "Savaş raporları alınamadı."
     });
   }
 
@@ -1364,13 +1364,13 @@ async function getBattleReports(req, res) {
 
   if (!playersResult.ok) {
     console.error(
-      "Oyuncular alÄ±namadÄ±:",
+      "Oyuncular alınamadı:",
       playersResult.data
     );
 
     return send(res, 500, {
       success: false,
-      message: "Oyuncu bilgileri alÄ±namadÄ±."
+      message: "Oyuncu bilgileri alınamadı."
     });
   }
 
@@ -1405,33 +1405,33 @@ async function getBattleReports(req, res) {
 }
 
 async function upgradeBuilding(req,res){
-  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadÄ±."});
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
   const body=await readBody(req); const buildingType=String(body.building||"").trim();
-  const costs={"Metal Madeni":{metal:500,energy:100,water:50,crystal:25},"Enerji Santrali":{metal:400,energy:50,water:50,crystal:20},"Su ArÄ±tma":{metal:350,energy:75,water:50,crystal:20},"Kristal Madeni":{metal:600,energy:120,water:40,crystal:30},"KÄ±ÅŸla":{metal:450,energy:100,water:50,crystal:25},"Merkez Bina":{metal:750,energy:150,water:100,crystal:50},"Depo":{metal:700,energy:120,water:60,crystal:40},"Konut":{metal:500,energy:80,water:100,crystal:25},"Sur":{metal:900,energy:150,water:80,crystal:80},"Savunma Kulesi":{metal:1200,energy:220,water:100,crystal:100}};
-  if(!costs[buildingType])return send(res,400,{success:false,message:"GeÃ§ersiz bina."});
-  const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadÄ±."});const city=cityResult.data[0];
-  const br=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id)+"&building_type=eq."+encodeURIComponent(buildingType)+"&limit=1");if(!br.ok)return send(res,500,{success:false,message:"Bina verisi alÄ±namadÄ±."});
+  const costs={"Metal Madeni":{metal:500,energy:100,water:50,crystal:25},"Enerji Santrali":{metal:400,energy:50,water:50,crystal:20},"Su Arıtma":{metal:350,energy:75,water:50,crystal:20},"Kristal Madeni":{metal:600,energy:120,water:40,crystal:30},"Kışla":{metal:450,energy:100,water:50,crystal:25},"Merkez Bina":{metal:750,energy:150,water:100,crystal:50},"Depo":{metal:700,energy:120,water:60,crystal:40},"Konut":{metal:500,energy:80,water:100,crystal:25},"Sur":{metal:900,energy:150,water:80,crystal:80},"Savunma Kulesi":{metal:1200,energy:220,water:100,crystal:100}};
+  if(!costs[buildingType])return send(res,400,{success:false,message:"Geçersiz bina."});
+  const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});const city=cityResult.data[0];
+  const br=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id)+"&building_type=eq."+encodeURIComponent(buildingType)+"&limit=1");if(!br.ok)return send(res,500,{success:false,message:"Bina verisi alınamadı."});
   let building=br.data?.[0]; if(building) building=await finalizeBuilding(building);
-  if(building?.is_under_construction)return send(res,400,{success:false,message:"Bu bina zaten inÅŸa ediliyor.",finishAt:building.upgrade_ready_at});
+  if(building?.is_under_construction)return send(res,400,{success:false,message:"Bu bina zaten inşa ediliyor.",finishAt:building.upgrade_ready_at});
   const current=building?Math.max(0,Number(building.level||0)):0;
   const maxLevel=buildingMaxLevel(buildingType);
-  if(current>=maxLevel)return send(res,400,{success:false,message:buildingType+" maksimum seviye olan "+maxLevel+" seviyeye ulaÅŸtÄ±."});
+  if(current>=maxLevel)return send(res,400,{success:false,message:buildingType+" maksimum seviye olan "+maxLevel+" seviyeye ulaştı."});
   const multiplier=current+1;
   const cost={metal:costs[buildingType].metal*multiplier,energy:costs[buildingType].energy*multiplier,water:costs[buildingType].water*multiplier,crystal:costs[buildingType].crystal*multiplier};
   if(Number(city.metal)<cost.metal||Number(city.energy)<cost.energy||Number(city.water)<cost.water||Number(city.crystal)<cost.crystal)return send(res,400,{success:false,message:"Yeterli kaynak bulunmuyor.",cost,nextLevel:current+1});
   const duration=45+current*45, finishAt=new Date(Date.now()+duration*1000).toISOString();
-  const cu=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({metal:Number(city.metal)-cost.metal,energy:Number(city.energy)-cost.energy,water:Number(city.water)-cost.water,crystal:Number(city.crystal)-cost.crystal})});if(!cu.ok)return send(res,500,{success:false,message:"Kaynaklar gÃ¼ncellenemedi."});
+  const cu=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({metal:Number(city.metal)-cost.metal,energy:Number(city.energy)-cost.energy,water:Number(city.water)-cost.water,crystal:Number(city.crystal)-cost.crystal})});if(!cu.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
   let bu;
   if(building) bu=await supabase("buildings?id=eq."+encodeURIComponent(building.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({is_under_construction:true,upgrade_ready_at:finishAt})});
   else bu=await supabase("buildings",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({city_id:city.id,building_type:buildingType,level:0,is_under_construction:true,upgrade_ready_at:finishAt})});
-  if(!bu.ok)return send(res,500,{success:false,message:"Ä°nÅŸaat baÅŸlatÄ±lamadÄ±."});
-  return send(res,200,{success:true,message:buildingType+" iÃ§in seviye "+(current+1)+" inÅŸaatÄ± baÅŸlatÄ±ldÄ±.",city:cu.data?.[0]||city,building:bu.data?.[0],finishAt,duration,cost,nextLevel:current+1,maxLevel});
+  if(!bu.ok)return send(res,500,{success:false,message:"İnşaat başlatılamadı."});
+  return send(res,200,{success:true,message:buildingType+" için seviye "+(current+1)+" inşaatı başlatıldı.",city:cu.data?.[0]||city,building:bu.data?.[0],finishAt,duration,cost,nextLevel:current+1,maxLevel});
 }
 
 async function getWorldPlayers(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const citiesResult=await supabase("cities?select=id,player_id,name,level,coordinate_x,coordinate_y");if(!citiesResult.ok)return send(res,500,{success:false,message:"Koloniler alÄ±namadÄ±."});
-  const playersResult=await supabase("players?select=id,username");if(!playersResult.ok)return send(res,500,{success:false,message:"Oyuncular alÄ±namadÄ±."});
+  const citiesResult=await supabase("cities?select=id,player_id,name,level,coordinate_x,coordinate_y");if(!citiesResult.ok)return send(res,500,{success:false,message:"Koloniler alınamadı."});
+  const playersResult=await supabase("players?select=id,username");if(!playersResult.ok)return send(res,500,{success:false,message:"Oyuncular alınamadı."});
   const map={};for(const p of playersResult.data||[])map[p.id]=p.username;
   const players=(citiesResult.data||[]).map(c=>({id:c.id,player_id:c.player_id,username:map[c.player_id]||"Oyuncu",name:c.name,level:c.level,coordinate_x:c.coordinate_x,coordinate_y:c.coordinate_y}));
   return send(res,200,{success:true,players});
@@ -1441,7 +1441,7 @@ async function getWorldPlayers(req,res){
 async function getMilitaryMissions(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const r=await supabase("military_missions?select=*&or=(attacker_player_id.eq."+encodeURIComponent(playerId)+",defender_player_id.eq."+encodeURIComponent(playerId)+")&order=depart_at.desc&limit=20");
-  if(!r.ok)return send(res,500,{success:false,message:"Seferler alÄ±namadÄ±."});
+  if(!r.ok)return send(res,500,{success:false,message:"Seferler alınamadı."});
   return send(res,200,{success:true,missions:r.data||[]});
 }
 
@@ -1470,14 +1470,14 @@ module.exports = async function handler(req, res) {
     ) {
       return send(res, 500, {
         success: false,
-        message: "Sunucu yapÄ±landÄ±rmasÄ± eksik."
+        message: "Sunucu yapılandırması eksik."
       });
     }
 
     if (req.method !== "POST") {
       return send(res, 405, {
         success: false,
-        message: "Sadece POST isteÄŸi kabul edilir."
+        message: "Sadece POST isteği kabul edilir."
       });
     }
 
@@ -1546,7 +1546,7 @@ if (action === "upgrade") {
 }
     return send(res, 400, {
       success: false,
-      message: "GeÃ§ersiz iÅŸlem."
+      message: "Geçersiz işlem."
     });
 
   } catch (error) {
@@ -1554,7 +1554,7 @@ if (action === "upgrade") {
 
     return send(res, 500, {
       success: false,
-      message: "Sunucu hatasÄ± oluÅŸtu."
+      message: "Sunucu hatası oluştu."
     });
   }
 };
