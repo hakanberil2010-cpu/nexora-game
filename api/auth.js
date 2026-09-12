@@ -1634,10 +1634,21 @@ async function getWorldPlayers(req,res){
   const playersResult=await supabase("players?select=id,username"); if(!playersResult.ok)return send(res,500,{success:false,message:"Oyuncular alınamadı."});
   const map={}; for(const p of playersResult.data||[])map[p.id]=p.username;
   const players=(citiesResult.data||[]).map(c=>{const region=regionForCoordinates(Number(c.coordinate_x||0),Number(c.coordinate_y||0));return {id:c.id,player_id:c.player_id,username:map[c.player_id]||"Oyuncu",name:c.name,level:c.level,coordinate_x:c.coordinate_x,coordinate_y:c.coordinate_y,region:region.name,region_bonus:region.bonus};});
-  const sitesResult=await supabase("world_sites?select=id,site_type,name,coordinate_x,coordinate_y,reward&active=eq.true");
+  let sitesResult=await supabase("rpc/nexora_world_control_sites",{method:"POST",body:JSON.stringify({p_player_id:playerId})});
+  if(!sitesResult.ok)sitesResult=await supabase("world_sites?select=id,site_type,name,coordinate_x,coordinate_y,reward&active=eq.true");
   return send(res,200,{success:true,players,sites:sitesResult.ok?(sitesResult.data||[]):[],regions:[
     {name:"Çöl Bölgesi",bonus:"Metal üretimi +5%"},{name:"Orman Bölgesi",bonus:"Su üretimi +5%"},{name:"Buz Bölgesi",bonus:"Enerji üretimi +5%"},{name:"Dağ Bölgesi",bonus:"Savunma +5%"},{name:"Volkanik Bölge",bonus:"Kristal üretimi +5%"},{name:"Okyanus",bonus:"Seyahat süresi -5%"}
   ]});
+}
+
+async function claimWorldSite(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  const siteId=body?.siteId;
+  if(typeof siteId!=="number"||!Number.isSafeInteger(siteId)||siteId<=0)return send(res,400,{success:false,message:"Geçersiz dünya noktası."});
+  const result=await supabase("rpc/nexora_claim_world_site",{method:"POST",body:JSON.stringify({p_player_id:playerId,p_site_id:siteId})});
+  if(!result.ok||typeof result.data?.success!=="boolean")return send(res,503,{success:false,message:"Nokta kontrol işlemi şu anda kullanılamıyor."});
+  return send(res,result.data.success?200:400,result.data);
 }
 
 async function exploreWorld(req,res){
@@ -1846,6 +1857,9 @@ module.exports = async function handler(req, res) {
 }
 if (action === "explore") {
   return await exploreWorld(req, res);
+}
+if (action === "claimworldsite") {
+  return await claimWorldSite(req, res);
 }
 if (action === "explorestatus") {
   return await getWorldExploration(req, res);
