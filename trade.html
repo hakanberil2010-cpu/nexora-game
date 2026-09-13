@@ -1,21 +1,130 @@
-
 <!DOCTYPE html>
 <html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Nexora - Ticaret</title>
 <style>
 body{margin:0;background:#0b1020;color:#eaf1ff;font-family:Arial,sans-serif}.wrap{max-width:1100px;margin:30px auto;padding:20px}.card{background:#131b31;border:1px solid #2a395f;border-radius:14px;padding:18px;margin-bottom:16px}h1,h2{margin-top:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}label{display:block;font-size:13px;color:#9fb1d4;margin-bottom:6px}input,select{width:100%;box-sizing:border-box;padding:11px;border-radius:9px;border:1px solid #34466f;background:#0c1427;color:#fff}.btn{border:0;border-radius:9px;padding:11px 14px;background:#2b67f6;color:#fff;cursor:pointer}.btn.danger{background:#8d3145}.btn:disabled{opacity:.5;cursor:not-allowed}.offer{border:1px solid #2a395f;border-radius:12px;padding:14px;margin-top:10px;background:#0e162a}.muted{color:#9fb1d4;font-size:13px}.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}.msg{padding:10px;border-radius:8px;background:#0e162a;margin-bottom:12px;min-height:18px}.resource{font-weight:700}.history{font-size:13px;border-top:1px solid #263555;padding-top:10px;margin-top:10px}
 </style></head><body><div class="wrap"><h1>🤝 Ticaret Pazarı</h1><div class="msg" id="msg"></div>
-<div class="card"><h2>Yeni Teklif</h2><div class="grid"><div><label>Verilecek kaynak</label><select id="give"><option value="metal">Metal</option><option value="energy">Enerji</option><option value="water">Su</option><option value="crystal">Kristal</option></select></div><div><label>Miktar</label><input id="giveAmount" type="number" min="1" value="500"></div><div><label>İstenen kaynak</label><select id="want"><option value="energy">Enerji</option><option value="metal">Metal</option><option value="water">Su</option><option value="crystal">Kristal</option></select></div><div><label>Miktar</label><input id="wantAmount" type="number" min="1" value="300"></div><div><label>Teklif süresi</label><select id="hours"><option value="6">6 saat</option><option value="24" selected>24 saat</option><option value="48">48 saat</option><option value="72">72 saat</option></select></div></div><br><button class="btn" onclick="createOffer()">Teklif Oluştur</button><p class="muted">Verdiğin kaynak teklif açık kaldığı sürece koloninden ayrılır ve teklif kabul edilmezse iptal ile geri döner.</p></div>
+<div class="card"><h2>Yeni Teklif</h2><div class="grid"><div><label>Verilecek kaynak</label><select id="give"><option value="metal">Metal</option><option value="energy">Enerji</option><option value="water">Su</option><option value="crystal">Kristal</option></select></div><div><label>Miktar</label><input id="giveAmount" type="number" min="10" max="100000000" value="500"></div><div><label>İstenen kaynak</label><select id="want"><option value="energy">Enerji</option><option value="metal">Metal</option><option value="water">Su</option><option value="crystal">Kristal</option></select></div><div><label>Miktar</label><input id="wantAmount" type="number" min="10" max="100000000" value="300"></div><div><label>Teklif süresi</label><select id="hours"><option value="6">6 saat</option><option value="24" selected>24 saat</option><option value="48">48 saat</option><option value="72">72 saat</option></select></div></div><br><button class="btn" onclick="createOffer()">Teklif Oluştur</button><p class="muted">Verdiğin kaynak teklif açık kaldığı sürece koloninden ayrılır. Trade V2: işlem başına %5 pazar vergisi, oyuncu başına en fazla 5 açık teklif ve güvenli değer oranı uygulanır.</p><div class="muted" id="tradeInfo"></div></div>
 <div class="card"><div class="row"><h2>Açık Teklifler</h2><button class="btn" onclick="loadOffers()">Yenile</button></div><div id="offers"></div></div>
 <div class="card"><h2>Ticaret Geçmişi</h2><div id="history"></div></div></div>
 <script>
 const API="/api/auth.js";let token=localStorage.getItem("nexora_token")||localStorage.getItem("token")||"";
 const names={metal:"Metal",energy:"Enerji",water:"Su",crystal:"Kristal"};
-function headers(){return {"Content-Type":"application/json",Authorization:"Bearer "+token}}function msg(t){document.getElementById("msg").textContent=t||""}
-async function post(action,body={}){const r=await fetch(API+"?action="+action,{method:"POST",headers:headers(),body:JSON.stringify(body)});let d={};try{d=await r.json()}catch{}if(!r.ok||d.success===false)throw new Error(d.message||"İşlem başarısız.");return d}
-async function createOffer(){try{const d=await post("createtrade",{giveResource:give.value,giveAmount:+giveAmount.value,wantResource:want.value,wantAmount:+wantAmount.value,durationHours:+hours.value});msg(d.message);await loadOffers();}catch(e){msg("❌ "+e.message)}}
-async function acceptOffer(id){if(!confirm("Bu ticareti kabul etmek istiyor musun?"))return;try{const d=await post("accepttrade",{offerId:id});msg(d.message);await loadOffers();await loadHistory();}catch(e){msg("❌ "+e.message)}}
-async function cancelOffer(id){if(!confirm("Teklifi iptal edip verdiğin kaynağı geri almak istiyor musun?"))return;try{const d=await post("canceltrade",{offerId:id});msg(d.message);await loadOffers();}catch(e){msg("❌ "+e.message)}}
-async function loadOffers(){try{const d=await post("tradeoffers");const el=document.getElementById("offers");if(!d.offers?.length){el.innerHTML='<p class="muted">Açık teklif yok.</p>';return}el.innerHTML=d.offers.map(o=>{const own=String(o.creator_player_id)===String(localStorage.getItem("nexora_player_id")||"");const expired=o.expires_at&&new Date(o.expires_at)<new Date();return '<div class="offer"><div class="row"><strong>'+o.creator_username+'</strong><span class="muted">'+(o.expires_at?new Date(o.expires_at).toLocaleString("tr-TR"):"")+'</span></div><p><span class="resource">'+o.give_amount+' '+names[o.give_resource]+'</span> ➜ <span class="resource">'+o.want_amount+' '+names[o.want_resource]+'</span></p>'+(!expired&& !own?'<button class="btn" onclick="acceptOffer('+o.id+')">Kabul Et</button>':'')+(own&&o.status==='open'?'<button class="btn danger" onclick="cancelOffer('+o.id+')">İptal Et</button>':'')+'</div>'}).join("")}catch(e){document.getElementById("offers").textContent="❌ "+e.message}}
-async function loadHistory(){try{const d=await post("tradehistory");const el=document.getElementById("history");if(!d.history?.length){el.innerHTML='<p class="muted">Henüz ticaret yok.</p>';return}el.innerHTML=d.history.map(x=>'<div class="history">'+new Date(x.created_at).toLocaleString("tr-TR")+' — '+x.give_amount+' '+names[x.give_resource]+' karşılığında '+x.want_amount+' '+names[x.want_resource]+'</div>').join("")}catch(e){document.getElementById("history").textContent="❌ "+e.message}}
-loadOffers();loadHistory();setInterval(loadOffers,15000);setInterval(loadHistory,30000);
+let serverOffsetMs=0,currentPlayerId=null,tradeConfig={};
+
+function headers(){return {"Content-Type":"application/json",Authorization:"Bearer "+token}}
+function msg(t){document.getElementById("msg").textContent=t||""}
+function n(v){const x=Number(v);return Number.isFinite(x)?x:0}
+function esc(v){const d=document.createElement("div");d.textContent=v??"";return d.innerHTML}
+function serverNow(){return Date.now()+serverOffsetMs}
+function setServerTime(value){const t=new Date(value||"").getTime();if(Number.isFinite(t))serverOffsetMs=t-Date.now()}
+function fmtDate(value){const d=new Date(value||"");return Number.isNaN(d.getTime())?"-":d.toLocaleString("tr-TR")}
+function fmtNumber(value){return Math.max(0,n(value)).toLocaleString("tr-TR")}
+function remainingText(seconds){let s=Math.max(0,Math.floor(n(seconds)));const h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);const sec=s%60;return h>0?`${h}sa ${m}dk ${sec}sn`:`${m}dk ${sec}sn`}
+function statusText(status){if(status==="in_transit")return"🚚 Yolda";if(status==="blocked")return"⏸️ Teslimat Bekliyor";if(status==="delivered")return"✅ Teslim Edildi";return status||"-"}
+function updateTradeInfo(){
+  const tax=Math.round(n(tradeConfig.taxRate)*100);
+  const maxOpen=Math.max(0,n(tradeConfig.maxOpenOffers));
+  document.getElementById("tradeInfo").textContent=
+    `Vergi: %${tax||5} · Açık teklif limiti: ${maxOpen||5} · Miktar: ${fmtNumber(tradeConfig.minOfferAmount||10)}-${fmtNumber(tradeConfig.maxOfferAmount||100000000)}`;
+}
+function updateCountdowns(){
+  document.querySelectorAll("[data-delivery-at]").forEach(el=>{
+    const deliveryAt=new Date(el.dataset.deliveryAt||"").getTime();
+    if(!Number.isFinite(deliveryAt))return;
+    const seconds=Math.max(0,Math.ceil((deliveryAt-serverNow())/1000));
+    el.textContent=seconds>0?remainingText(seconds):"Teslimat kontrolü bekleniyor";
+  });
+}
+
+async function post(action,body={}){
+  const r=await fetch(API+"?action="+action,{method:"POST",headers:headers(),body:JSON.stringify(body)});
+  let d={};try{d=await r.json()}catch{}
+  if(!r.ok||d.success===false)throw new Error(d.message||"İşlem başarısız.");
+  if(d.serverTime)setServerTime(d.serverTime);
+  if(d.config){tradeConfig=d.config;updateTradeInfo()}
+  if(d.playerId!=null)currentPlayerId=Number(d.playerId);
+  return d
+}
+
+async function createOffer(){
+  try{
+    const d=await post("createtrade",{
+      giveResource:give.value,
+      giveAmount:+giveAmount.value,
+      wantResource:want.value,
+      wantAmount:+wantAmount.value,
+      durationHours:+hours.value
+    });
+    msg(d.message);
+    await loadOffers()
+  }catch(e){msg("❌ "+e.message)}
+}
+
+async function acceptOffer(id){
+  if(!confirm("Bu ticareti kabul etmek istiyor musun?"))return;
+  try{
+    const d=await post("accepttrade",{offerId:id});
+    const s=Math.max(0,n(d.remainingSeconds));
+    msg((d.message||"Ticaret kabul edildi.")+(s?` Tahmini teslimat: ${remainingText(s)}.`:""));
+    await loadOffers();
+    await loadHistory()
+  }catch(e){msg("❌ "+e.message)}
+}
+
+async function cancelOffer(id,expired){
+  const q=expired?"Süresi dolan teklifin kilitli kaynağını geri almak istiyor musun?":"Teklifi iptal edip verdiğin kaynağı geri almak istiyor musun?";
+  if(!confirm(q))return;
+  try{
+    const d=await post("canceltrade",{offerId:id});
+    msg(d.message);
+    await loadOffers()
+  }catch(e){msg("❌ "+e.message)}
+}
+
+async function loadOffers(){
+  try{
+    const d=await post("tradeoffers");
+    const el=document.getElementById("offers");
+    if(!d.offers?.length){el.innerHTML='<p class="muted">Açık teklif yok.</p>';return}
+    el.innerHTML=d.offers.map(o=>{
+      const own=Number(o.creator_player_id)===Number(currentPlayerId);
+      const expiresAt=new Date(o.expires_at||"").getTime();
+      const expired=Number.isFinite(expiresAt)&&expiresAt<=serverNow();
+      const action=!expired&&!own
+        ?`<button class="btn" onclick="acceptOffer(${Number(o.id)})">Kabul Et</button>`
+        :own&&o.status==="open"
+          ?`<button class="btn danger" onclick="cancelOffer(${Number(o.id)},${expired})">${expired?"Kaynağı İade Al":"İptal Et"}</button>`
+          :"";
+      return `<div class="offer"><div class="row"><strong>${esc(o.creator_username||"Oyuncu")}</strong><span class="muted">${expired?"Süresi doldu":fmtDate(o.expires_at)}</span></div><p><span class="resource">${fmtNumber(o.give_amount)} ${esc(names[o.give_resource]||o.give_resource)}</span> ➜ <span class="resource">${fmtNumber(o.want_amount)} ${esc(names[o.want_resource]||o.want_resource)}</span></p>${action}</div>`
+    }).join("")
+  }catch(e){document.getElementById("offers").textContent="❌ "+e.message}
+}
+
+async function loadHistory(){
+  try{
+    const d=await post("tradehistory");
+    const el=document.getElementById("history");
+    if(!d.history?.length){el.innerHTML='<p class="muted">Henüz ticaret yok.</p>';return}
+    el.innerHTML=d.history.map(x=>{
+      const seller=Number(x.seller_player_id)===Number(currentPlayerId);
+      const myReceive=seller?n(x.seller_receive_amount):n(x.buyer_receive_amount);
+      const myTax=seller?n(x.seller_tax_amount):n(x.buyer_tax_amount);
+      const receiveResource=seller?x.want_resource:x.give_resource;
+      const other=seller?(x.buyer_username||"Oyuncu"):(x.seller_username||"Oyuncu");
+      const status=statusText(x.status);
+      const countdown=x.status==="in_transit"&&x.delivery_at
+        ?` · ⏳ <span data-delivery-at="${esc(x.delivery_at)}"></span>`
+        :"";
+      const blocked=x.status==="blocked"?" · Depo alanı açıldığında yeniden kontrol edilir.":"";
+      return `<div class="history"><div class="row"><strong>${esc(other)}</strong><span>${esc(status)}</span></div>${fmtDate(x.created_at)} — ${fmtNumber(x.give_amount)} ${esc(names[x.give_resource]||x.give_resource)} karşılığında ${fmtNumber(x.want_amount)} ${esc(names[x.want_resource]||x.want_resource)}<br><span class="muted">Net alacağın: ${fmtNumber(myReceive)} ${esc(names[receiveResource]||receiveResource)} · Vergi: ${fmtNumber(myTax)} · Mesafe: ${n(x.distance).toFixed(2)}${countdown}${blocked}</span></div>`
+    }).join("");
+    updateCountdowns()
+  }catch(e){document.getElementById("history").textContent="❌ "+e.message}
+}
+
+loadOffers();
+loadHistory();
+setInterval(loadOffers,15000);
+setInterval(loadHistory,15000);
+setInterval(updateCountdowns,1000);
 </script></body></html>
