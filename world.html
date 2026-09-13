@@ -393,7 +393,9 @@ h1 {
 .world-site.resource { border-color:#ffd35a; box-shadow:0 0 16px rgba(255,211,90,.35); }
 .world-site.neutral { border-color:#b7c7d9; }
 .world-site.abandoned { border-color:#ff8b68; box-shadow:0 0 16px rgba(255,139,104,.3); }
-.world-site.alliance { border-color:#b889ff; opacity:.72; }
+.world-site.alliance { border-color:#b889ff; box-shadow:0 0 16px rgba(184,137,255,.3); }
+.world-site.alliance.owned { border-color:#d0b0ff; }
+.world-site.alliance.mine { border-color:#78f0c0; box-shadow:0 0 18px rgba(120,240,192,.42); }
 .world-site-label { position:absolute; top:43px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:10px; font-weight:bold; color:#dcecff; text-shadow:0 1px 3px #000; }
 .explore-panel { margin-top:16px; padding:16px; border-radius:14px; background:#091b2d; border:1px solid #173e5d; }
 .explore-panel h3 { margin:0 0 10px; color:#ffd35a; }
@@ -459,7 +461,7 @@ h1 {
     <button id="exploreButton" class="explore-button" style="display:none" onclick="startWorldExploration()">🔭 Keşif Başlat</button>
     <button id="claimWorldSiteButton" class="explore-button" style="display:none" onclick="claimSelectedWorldSite()">🏳️ Kontrol Altına Al</button>
     <div class="site-legend">
-      <span>🏔️ Nötr Bölge</span><span>💎 Kaynak Bölgesi</span><span>🏚️ Terk Edilmiş Koloni</span><span>🛡️ İttifak Bölgesi (gelecek)</span>
+      <span>🏔️ Nötr Bölge</span><span>💎 Kaynak Bölgesi</span><span>🏚️ Terk Edilmiş Koloni</span><span>🛡️ İttifak Bölgesi</span>
     </div>
   </div>
 
@@ -1480,8 +1482,12 @@ let worldClaimPending = false;
 function updateWorldClaimButton(){
   const button=document.getElementById("claimWorldSiteButton");
   if(!button)return;
-  button.style.display=selectedWorldSite?.can_claim===true&&selectedWorldSite.site_type!=="alliance"&&selectedWorldSite.owner_player_id==null?'inline-block':'none';
+  const canClaim=selectedWorldSite?.can_claim===true;
+  button.style.display=canClaim?'inline-block':'none';
   button.disabled=worldClaimPending;
+  button.textContent=selectedWorldSite?.site_type==="alliance"
+    ?"🛡️ İttifak Adına Kontrol Altına Al"
+    :"🏳️ Kontrol Altına Al";
 }
 async function claimSelectedWorldSite(){
   const token=localStorage.getItem("nexora_token");
@@ -1511,10 +1517,15 @@ function renderWorldSites() {
   (worldSites||[]).forEach(function(site){
     const el=document.createElement("div");
     el.className="world-site "+String(site.site_type||"neutral");
+    if(site.site_type==="alliance"&&site.owner_alliance_id!=null)el.classList.add("owned");
+    if(site.site_type==="alliance"&&site.is_owned_by_viewer===true)el.classList.add("mine");
     el.style.left=Number(site.coordinate_x||0)+"%";
     el.style.top=Number(site.coordinate_y||0)+"%";
     el.title=site.name+" — "+siteTypeLabel(site.site_type);
-    el.innerHTML=siteIcon(site.site_type)+'<span class="world-site-label">'+escapeHtml(site.name||siteTypeLabel(site.site_type))+'</span>';
+    const allianceTag=site.site_type==="alliance"&&site.owner_alliance_tag
+      ?" ["+escapeHtml(site.owner_alliance_tag)+"]"
+      :"";
+    el.innerHTML=siteIcon(site.site_type)+'<span class="world-site-label">'+escapeHtml(site.name||siteTypeLabel(site.site_type))+allianceTag+'</span>';
     el.addEventListener("click",function(e){e.stopPropagation();selectWorldSite(site,el);});
     box.appendChild(el);
   });
@@ -1527,20 +1538,54 @@ function selectWorldSite(site, element) {
   const distance=Math.round(Math.sqrt(Math.pow(Number(site.coordinate_x)-myCoordinateX,2)+Math.pow(Number(site.coordinate_y)-myCoordinateY,2)));
   const meta=document.getElementById("exploreSiteMeta");
   const button=document.getElementById("exploreButton");
-  const ownership=site.owner_player_id==null?"Sahipsiz Stratejik Nokta":Number(site.owner_player_id)===Number(savedUser?.id)?"Senin Kontrolünde":"Kontrol Eden: "+(site.owner_username||"Oyuncu");
+  let ownership="";
+  if(site.site_type==="alliance"){
+    if(site.owner_alliance_id==null){
+      ownership="Sahipsiz İttifak Bölgesi";
+    }else if(site.is_owned_by_viewer===true){
+      ownership="İttifakının Kontrolünde: ["+(site.owner_alliance_tag||"-")+"] "+(site.owner_alliance_name||"İttifak");
+    }else{
+      ownership="Kontrol Eden İttifak: ["+(site.owner_alliance_tag||"-")+"] "+(site.owner_alliance_name||"İttifak");
+    }
+  }else{
+    ownership=site.owner_player_id==null
+      ?"Sahipsiz Stratejik Nokta"
+      :Number(site.owner_player_id)===Number(savedUser?.id)
+        ?"Senin Kontrolünde"
+        :"Kontrol Eden: "+(site.owner_username||"Oyuncu");
+  }
   if(meta){
-    const defaultDescription=site.owner_player_id==null?"Bu nokta keşfedilmeyi bekliyor.":"Kontrol altındaki stratejik nokta.";
-    meta.innerHTML='<strong>'+escapeHtml(siteIcon(site.site_type)+' '+site.name)+'</strong><br>'+escapeHtml(siteTypeLabel(site.site_type))+' · 📍 X:'+Number(site.coordinate_x)+' Y:'+Number(site.coordinate_y)+' · 📏 Mesafe: '+distance+' km<br>'+escapeHtml(site.description||defaultDescription)+(site.site_type==="alliance"?' <br>🛡️ İttifak bölgeleri ileride aktif edilecek.':'');
+    const isOwned=site.owner_player_id!=null||site.owner_alliance_id!=null;
+    const defaultDescription=isOwned?"Kontrol altındaki stratejik nokta.":"Bu nokta keşfedilmeyi bekliyor.";
+    meta.innerHTML='<strong>'+escapeHtml(siteIcon(site.site_type)+' '+site.name)+'</strong><br>'+escapeHtml(siteTypeLabel(site.site_type))+' · 📍 X:'+Number(site.coordinate_x)+' Y:'+Number(site.coordinate_y)+' · 📏 Mesafe: '+distance+' km<br>'+escapeHtml(site.description||defaultDescription);
+    if(site.site_type==="alliance"&&site.alliance_has_explored===true&&site.owner_alliance_id==null){
+      meta.innerHTML+='<br>✅ İttifak keşfi tamamlandı.';
+      if(site.can_claim!==true)meta.innerHTML+=' Lider veya subay bölgeyi kontrol altına alabilir.';
+    }
   }
   if(meta)meta.innerHTML+='<br>'+escapeHtml(ownership);
   updateWorldClaimButton();
-  if(button){button.style.display=site.site_type==="alliance"||site.owner_player_id!=null?'none':'inline-block';button.disabled=false;button.textContent="🔭 Keşif Başlat";}
+  if(button){
+    button.style.display=site.can_explore===true?'inline-block':'none';
+    button.disabled=false;
+    button.textContent=site.site_type==="alliance"?"🔭 İttifak Bölgesini Keşfet":"🔭 Keşif Başlat";
+  }
   document.getElementById("info").style.display="block";
 }
 async function startWorldExploration(){
   const token=localStorage.getItem("nexora_token");
   if(!token||!selectedWorldSite)return;
-  if(selectedWorldSite.owner_player_id!=null){
+  if(selectedWorldSite.can_explore!==true){
+    if(selectedWorldSite.owner_player_id!=null||selectedWorldSite.owner_alliance_id!=null){
+      alert("❌ Kontrol altındaki stratejik noktalar yeniden keşfedilemez.");
+    }else if(selectedWorldSite.site_type==="alliance"&&!selectedWorldSite.viewer_alliance_id){
+      alert("❌ İttifak bölgesini keşfetmek için bir ittifakta olmalısın.");
+    }else{
+      alert("❌ Bu nokta şu anda keşfedilemez.");
+    }
+    return;
+  }
+  if(selectedWorldSite.owner_player_id!=null||selectedWorldSite.owner_alliance_id!=null){
     alert("❌ Kontrol altındaki stratejik noktalar yeniden keşfedilemez.");
     return;
   }

@@ -34,6 +34,10 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .activity{padding:10px 0;border-bottom:1px solid #17344f}
 .activity:last-child{border-bottom:0}
 .activity small{display:block;margin-top:4px;color:#6f94b4}
+.territory{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:13px;background:#071526;border:1px solid #3a2e57;border-radius:9px;margin:9px 0}
+.territory strong{color:#d7c0ff}
+.territory small{display:block;margin-top:5px;color:#8db0cf}
+.territoryLink{display:inline-block;padding:8px 10px;border-radius:7px;background:#2e2450;color:#d9c7ff;text-decoration:none;font-size:12px;font-weight:bold}
 .empty{color:#7799b8;padding:8px 0}
 @media(max-width:700px){
   .top{padding:0 14px}.logo{font-size:23px;letter-spacing:4px}
@@ -70,6 +74,9 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 
     <h3 class="sectionTitle">👥 Üyeler</h3>
     <div id="members"></div>
+
+    <h3 class="sectionTitle">🗺️ İttifak Bölgeleri</h3>
+    <div id="territories"></div>
 
     <h3 class="sectionTitle">📢 Duyurular</h3>
     <div id="announcementComposer" class="hidden">
@@ -242,6 +249,44 @@ function renderAnnouncements(items){
   }).join('')||'<div class="empty">Henüz duyuru yok.</div>';
 }
 
+function renderTerritories(items){
+  const el=document.getElementById('territories');
+  if(!el)return;
+  el.innerHTML=(items||[]).map(site=>`
+    <div class="territory">
+      <div>
+        <strong>🛡️ ${esc(site.name||'İttifak Bölgesi')}</strong>
+        <small>📍 X:${Number(site.coordinate_x||0)} Y:${Number(site.coordinate_y||0)}${site.claimed_at?' · '+esc(formatDate(site.claimed_at)):''}</small>
+      </div>
+      <a class="territoryLink" href="world.html">Haritada Aç</a>
+    </div>
+  `).join('')||'<div class="empty">Henüz kontrol edilen ittifak bölgesi yok. Dünya haritasından bir ittifak bölgesini keşfedebilirsin.</div>';
+}
+
+async function loadTerritories(allianceId){
+  const el=document.getElementById('territories');
+  if(!el||!allianceId)return;
+  try{
+    const r=await fetch('/api/auth?action=world',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const d=await r.json();
+    if(!r.ok||!d.success){
+      el.innerHTML='<div class="empty">İttifak bölgeleri alınamadı.</div>';
+      return;
+    }
+    const territories=(d.sites||[]).filter(site=>
+      site.site_type==='alliance'&&
+      Number(site.owner_alliance_id)===Number(allianceId)
+    );
+    renderTerritories(territories);
+  }catch(e){
+    console.error(e);
+    el.innerHTML='<div class="empty">İttifak bölgeleri alınamadı.</div>';
+  }
+}
+
 function activityText(x){
   const actor=esc(x.actor_username||'Oyuncu');
   const target=esc(x.target_username||'Oyuncu');
@@ -256,6 +301,8 @@ function activityText(x){
     case 'leadership_transferred': return `Liderlik ${target} oyuncusuna devredildi.`;
     case 'announcement_posted': return `${actor} yeni bir duyuru yayınladı.`;
     case 'announcement_deleted': return `${actor} bir duyuruyu sildi.`;
+    case 'territory_claimed':
+      return `${actor}, ${esc(meta.siteName||'bir ittifak bölgesini')} kontrol altına aldı.`;
     case 'war_challenge_sent':
       return `${actor} ${esc(meta.targetAllianceName||'rakip ittifaka')} savaş çağrısı gönderdi.`;
     case 'war_challenge_received':
@@ -299,6 +346,8 @@ function showNoAlliance(){
   currentMember=null;
   document.getElementById('mine').classList.add('hidden');
   document.getElementById('create').classList.remove('hidden');
+  const territories=document.getElementById('territories');
+  if(territories)territories.innerHTML='';
 }
 
 async function loadMine(){
@@ -314,6 +363,7 @@ async function loadMine(){
     }
     if(d.alliance){
       showMine(d.alliance,d.member,d.members,d.announcements,d.activity);
+      await loadTerritories(d.alliance.id);
     }else{
       showNoAlliance();
     }
