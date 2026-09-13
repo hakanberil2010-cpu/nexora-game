@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NEXORA - İstatistikler</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.player{color:#9fc0df}.container{max-width:1200px;margin:30px auto;padding:0 20px 40px}.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}.topBack:hover{filter:brightness(1.08)}h1{margin:0 0 8px}.sub{margin:0 0 20px;color:#7897b6}.section{margin-top:22px}.section h2{font-size:20px;margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{min-width:0;padding:16px;background:#091a2c;border:1px solid #173b5d;border-radius:12px}.label{color:#83a6c6;font-size:13px}.value{margin-top:7px;color:#eaf4ff;font-size:22px;font-weight:bold;overflow-wrap:anywhere}.resource-detail{margin-top:7px;color:#9fc0df;font-size:13px}.bar{height:7px;margin-top:10px;overflow:hidden;background:#071526;border-radius:10px}.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,#138dcc,#18bfff);border-radius:10px}.message{padding:14px 16px;background:#091a2c;border:1px solid #173b5d;border-radius:10px;color:#9fc0df}.message.error{border-color:#7b3340;color:#ffb5bf}.hidden{display:none}@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.top{height:auto;min-height:68px;padding:14px 16px;gap:14px}.logo{font-size:23px;letter-spacing:4px}.player{font-size:13px;text-align:right}.container{margin:20px auto;padding:0 14px 28px}.grid{grid-template-columns:1fr 1fr;gap:9px}.card{padding:13px}.value{font-size:18px}}@media(max-width:380px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top"><div class="logo">NEXORA</div><div class="player">Oyuncu: <strong id="playerName">Komutan</strong></div></header>
+<main class="container">
+  <a class="topBack" href="game.html">← Koloniye Dön</a>
+  <h1>📊 İstatistikler</h1>
+  <p class="sub">Koloninin gelişimini, savaş geçmişini ve ekonomik durumunu tek ekranda takip et.</p>
+  <div id="message" class="message" role="status">İstatistikler yükleniyor...</div>
+  <div id="statisticsContent" class="hidden">
+    <section class="section">
+      <h2>Genel Durum</h2>
+      <div class="grid">
+        <div class="card"><div class="label">Sıralama</div><div class="value" id="rank">—</div></div>
+        <div class="card"><div class="label">Toplam puan</div><div class="value" id="score">—</div></div>
+        <div class="card"><div class="label">Koloni seviyesi</div><div class="value" id="colonyLevel">—</div></div>
+        <div class="card"><div class="label">Asker gücü</div><div class="value" id="armyPower">—</div></div>
+        <div class="card"><div class="label">Savaş puanı</div><div class="value" id="battlePoints">—</div></div>
+        <div class="card"><div class="label">Galibiyet</div><div class="value" id="wins">—</div></div>
+        <div class="card"><div class="label">Mağlubiyet</div><div class="value" id="losses">—</div></div>
+        <div class="card"><div class="label">Beraberlik</div><div class="value" id="draws">—</div></div>
+        <div class="card"><div class="label">Toplam araştırma seviyesi</div><div class="value" id="researchLevel">—</div></div>
+        <div class="card"><div class="label">Toplam bina seviyesi</div><div class="value" id="buildingsLevel">—</div></div>
+        <div class="card"><div class="label">Savaş toplamı</div><div class="value" id="battleTotal">—</div></div>
+        <div class="card"><div class="label">Galibiyet oranı</div><div class="value" id="winRate">—</div></div>
+      </div>
+    </section>
+    <section class="section">
+      <h2>Koloni Ekonomisi</h2>
+      <div class="grid">
+        <div class="card"><div class="label">Metal / kapasite</div><div class="value" id="metal">—</div><div class="resource-detail" id="metalRate">0%</div><div class="bar"><span id="metalBar"></span></div></div>
+        <div class="card"><div class="label">Enerji / kapasite</div><div class="value" id="energy">—</div><div class="resource-detail" id="energyRate">0%</div><div class="bar"><span id="energyBar"></span></div></div>
+        <div class="card"><div class="label">Su / kapasite</div><div class="value" id="water">—</div><div class="resource-detail" id="waterRate">0%</div><div class="bar"><span id="waterBar"></span></div></div>
+        <div class="card"><div class="label">Kristal / kapasite</div><div class="value" id="crystal">—</div><div class="resource-detail" id="crystalRate">0%</div><div class="bar"><span id="crystalBar"></span></div></div>
+        <div class="card"><div class="label">Nüfus / kapasite</div><div class="value" id="population">—</div></div>
+        <div class="card"><div class="label">Ordu kapasitesi</div><div class="value" id="armyCapacity">—</div></div>
+        <div class="card"><div class="label">Savunma bonusu</div><div class="value" id="defenseBonus">—</div></div>
+        <div class="card"><div class="label">Metal/dk</div><div class="value" id="metalPerMinute">—</div></div>
+        <div class="card"><div class="label">Enerji/dk</div><div class="value" id="energyPerMinute">—</div></div>
+        <div class="card"><div class="label">Su/dk</div><div class="value" id="waterPerMinute">—</div></div>
+        <div class="card"><div class="label">Kristal/dk</div><div class="value" id="crystalPerMinute">—</div></div>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+const token=localStorage.getItem('nexora_token');
+if(!token)location.replace('login.html');
+let savedUser=null;
+try{savedUser=JSON.parse(localStorage.getItem('nexora_player')||'null')}catch(e){savedUser=null}
+if(savedUser&&typeof savedUser.username==='string'&&savedUser.username.trim())document.getElementById('playerName').textContent=savedUser.username;
+
+function number(value){const parsed=Number(value);return Number.isFinite(parsed)?parsed:0}
+function format(value){return Math.round(number(value)).toLocaleString('tr-TR')}
+function setText(id,value){document.getElementById(id).textContent=String(value)}
+function percentage(value,capacity){const cap=number(capacity);if(cap<=0)return 0;return Math.max(0,number(value))/cap*100}
+function formatPercent(value){return number(value).toLocaleString('tr-TR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'}
+function capacity(data,key,fallback){return number(data.capacities&&data.capacities[key]!==undefined?data.capacities[key]:fallback)}
+
+async function request(action){
+  const response=await fetch('/api/auth?action='+action,{method:'POST',headers:{Authorization:'Bearer '+token}});
+  let data=null;
+  try{data=await response.json()}catch(e){throw new Error('Sunucudan geçersiz yanıt alındı.')}
+  if(!response.ok||!data||data.success!==true)throw new Error(data&&typeof data.message==='string'?data.message:'İstatistik verileri alınamadı.');
+  return data;
+}
+
+function renderResource(name,value,cap){
+  const rate=percentage(value,cap);
+  setText(name,format(value)+' / '+format(cap));
+  setText(name+'Rate',formatPercent(rate));
+  document.getElementById(name+'Bar').style.width=Math.min(100,rate)+'%';
+}
+
+function render(rankings,data){
+  const me=rankings.me;
+  const city=data.city;
+  const capacities=data.capacities||{};
+  const production=data.production||{};
+  const wins=number(me.wins),losses=number(me.losses),draws=number(me.draws);
+  const battleTotal=wins+losses+draws;
+  setText('rank','#'+format(me.rank));
+  setText('score',format(me.score));
+  setText('colonyLevel',format(me.colony_level));
+  setText('armyPower',format(me.army_power));
+  setText('battlePoints',format(me.battle_points));
+  setText('wins',format(wins));
+  setText('losses',format(losses));
+  setText('draws',format(draws));
+  setText('researchLevel',format(me.research_level));
+  setText('buildingsLevel',format(me.buildings_level));
+  setText('battleTotal',format(battleTotal));
+  setText('winRate',battleTotal>0?formatPercent(wins/battleTotal*100):'0%');
+  const storage=number(city.storage_capacity);
+  const crystalStorage=number(city.crystal_storage_capacity!==undefined?city.crystal_storage_capacity:city.crystal_capacity);
+  renderResource('metal',city.metal,capacity(data,'metal_capacity',city.metal_capacity!==undefined?city.metal_capacity:storage));
+  renderResource('energy',city.energy,capacity(data,'energy_capacity',city.energy_capacity!==undefined?city.energy_capacity:storage));
+  renderResource('water',city.water,capacity(data,'water_capacity',city.water_capacity!==undefined?city.water_capacity:storage));
+  renderResource('crystal',city.crystal,capacity(data,'crystal_capacity',crystalStorage));
+  setText('population',format(city.population)+' / '+format(capacity(data,'population_capacity',city.population_capacity)));
+  setText('armyCapacity',format(capacity(data,'army_capacity',city.army_capacity)));
+  setText('defenseBonus','x'+number(capacities.defense_bonus!==undefined?capacities.defense_bonus:city.defense_bonus).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}));
+  setText('metalPerMinute',format(production.metalPerMinute));
+  setText('energyPerMinute',format(production.energyPerMinute));
+  setText('waterPerMinute',format(production.waterPerMinute));
+  setText('crystalPerMinute',format(production.crystalPerMinute));
+}
+
+let loading=false;
+async function loadStatistics(){
+  if(loading||!token)return;
+  loading=true;
+  const message=document.getElementById('message');
+  try{
+    const results=await Promise.all([request('rankings'),request('city')]);
+    if(!results[0].me||!results[1].city){
+      document.getElementById('statisticsContent').classList.add('hidden');
+      message.className='message';
+      message.textContent='Henüz gösterilecek istatistik verisi bulunmuyor.';
+      return;
+    }
+    render(results[0],results[1]);
+    document.getElementById('statisticsContent').classList.remove('hidden');
+    message.className='message hidden';
+    message.textContent='';
+  }catch(error){
+    message.className='message error';
+    message.textContent=error&&typeof error.message==='string'?error.message:'İstatistik verileri yüklenemedi.';
+  }finally{loading=false}
+}
+
+loadStatistics();
+setInterval(loadStatistics,15000);
+</script>
+</body>
+</html>
