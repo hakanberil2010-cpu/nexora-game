@@ -1981,10 +1981,70 @@ async function getTradeCity(playerId){
 }
 
 async function syncTradePlayer(playerId){
-  return await supabase("rpc/nexora_trade_sync_player",{
+  const pid=Number(playerId);
+  const due=await supabase("rpc/nexora_trade_sync_player",{
     method:"POST",
-    body:JSON.stringify({p_player_id:Number(playerId)})
+    body:JSON.stringify({p_player_id:pid})
   });
+  if(!due.ok||due.data?.success===false)return due;
+
+  const ids=Array.isArray(due.data?.transactionIds)
+    ? due.data.transactionIds.map(Number).filter(x=>Number.isSafeInteger(x)&&x>0)
+    : [];
+
+  let checked=0,delivered=0,blocked=0,failed=0;
+
+  // 015 migration deliberately returns only IDs here. Each finalize call is a
+  // separate PostgREST RPC/DB transaction, so city/transaction locks are not
+  // accumulated across a batch.
+  for(const transactionId of ids){
+    const finalized=await supabase("rpc/nexora_trade_finalize_transaction",{
+      method:"POST",
+      body:JSON.stringify({p_transaction_id:transactionId})
+    });
+
+    checked++;
+
+    if(!finalized.ok||finalized.data?.success===false){
+      failed++;
+      console.error("Trade teslimat finalizer hatası:",transactionId,finalized.data);
+      continue;
+    }
+
+    if(finalized.data?.status==="delivered")delivered++;
+    else if(finalized.data?.status==="blocked")blocked++;
+  }
+
+  const after=await supabase("rpc/nexora_trade_sync_player",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:pid})
+  });
+
+  if(!after.ok||after.data?.success===false){
+    return {
+      ok:true,
+      status:200,
+      data:{
+        ...due.data,
+        checked,
+        delivered,
+        blocked,
+        failed
+      }
+    };
+  }
+
+  return {
+    ok:true,
+    status:200,
+    data:{
+      ...after.data,
+      checked,
+      delivered,
+      blocked,
+      failed
+    }
+  };
 }
 
 async function getTradeOffers(req,res){
