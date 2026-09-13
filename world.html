@@ -1573,7 +1573,9 @@ function selectWorldSite(site, element) {
   if(meta)meta.innerHTML+='<br>'+escapeHtml(ownership);
   updateWorldClaimButton();
   if(button){
-    button.style.display=site.can_explore===true?'inline-block':'none';
+    const canExplore=site.can_explore===true
+      && !(site.site_type==="alliance"&&site.alliance_has_explored===true);
+    button.style.display=canExplore?'inline-block':'none';
     button.disabled=false;
     button.textContent=site.site_type==="alliance"?"🔭 İttifak Bölgesini Keşfet":"🔭 Keşif Başlat";
   }
