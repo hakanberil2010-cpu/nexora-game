@@ -1110,38 +1110,42 @@ async function getMilitaryMission(req,res){
 }
 
 async function syncResearchCityResources(playerId, city, buildings, research){
-  const now=Date.now();
-  const lastProduction=new Date(city.last_production_at||city.updated_at||now).getTime();
-  const elapsedMinutes=Math.max(0,Math.floor((now-lastProduction)/60000));
-  const prodMultiplier=1+Number(research?.production_level||0)*0.10;
-  const crystalMultiplier=1+Number(research?.crystal_level||0)*0.08;
-  const metalRate=buildingLevel(buildings,"Metal Madeni")*10*prodMultiplier;
-  const energyRate=buildingLevel(buildings,"Enerji Santrali")*10*prodMultiplier;
-  const waterRate=buildingLevel(buildings,"Su Arıtma")*10*prodMultiplier;
-  const crystalRate=buildingLevel(buildings,"Kristal Madeni")*5*crystalMultiplier;
-  const resourceCap=storageCapacity(buildings);
-  const crystalCap=crystalStorageCapacity(buildings);
+  // Research must use the same row-locked production sync as the city screen.
+  // Never write resource balances from an older city snapshot.
+  const productionSync=await supabase("rpc/nexora_sync_city_production",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:Number(playerId)})
+  });
+
+  if(!productionSync.ok||productionSync.data?.success===false||!productionSync.data?.city){
+    console.error("Araştırma atomik üretim senkronizasyonu hatası:",productionSync.data);
+    return null;
+  }
+
+  let syncedCity=productionSync.data.city;
   const populationCap=housingCapacity(buildings);
   const armyCap=armyCapacity(buildings);
-  const next={...city};
-  if(elapsedMinutes>0){
-    next.metal=capResource(Number(city.metal)+metalRate*elapsedMinutes,resourceCap);
-    next.energy=capResource(Number(city.energy)+energyRate*elapsedMinutes,resourceCap);
-    next.water=capResource(Number(city.water)+waterRate*elapsedMinutes,resourceCap);
-    next.crystal=capResource(Number(city.crystal)+crystalRate*elapsedMinutes,crystalCap);
+
+  // Only non-resource capacity fields are allowed in this PATCH.
+  if(
+    Number(syncedCity.population_capacity)!==populationCap||
+    Number(syncedCity.army_capacity)!==armyCap
+  ){
+    const updated=await supabase(
+      "cities?id=eq."+encodeURIComponent(syncedCity.id),
+      {
+        method:"PATCH",
+        headers:{Prefer:"return=representation"},
+        body:JSON.stringify({
+          population_capacity:populationCap,
+          army_capacity:armyCap
+        })
+      }
+    );
+    if(updated.ok&&updated.data?.[0])syncedCity=updated.data[0];
   }
-  const needsUpdate=elapsedMinutes>0 || Number(city.metal_capacity)!==resourceCap || Number(city.energy_capacity)!==resourceCap || Number(city.water_capacity)!==resourceCap || Number(city.crystal_capacity)!==crystalCap || Number(city.population_capacity)!==populationCap || Number(city.army_capacity)!==armyCap;
-  if(needsUpdate){
-    const patch={metal:next.metal,energy:next.energy,water:next.water,crystal:next.crystal,metal_capacity:resourceCap,energy_capacity:resourceCap,water_capacity:resourceCap,crystal_capacity:crystalCap,population_capacity:populationCap,army_capacity:armyCap};
-    if(elapsedMinutes>0)patch.last_production_at=new Date(lastProduction+elapsedMinutes*60000).toISOString();
-    const updated=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)});
-    if(updated.ok&&updated.data?.[0])return updated.data[0];
-  }
-  next.metal=capResource(Number(next.metal),resourceCap);
-  next.energy=capResource(Number(next.energy),resourceCap);
-  next.water=capResource(Number(next.water),resourceCap);
-  next.crystal=capResource(Number(next.crystal),crystalCap);
-  return next;
+
+  return syncedCity;
 }
 
 async function upgradeResearch(req,res){
@@ -1163,6 +1167,7 @@ async function upgradeResearch(req,res){
   if(!research){const cr=await supabase("research",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,production_level:0,combat_level:0,defense_level:0,crystal_level:0,general_power_level:0,unit_attack_level:0,unit_defense_level:0,unit_hp_level:0,travel_speed_level:0})});if(!cr.ok)return send(res,500,{success:false,message:"Araştırma kaydı oluşturulamadı."});research=cr.data[0];}
   if(research.upgrade_ready_at){research=await finalizeResearch(research);}
   city=await syncResearchCityResources(playerId,city,buildings,research);
+  if(!city)return send(res,503,{success:false,message:"Koloni üretimi senkronize edilemedi."});
   if(research.upgrade_ready_at)return send(res,400,{success:false,message:"Başka bir araştırma zaten sürüyor.",finishAt:research.upgrade_ready_at});
   const level=Math.max(0,Number(research[column]||0)); if(level>=15)return send(res,400,{success:false,message:"Bu araştırma zaten 15. seviyede."});
   const mult=level+1; const cost={metal:base[type].metal*mult,energy:base[type].energy*mult,crystal:base[type].crystal*mult}; if(Number(city.metal)<cost.metal||Number(city.energy)<cost.energy||Number(city.crystal)<cost.crystal)return send(res,400,{success:false,message:"Yeterli kaynak yok.",cost,available:{metal:Number(city.metal||0),energy:Number(city.energy||0),crystal:Number(city.crystal||0)}});
@@ -1653,6 +1658,7 @@ async function getResearch(req,res){
   if(!research){const cr=await supabase("research",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,production_level:0,combat_level:0,defense_level:0,crystal_level:0,general_power_level:0,unit_attack_level:0,unit_defense_level:0,unit_hp_level:0,travel_speed_level:0})});if(!cr.ok)return send(res,500,{success:false,message:"Araştırma kaydı oluşturulamadı."});research=cr.data[0];}
   research=await finalizeResearch(research);
   city=await syncResearchCityResources(playerId,city,buildings,research);
+  if(!city)return send(res,503,{success:false,message:"Koloni üretimi senkronize edilemedi."});
   const remaining=research.upgrade_ready_at?Math.max(0,Math.ceil((new Date(research.upgrade_ready_at).getTime()-Date.now())/1000)):0;
   return send(res,200,{success:true,research,city:{metal:Number(city.metal||0),energy:Number(city.energy||0),water:Number(city.water||0),crystal:Number(city.crystal||0),metal_capacity:storageCapacity(buildings),energy_capacity:storageCapacity(buildings),water_capacity:storageCapacity(buildings),crystal_capacity:crystalStorageCapacity(buildings)},serverTime:new Date().toISOString(),remainingSeconds:remaining});
 }
