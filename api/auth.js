@@ -2114,15 +2114,19 @@ async function createTradeOffer(req,res){
   const body=await readBody(req);
   const giveResource=normalizeTradeResource(body.giveResource);
   const wantResource=normalizeTradeResource(body.wantResource);
-  const giveAmount=Math.floor(Number(body.giveAmount||0));
-  const wantAmount=Math.floor(Number(body.wantAmount||0));
-  const hours=Math.min(72,Math.max(1,Math.floor(Number(body.durationHours||24))));
+  const giveAmount=Number(body.giveAmount);
+  const wantAmount=Number(body.wantAmount);
+  const hours=body.durationHours==null?24:Number(body.durationHours);
 
   if(!giveResource||!wantResource||giveResource===wantResource)return send(res,400,{success:false,message:"Geçerli ve farklı iki kaynak seçmelisin."});
   if(
+    !Number.isSafeInteger(giveAmount)||!Number.isSafeInteger(wantAmount)||
     giveAmount<TRADE_MIN_AMOUNT||wantAmount<TRADE_MIN_AMOUNT||
     giveAmount>TRADE_MAX_AMOUNT||wantAmount>TRADE_MAX_AMOUNT
-  )return send(res,400,{success:false,message:"Ticaret miktarı 10 ile 100000000 arasında olmalı."});
+  )return send(res,400,{success:false,message:"Ticaret miktarı 10 ile 100000000 arasında tam sayı olmalı."});
+  if(!Number.isSafeInteger(hours)||hours<1||hours>72){
+    return send(res,400,{success:false,message:"Teklif süresi 1 ile 72 saat arasında tam sayı olmalı."});
+  }
 
   const rpc=await supabase("rpc/create_trade_offer",{
     method:"POST",
@@ -2154,8 +2158,10 @@ async function createTradeOffer(req,res){
 async function acceptTradeOffer(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const body=await readBody(req);
-  const offerId=Math.floor(Number(body.offerId||0));
-  if(!offerId)return send(res,400,{success:false,message:"Geçerli teklif seçilmedi."});
+  const offerId=Number(body.offerId);
+  if(!Number.isSafeInteger(offerId)||offerId<=0){
+    return send(res,400,{success:false,message:"Geçerli teklif seçilmedi."});
+  }
 
   const rpc=await supabase("rpc/accept_trade_offer",{
     method:"POST",
@@ -2184,8 +2190,10 @@ async function acceptTradeOffer(req,res){
 async function cancelTradeOffer(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const body=await readBody(req);
-  const offerId=Math.floor(Number(body.offerId||0));
-  if(!offerId)return send(res,400,{success:false,message:"Geçerli teklif seçilmedi."});
+  const offerId=Number(body.offerId);
+  if(!Number.isSafeInteger(offerId)||offerId<=0){
+    return send(res,400,{success:false,message:"Geçerli teklif seçilmedi."});
+  }
 
   const rpc=await supabase("rpc/cancel_trade_offer",{
     method:"POST",
