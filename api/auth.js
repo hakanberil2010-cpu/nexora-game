@@ -2056,17 +2056,36 @@ async function getTradeOffers(req,res){
     return send(res,503,{success:false,message:"Ticaret sistemi şu anda kullanılamıyor."});
   }
 
-  const r=await supabase("trade_offers?select=id,creator_player_id,give_resource,give_amount,want_resource,want_amount,status,expires_at,created_at,accepted_by_player_id,accepted_at&order=created_at.desc&limit=100");
-  if(!r.ok)return send(res,500,{success:false,message:"Ticaret teklifleri alınamadı."});
-
   const serverTime=sync.data?.serverTime||new Date().toISOString();
   const serverNow=new Date(serverTime).getTime();
-  const offers=(r.data||[]).filter(x=>{
-    if(x.status!=="open")return false;
-    const own=Number(x.creator_player_id)===Number(playerId);
-    const expired=x.expires_at&&new Date(x.expires_at).getTime()<=serverNow;
-    return !expired||own;
-  });
+  const serverIso=Number.isFinite(serverNow)?new Date(serverNow).toISOString():new Date().toISOString();
+  const select="id,creator_player_id,give_resource,give_amount,want_resource,want_amount,status,expires_at,created_at,accepted_by_player_id,accepted_at";
+
+  // Query only currently-open market offers from the database. Do not let the
+  // last-100 rows of all statuses hide older valid open offers.
+  const market=await supabase(
+    "trade_offers?select="+select+
+    "&status=eq.open"+
+    "&expires_at=gt."+encodeURIComponent(serverIso)+
+    "&order=created_at.desc&limit=100"
+  );
+  if(!market.ok)return send(res,500,{success:false,message:"Ticaret teklifleri alınamadı."});
+
+  // Own open offers are fetched independently so an expired offer waiting for
+  // escrow refund can never disappear behind the public market limit.
+  const own=await supabase(
+    "trade_offers?select="+select+
+    "&creator_player_id=eq."+encodeURIComponent(playerId)+
+    "&status=eq.open"+
+    "&order=created_at.desc"
+  );
+  if(!own.ok)return send(res,500,{success:false,message:"Kendi ticaret tekliflerin alınamadı."});
+
+  const merged=new Map();
+  for(const offer of [...(market.data||[]),...(own.data||[])])merged.set(Number(offer.id),offer);
+  const offers=[...merged.values()].sort((a,b)=>
+    new Date(b.created_at||0).getTime()-new Date(a.created_at||0).getTime()
+  );
 
   const ids=[...new Set(offers.map(x=>Number(x.creator_player_id)).filter(Boolean))];
   const names={};
