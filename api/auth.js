@@ -659,6 +659,19 @@ async function getCity(req, res) {
   });
 }
 
+async function spendCityResources(playerId,cost={}){
+  return await supabase("rpc/nexora_spend_city_resources",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_metal:Number(cost.metal||0),
+      p_energy:Number(cost.energy||0),
+      p_water:Number(cost.water||0),
+      p_crystal:Number(cost.crystal||0)
+    })
+  });
+}
+
 async function produceArmy(req, res) {
   const playerId = authPlayerId(req);
   if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamadı." });
@@ -681,31 +694,27 @@ async function produceArmy(req, res) {
   const armyCap = armyCapacity(buildings);
   if (population + cfg.population > capacity) return send(res, 400, { success: false, message: "Konut kapasitesi yetersiz.", population, population_capacity: capacity, army_capacity: armyCap });
   if (population + cfg.population > armyCap) return send(res, 400, { success: false, message: "Kışla/ordu kapasitesi yetersiz.", population, population_capacity: capacity, army_capacity: armyCap });
-  const resourceCap = storageCapacity(buildings);
-  const crystalCap = crystalStorageCapacity(buildings);
-  const currentMetal = capResource(Number(city.metal), resourceCap);
-  const currentEnergy = capResource(Number(city.energy), resourceCap);
-  const currentCrystal = capResource(Number(city.crystal), crystalCap);
-  if (Number(city.metal) !== currentMetal || Number(city.energy) !== currentEnergy || Number(city.crystal) !== currentCrystal) {
-    const normalized = await supabase("cities?id=eq." + encodeURIComponent(city.id), {
-      method: "PATCH", headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ metal: currentMetal, energy: currentEnergy, crystal: currentCrystal, metal_capacity: resourceCap, energy_capacity: resourceCap, water_capacity: resourceCap, crystal_capacity: crystalCap })
-    });
-    if (normalized.ok && normalized.data?.[0]) city = normalized.data[0];
-  }
-  const cost = { metal: cfg.metal, energy: cfg.energy, crystal: Number(cfg.crystal || 0) };
-  if (Number(city.metal) < cost.metal || Number(city.energy) < cost.energy || Number(city.crystal) < cost.crystal) return send(res, 400, { success: false, message: "Yeterli kaynak yok.", cost });
+  const cost = { metal: cfg.metal, energy: cfg.energy, water: 0, crystal: Number(cfg.crystal || 0) };
 
   const barracks = Math.max(1, buildingLevel(buildings, "Kışla"));
   const duration = Math.max(10, Math.round(cfg.train * Math.max(0.35, 1 - barracks * 0.04)));
   const finishAt = new Date(Date.now() + duration * 1000).toISOString();
-  const updatedCity = await supabase("cities?id=eq." + encodeURIComponent(city.id), {
-    method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ metal: Number(city.metal)-cost.metal, energy: Number(city.energy)-cost.energy, crystal: Number(city.crystal)-cost.crystal, metal_capacity: resourceCap, energy_capacity: resourceCap, water_capacity: resourceCap, crystal_capacity: crystalCap })
-  });
-  if (!updatedCity.ok) return send(res, 500, { success: false, message: "Kaynaklar güncellenemedi." });
+
+  const spend=await spendCityResources(playerId,cost);
+  if(!spend.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
+  if(spend.data?.success===false){
+    return send(res,400,{
+      success:false,
+      message:spend.data?.message||"Yeterli kaynak yok.",
+      cost:spend.data?.cost||cost,
+      available:spend.data?.available
+    });
+  }
+  const updatedCity=spend.data?.city;
+  if(!updatedCity)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
   const q = await supabase("unit_production_queue", { method:"POST", headers:{Prefer:"return=representation"}, body:JSON.stringify({ player_id:playerId, city_id:city.id, unit_type:unitType, quantity:1, finish_at:finishAt }) });
   if (!q.ok) return send(res, 500, { success:false, message:"Üretim kuyruğuna eklenemedi." });
-  return send(res, 200, { success:true, message: cfg.label + " üretim sırasına alındı.", production:q.data?.[0], city:updatedCity.data?.[0] || city, population, population_capacity:capacity, army_capacity:armyCap });
+  return send(res, 200, { success:true, message: cfg.label + " üretim sırasına alındı.", production:q.data?.[0], city:updatedCity, population, population_capacity:capacity, army_capacity:armyCap });
 }
 
 async function upgradeUnit(req, res) {
@@ -1170,9 +1179,13 @@ async function upgradeResearch(req,res){
   if(!city)return send(res,503,{success:false,message:"Koloni üretimi senkronize edilemedi."});
   if(research.upgrade_ready_at)return send(res,400,{success:false,message:"Başka bir araştırma zaten sürüyor.",finishAt:research.upgrade_ready_at});
   const level=Math.max(0,Number(research[column]||0)); if(level>=15)return send(res,400,{success:false,message:"Bu araştırma zaten 15. seviyede."});
-  const mult=level+1; const cost={metal:base[type].metal*mult,energy:base[type].energy*mult,crystal:base[type].crystal*mult}; if(Number(city.metal)<cost.metal||Number(city.energy)<cost.energy||Number(city.crystal)<cost.crystal)return send(res,400,{success:false,message:"Yeterli kaynak yok.",cost,available:{metal:Number(city.metal||0),energy:Number(city.energy||0),crystal:Number(city.crystal||0)}});
+  const mult=level+1; const cost={metal:base[type].metal*mult,energy:base[type].energy*mult,water:0,crystal:base[type].crystal*mult};
   const duration=60+level*45; const finishAt=new Date(Date.now()+duration*1000).toISOString();
-  const cu=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({metal:Number(city.metal)-cost.metal,energy:Number(city.energy)-cost.energy,crystal:Number(city.crystal)-cost.crystal})}); if(!cu.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."}); city=cu.data[0];
+  const spend=await spendCityResources(playerId,cost);
+  if(!spend.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
+  if(spend.data?.success===false)return send(res,400,{success:false,message:spend.data?.message||"Yeterli kaynak yok.",cost:spend.data?.cost||cost,available:spend.data?.available});
+  city=spend.data?.city;
+  if(!city)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
   const ru=await supabase("research?id=eq."+encodeURIComponent(research.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({upgrade_ready_at:finishAt,pending_column:column})}); if(!ru.ok)return send(res,500,{success:false,message:"Araştırma başlatılamadı."});
   return send(res,200,{success:true,message:"🔬 Araştırma başlatıldı.",research:ru.data[0],city,finishAt,duration});
 }
@@ -1798,14 +1811,17 @@ async function upgradeBuilding(req,res){
   if(current>=maxLevel)return send(res,400,{success:false,message:buildingType+" maksimum seviye olan "+maxLevel+" seviyeye ulaştı."});
   const multiplier=current+1;
   const cost={metal:costs[buildingType].metal*multiplier,energy:costs[buildingType].energy*multiplier,water:costs[buildingType].water*multiplier,crystal:costs[buildingType].crystal*multiplier};
-  if(Number(city.metal)<cost.metal||Number(city.energy)<cost.energy||Number(city.water)<cost.water||Number(city.crystal)<cost.crystal)return send(res,400,{success:false,message:"Yeterli kaynak bulunmuyor.",cost,nextLevel:current+1});
   const duration=45+current*45, finishAt=new Date(Date.now()+duration*1000).toISOString();
-  const cu=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({metal:Number(city.metal)-cost.metal,energy:Number(city.energy)-cost.energy,water:Number(city.water)-cost.water,crystal:Number(city.crystal)-cost.crystal})});if(!cu.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
+  const spend=await spendCityResources(playerId,cost);
+  if(!spend.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
+  if(spend.data?.success===false)return send(res,400,{success:false,message:spend.data?.message||"Yeterli kaynak bulunmuyor.",cost:spend.data?.cost||cost,available:spend.data?.available,nextLevel:current+1});
+  const spentCity=spend.data?.city;
+  if(!spentCity)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
   let bu;
   if(building) bu=await supabase("buildings?id=eq."+encodeURIComponent(building.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({is_under_construction:true,upgrade_ready_at:finishAt})});
   else bu=await supabase("buildings",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({city_id:city.id,building_type:buildingType,level:0,is_under_construction:true,upgrade_ready_at:finishAt})});
   if(!bu.ok)return send(res,500,{success:false,message:"İnşaat başlatılamadı."});
-  return send(res,200,{success:true,message:buildingType+" için seviye "+(current+1)+" inşaatı başlatıldı.",city:cu.data?.[0]||city,building:bu.data?.[0],finishAt,duration,cost,nextLevel:current+1,maxLevel});
+  return send(res,200,{success:true,message:buildingType+" için seviye "+(current+1)+" inşaatı başlatıldı.",city:spentCity,building:bu.data?.[0],finishAt,duration,cost,nextLevel:current+1,maxLevel});
 }
 
 async function getWorldPlayers(req,res){
