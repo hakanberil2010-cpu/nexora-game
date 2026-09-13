@@ -183,10 +183,9 @@ h1 {
   pointer-events: none;
 }
 
-.mission-panel { position: fixed; top: 82px; right: 22px; width: 320px; max-height: 62vh; overflow-y: auto; z-index: 100; background: rgba(8,14,28,.96); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; box-shadow: 0 14px 40px rgba(0,0,0,.35); padding: 14px; backdrop-filter: blur(8px); }
+.mission-panel { display:none; position: fixed; top: 82px; right: 22px; width: 280px; max-height: 42vh; overflow-y: auto; z-index: 100; background: rgba(8,14,28,.96); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; box-shadow: 0 14px 40px rgba(0,0,0,.35); padding: 12px; backdrop-filter: blur(8px); }
 .mission-panel h3 { margin: 0 0 10px; font-size: 17px; }
-.mission-empty { opacity: .7; font-size: 13px; padding: 8px 2px; }
-.mission-card { padding: 11px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); margin-top: 8px; }
+.mission-card { padding: 10px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); margin-top: 8px; }
 .mission-card strong { display:block; margin-bottom:5px; }
 .mission-time { font-size:20px; font-weight:800; margin-top:7px; }
 .mission-meta { font-size:12px; opacity:.72; line-height:1.45; }
@@ -451,8 +450,8 @@ h1 {
   </div>
 
   <div class="mission-panel" id="missionPanel">
-    <h3>🚀 Seferlerim</h3>
-    <div id="missionList" class="mission-empty">Aktif sefer bulunmuyor.</div>
+    <h3>🚀 Aktif Sefer</h3>
+    <div id="missionList"></div>
   </div>
 
   <div class="explore-panel">
@@ -1094,22 +1093,26 @@ function formatMissionTime(seconds) {
 }
 
 function renderMissionPanel(missions) {
+  const panel = document.getElementById("missionPanel");
   const list = document.getElementById("missionList");
-  if (!list) return;
-  if (!missions.length) {
-    list.className = "mission-empty";
-    list.innerHTML = "Aktif sefer bulunmuyor.";
+  if (!panel || !list) return;
+
+  const activeMissions = (missions || []).filter(function(mission) {
+    return ["traveling", "returning", "resolving"].includes(
+      String(mission?.status || "").toLowerCase()
+    );
+  });
+
+  if (!activeMissions.length) {
+    panel.style.display = "none";
+    list.innerHTML = "";
     return;
   }
-  list.className = "";
-  list.innerHTML = missions.map(function(mission) {
+
+  panel.style.display = "block";
+  list.innerHTML = activeMissions.map(function(mission) {
     const title = escapeHtml(mission.targetName || "Hedef Koloni");
     const coords = "X:" + (mission.targetX ?? "-") + " Y:" + (mission.targetY ?? "-");
-
-    if (mission.status === "completed") {
-      const result = mission.result || {};
-      return '<div class="mission-card"><strong>✅ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-result">' + escapeHtml(result.result || "Savaş tamamlandı") + '</div><div class="mission-meta">Ordu üsse döndü.</div></div>';
-    }
 
     if (mission.status === "returning") {
       return '<div class="mission-card"><strong>↩️ ' + title + '</strong><div class="mission-meta">' + coords + '</div><div class="mission-time">' + formatMissionTime(mission.remainingSeconds) + '</div><div class="mission-meta">Savaş bitti, ordu geri dönüyor...</div></div>';
@@ -1156,9 +1159,7 @@ async function refreshMissionPanel() {
       };
 
       if (merged.status === "completed") {
-        const completedAt = Number(saved.completedAt || Date.now());
-        merged.completedAt = completedAt;
-        if (Date.now() - completedAt > 15000) continue;
+        continue;
       }
 
       updated.push(merged);
@@ -1181,10 +1182,16 @@ async function loadServerMissions() {
     const data = await response.json();
     if (!response.ok || !data.success) return;
     const local = getSavedMissions();
-    (data.missions || []).forEach(function(m) {
+    (data.missions || [])
+    .filter(function(m) {
+      return ["traveling", "returning", "resolving"].includes(
+        String(m.status || "").toLowerCase()
+      );
+    })
+    .forEach(function(m) {
       const mine = Number(m.attacker_player_id) === Number(savedUser && savedUser.id);
       upsertSavedMission({
-        id:m.id, status:m.status, remainingSeconds: m.status === "completed" ? 0 : Math.max(0, Math.ceil((new Date(m.arrive_at).getTime()-Date.now())/1000)),
+        id:m.id, status:m.status, remainingSeconds: Math.max(0, Math.ceil((new Date(m.arrive_at).getTime()-Date.now())/1000)),
         targetName: mine ? "Hedef Koloni" : "Sana gelen saldırı", targetX:"-", targetY:"-", result:m.result||null
       });
     });
