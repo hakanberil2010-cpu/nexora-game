@@ -604,9 +604,16 @@ async function getCity(req, res) {
   if (!unitsResult.ok) return send(res, 500, { success: false, message: "Ordu verileri alınamadı." });
   const units = unitsResult.data || [];
 
-  const now = Date.now();
-  const lastProduction = new Date(city.last_production_at || city.updated_at || now).getTime();
-  const elapsedMinutes = Math.max(0, Math.floor((now - lastProduction) / 60000));
+  const productionSync = await supabase("rpc/nexora_sync_city_production", {
+    method: "POST",
+    body: JSON.stringify({ p_player_id: playerId })
+  });
+  if (!productionSync.ok || productionSync.data?.success === false || !productionSync.data?.city) {
+    console.error("Atomik üretim senkronizasyonu hatası:", productionSync.data);
+    return send(res, 503, { success: false, message: "Koloni üretimi senkronize edilemedi." });
+  }
+  city = productionSync.data.city;
+
   const researchResult = await supabase("research?select=production_level,crystal_level&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
   const research = researchResult.ok && researchResult.data?.[0] ? researchResult.data[0] : {};
   const prodMultiplier = 1 + Number(research.production_level || 0) * 0.10;
@@ -617,20 +624,23 @@ async function getCity(req, res) {
   const crystalRate = buildingLevel(buildings, "Kristal Madeni") * 5 * crystalMultiplier;
   const resourceCap = storageCapacity(buildings);
   const crystalCap = crystalStorageCapacity(buildings);
-  if (elapsedMinutes > 0) {
-    city.metal = capResource(Number(city.metal) + metalRate * elapsedMinutes, resourceCap);
-    city.energy = capResource(Number(city.energy) + energyRate * elapsedMinutes, resourceCap);
-    city.water = capResource(Number(city.water) + waterRate * elapsedMinutes, resourceCap);
-    city.crystal = capResource(Number(city.crystal) + crystalRate * elapsedMinutes, crystalCap);
+
+  const populationNow = totalPopulation(units, production.queue);
+  const populationCapNow = housingCapacity(buildings);
+  const armyCapNow = armyCapacity(buildings);
+  if (
+    Number(city.population || 0) !== populationNow ||
+    Number(city.population_capacity || 0) !== populationCapNow ||
+    Number(city.army_capacity || 0) !== armyCapNow
+  ) {
     const updated = await supabase("cities?id=eq." + encodeURIComponent(city.id), {
-      method: "PATCH", headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ metal: city.metal, energy: city.energy, water: city.water, crystal: city.crystal, metal_capacity: resourceCap, energy_capacity: resourceCap, water_capacity: resourceCap, crystal_capacity: crystalCap, last_production_at: new Date().toISOString(), population_capacity: housingCapacity(buildings), army_capacity: armyCapacity(buildings), population: totalPopulation(units, production.queue), updated_at: new Date().toISOString() })
-    });
-    if (updated.ok && updated.data?.[0]) city = updated.data[0];
-  } else if (Number(city.metal_capacity) !== resourceCap || Number(city.energy_capacity) !== resourceCap || Number(city.water_capacity) !== resourceCap || Number(city.crystal_capacity) !== crystalCap || Number(city.population_capacity) !== housingCapacity(buildings) || Number(city.army_capacity) !== armyCapacity(buildings)) {
-    const updated = await supabase("cities?id=eq." + encodeURIComponent(city.id), {
-      method: "PATCH", headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ metal_capacity: resourceCap, energy_capacity: resourceCap, water_capacity: resourceCap, crystal_capacity: crystalCap, population_capacity: housingCapacity(buildings), army_capacity: armyCapacity(buildings) })
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        population: populationNow,
+        population_capacity: populationCapNow,
+        army_capacity: armyCapNow
+      })
     });
     if (updated.ok && updated.data?.[0]) city = updated.data[0];
   }
