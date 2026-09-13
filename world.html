@@ -1579,7 +1579,7 @@ function selectWorldSite(site, element) {
     button.disabled=false;
     button.textContent=site.site_type==="alliance"?"🔭 İttifak Bölgesini Keşfet":"🔭 Keşif Başlat";
   }
-  document.getElementById("info").style.display="block";
+  document.getElementById("info").style.display="none";
 }
 async function startWorldExploration(){
   const token=localStorage.getItem("nexora_token");
