@@ -221,19 +221,6 @@ async function register(req, res) {
       message: "Kullanıcı adı en az 3 karakter olmalı."
     });
   }
-if (username.length > 24) {
-  return send(res, 400, {
-    success: false,
-    message: "Kullanıcı adı en fazla 24 karakter olmalı."
-  });
-}
-
-if (!/^[A-Za-zÇĞİÖŞÜçğıöşü0-9_-]+$/.test(username)) {
-  return send(res, 400, {
-    success: false,
-    message: "Kullanıcı adı yalnızca harf, rakam, _ ve - içerebilir."
-  });
-}
 
   if (password.length < 6) {
     return send(res, 400, {
@@ -862,58 +849,177 @@ function regionForCoordinates(x,y){
 async function createMilitaryMission(req, res) {
   const playerId = authPlayerId(req);
   if (playerId === null) return send(res,401,{success:false,message:"Oturum bulunamadı."});
+
   const body = await readBody(req);
   const targetPlayerId = Number(body.targetPlayerId);
-  if (!Number.isInteger(targetPlayerId) || targetPlayerId === playerId) return send(res,400,{success:false,message:"Geçersiz hedef oyuncu."});
+  if (!Number.isInteger(targetPlayerId) || targetPlayerId === playerId) {
+    return send(res,400,{success:false,message:"Geçersiz hedef oyuncu."});
+  }
+
+  const requestedUnits = body.units && typeof body.units === "object" && !Array.isArray(body.units)
+    ? body.units
+    : null;
+  if (!requestedUnits) {
+    return send(res,400,{success:false,message:"Geçersiz birlik seçimi."});
+  }
+
+  let hasRequestedUnit = false;
+  for (const [type, rawQuantity] of Object.entries(requestedUnits)) {
+    if (!Object.prototype.hasOwnProperty.call(UNIT_CONFIG, type)) {
+      return send(res,400,{success:false,message:"Geçersiz birlik türü: "+type});
+    }
+    const quantity = Number(rawQuantity);
+    if (!Number.isSafeInteger(quantity) || quantity < 0 || quantity > 2147483647) {
+      return send(res,400,{success:false,message:type+" için birlik miktarı 0 veya pozitif tam sayı olmalı."});
+    }
+    if (quantity > 0) hasRequestedUnit = true;
+  }
+  if (!hasRequestedUnit) {
+    return send(res,400,{success:false,message:"En az bir birlik miktarı seçmelisin."});
+  }
 
   const [attackerCityResult,targetCityResult] = await Promise.all([
     supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
     supabase("cities?select=*&player_id=eq."+encodeURIComponent(targetPlayerId)+"&limit=1")
   ]);
-  if (!attackerCityResult.ok || !attackerCityResult.data?.[0]) return send(res,404,{success:false,message:"Saldıran koloni bulunamadı."});
-  if (!targetCityResult.ok || !targetCityResult.data?.[0]) return send(res,404,{success:false,message:"Hedef koloni bulunamadı."});
-  const attackerCity=attackerCityResult.data[0], targetCity=targetCityResult.data[0];
-  const active = await supabase("military_missions?select=id,status&attacker_player_id=eq."+encodeURIComponent(playerId)+"&status=in.(traveling,resolving,returning)&limit=1");
-  if (active.ok && active.data?.[0]) return send(res,400,{success:false,message:"Zaten aktif bir seferin bulunuyor."});
-
-  const unitsResult=await supabase("units?select=*&city_id=eq."+encodeURIComponent(attackerCity.id));
-  if (!unitsResult.ok) return send(res,500,{success:false,message:"Ordu verisi alınamadı."});
-  const requestedUnits=body.units&&typeof body.units==="object"?body.units:{};
-  let army=(unitsResult.data||[]).filter(u=>Number(u.quantity)>0).map(u=>{
-    const available=Number(u.quantity||0);
-    const requested=Number(requestedUnits[u.unit_type]||0);
-    return {unit_type:u.unit_type,quantity:requested,available,level:Number(u.level||1),attack:Number(u.attack||0),defense:Number(u.defense||0),hp:Number(u.hp||0),speed:Number(u.speed||100),population_cost:Number(u.population_cost||1)};
-  }).filter(u=>Number.isInteger(u.quantity)&&u.quantity>0);
-  for(const u of army){
-    if(u.quantity>u.available) return send(res,400,{success:false,message:u.unit_type+" için gönderilecek miktar mevcut ordudan fazla."});
+  if (!attackerCityResult.ok || !attackerCityResult.data?.[0]) {
+    return send(res,404,{success:false,message:"Saldıran koloni bulunamadı."});
   }
-  army=army.map(u=>{const x={...u};delete x.available;return x;});
-  army=await hydrateArmyStats(army);
-  if (!army.length) return send(res,400,{success:false,message:"En az bir birlik miktarı seçmelisin."});
-
-  const distance=Math.sqrt(Math.pow(Number(targetCity.coordinate_x||0)-Number(attackerCity.coordinate_x||0),2)+Math.pow(Number(targetCity.coordinate_y||0)-Number(attackerCity.coordinate_y||0),2));
-  const researchResult=await supabase("research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
-  const research=researchResult.ok&&researchResult.data?.[0]?researchResult.data[0]:{};
-  const fleetSpeed=Math.max(25,Math.min(...army.map(u=>Number(u.speed||100))));
-  const speedResearch=Math.max(0.25,1-Number(research.travel_speed_level||0)*0.05);
-  const travelSeconds=Math.max(10,Math.round(Math.max(1,distance)*120/fleetSpeed*speedResearch));
-  const attackResearch=(1+Number(research.general_power_level||0)*0.05)*(1+Number(research.unit_attack_level||0)*0.05);
-  const hpResearch=1+Number(research.unit_hp_level||0)*0.05;
-  const attackPower=Math.round(army.reduce((sum,u)=>sum+u.quantity*u.attack*attackResearch+u.quantity*u.hp*0.15*hpResearch,0));
-  const arriveAt=new Date(Date.now()+travelSeconds*1000).toISOString();
-
-  const departAt=new Date().toISOString();
-  const missionResult=await supabase("military_missions",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({attacker_player_id:playerId,defender_player_id:targetPlayerId,attacker_city_id:attackerCity.id,defender_city_id:targetCity.id,mission_type:"attack",status:"traveling",depart_at:departAt,arrive_at:arriveAt,attack_power:attackPower,army,depart_x:Number(attackerCity.coordinate_x||0),depart_y:Number(attackerCity.coordinate_y||0),target_x:Number(targetCity.coordinate_x||0),target_y:Number(targetCity.coordinate_y||0),travel_seconds:travelSeconds,fleet_speed:fleetSpeed})});
-  if (!missionResult.ok || !missionResult.data?.[0]) return send(res,500,{success:false,message:"Sefer oluşturulamadı."});
-  const missionId=missionResult.data[0].id;
-  for(const u of army){
-    const row=await supabase("units?select=id,quantity&city_id=eq."+encodeURIComponent(attackerCity.id)+"&unit_type=eq."+encodeURIComponent(u.unit_type)+"&limit=1");
-    if(!row.ok||!row.data?.[0]){await supabase("military_missions?id=eq."+encodeURIComponent(missionId),{method:"DELETE"});return send(res,500,{success:false,message:"Ordu sefer için hazırlanamadı."});}
-    if(Number(row.data[0].quantity)<u.quantity){await supabase("military_missions?id=eq."+encodeURIComponent(missionId),{method:"DELETE"});return send(res,400,{success:false,message:"Ordu miktarı güncel değil. Tekrar deneyin."});}
-    const update=await supabase("units?id=eq."+encodeURIComponent(row.data[0].id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({quantity:Number(row.data[0].quantity)-u.quantity})});
-    if(!update.ok){await supabase("military_missions?id=eq."+encodeURIComponent(missionId),{method:"DELETE"});return send(res,500,{success:false,message:"Ordu sefer için hazırlanamadı."});}
+  if (!targetCityResult.ok || !targetCityResult.data?.[0]) {
+    return send(res,404,{success:false,message:"Hedef koloni bulunamadı."});
   }
-  return send(res,200,{success:true,message:"⚔️ Ordu sefere çıktı.",mission:{id:missionId,status:"traveling",arriveAt,travelSeconds,distance:Math.round(distance)}});
+
+  const attackerCity = attackerCityResult.data[0];
+  const targetCity = targetCityResult.data[0];
+
+  const unitsResult = await supabase(
+    "units?select=*&city_id=eq."+encodeURIComponent(attackerCity.id)+"&order=id.asc"
+  );
+  if (!unitsResult.ok) {
+    return send(res,500,{success:false,message:"Ordu verisi alınamadı."});
+  }
+
+  const unitRows = new Map();
+  for (const unit of (unitsResult.data || [])) {
+    const type = String(unit.unit_type);
+    if (!unitRows.has(type)) unitRows.set(type, unit);
+  }
+
+  let army = [];
+  for (const [type, rawQuantity] of Object.entries(requestedUnits)) {
+    const quantity = Number(rawQuantity);
+    if (quantity === 0) continue;
+
+    const row = unitRows.get(type);
+    if (!row || Number(row.quantity || 0) < quantity) {
+      return send(res,400,{success:false,message:type+" için gönderilecek miktar mevcut ordudan fazla."});
+    }
+
+    army.push({
+      unit_type:type,
+      quantity,
+      level:Number(row.level || 1),
+      attack:Number(row.attack || 0),
+      defense:Number(row.defense || 0),
+      hp:Number(row.hp || 0),
+      speed:Number(row.speed || 100),
+      population_cost:Number(row.population_cost || 1)
+    });
+  }
+
+  const requestedArmyCount = army.length;
+  army = await hydrateArmyStats(army);
+  if (!army.length || army.length !== requestedArmyCount) {
+    return send(res,500,{success:false,message:"Birlik seviye verisi alınamadı."});
+  }
+
+  const distance = Math.sqrt(
+    Math.pow(Number(targetCity.coordinate_x || 0) - Number(attackerCity.coordinate_x || 0), 2) +
+    Math.pow(Number(targetCity.coordinate_y || 0) - Number(attackerCity.coordinate_y || 0), 2)
+  );
+
+  const researchResult = await supabase(
+    "research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level&player_id=eq."+
+    encodeURIComponent(playerId)+"&limit=1"
+  );
+  const research = researchResult.ok && researchResult.data?.[0]
+    ? researchResult.data[0]
+    : {};
+
+  const fleetSpeed = Math.max(25, Math.min(...army.map(u => Number(u.speed || 100))));
+  const speedResearch = Math.max(0.25, 1 - Number(research.travel_speed_level || 0) * 0.05);
+  const travelSeconds = Math.max(
+    10,
+    Math.round(Math.max(1, distance) * 120 / fleetSpeed * speedResearch)
+  );
+  const attackResearch =
+    (1 + Number(research.general_power_level || 0) * 0.05) *
+    (1 + Number(research.unit_attack_level || 0) * 0.05);
+  const hpResearch = 1 + Number(research.unit_hp_level || 0) * 0.05;
+  const attackPower = Math.round(
+    army.reduce(
+      (sum, u) => sum + u.quantity * u.attack * attackResearch + u.quantity * u.hp * 0.15 * hpResearch,
+      0
+    )
+  );
+
+  const startedResult = await supabase("rpc/nexora_start_military_mission", {
+    method:"POST",
+    body:JSON.stringify({
+      p_attacker_player_id:Number(playerId),
+      p_defender_player_id:Number(targetPlayerId),
+      p_attacker_city_id:Number(attackerCity.id),
+      p_defender_city_id:Number(targetCity.id),
+      p_army:army,
+      p_attack_power:attackPower,
+      p_depart_x:Number(attackerCity.coordinate_x || 0),
+      p_depart_y:Number(attackerCity.coordinate_y || 0),
+      p_target_x:Number(targetCity.coordinate_x || 0),
+      p_target_y:Number(targetCity.coordinate_y || 0),
+      p_travel_seconds:travelSeconds,
+      p_fleet_speed:fleetSpeed
+    })
+  });
+
+  if (!startedResult.ok) {
+    console.error("Atomik sefer başlatma RPC hatası:", startedResult.data);
+    return send(res,500,{success:false,message:"Sefer oluşturulamadı."});
+  }
+
+  const started = startedResult.data || {};
+  if (started.success !== true) {
+    const code = String(started.code || "");
+    const status = code === "ACTIVE_MISSION"
+      ? 409
+      : (code === "CITY_NOT_FOUND" || code === "TARGET_CITY_NOT_FOUND")
+        ? 404
+        : 400;
+    return send(res,status,{
+      success:false,
+      code:code || "MISSION_START_FAILED",
+      message:started.message || "Sefer başlatılamadı."
+    });
+  }
+
+  const mission = started.mission || {};
+  const missionId = Number(mission.id);
+  if (!Number.isSafeInteger(missionId) || missionId <= 0) {
+    console.error("Atomik sefer RPC geçersiz mission döndürdü:", started);
+    return send(res,500,{success:false,message:"Sefer oluşturulamadı."});
+  }
+
+  const arriveAt = mission.arrive_at || new Date(Date.now() + travelSeconds * 1000).toISOString();
+  return send(res,200,{
+    success:true,
+    message:"⚔️ Ordu sefere çıktı.",
+    mission:{
+      id:missionId,
+      status:String(mission.status || "traveling"),
+      arriveAt,
+      travelSeconds:Number(mission.travel_seconds || travelSeconds),
+      distance:Math.round(distance)
+    }
+  });
 }
 
 async function completeMissionReturn(mission,res){
