@@ -506,60 +506,22 @@ function totalPopulation(units, queue) {
 }
 
 async function syncProductionQueue(playerId, cityId) {
-  const qResult = await supabase(
-    "unit_production_queue?select=*&player_id=eq." + encodeURIComponent(playerId) +
-      "&city_id=eq." + encodeURIComponent(cityId) + "&status=eq.training&order=finish_at.asc"
-  );
-  if (!qResult.ok) return { ok: false, queue: [] };
-  const now = Date.now();
-  const queue = qResult.data || [];
-  for (const item of queue) {
-    if (new Date(item.finish_at).getTime() > now) continue;
-    const unitType = item.unit_type;
-    const unitLevelResult = await supabase(
-      "unit_levels?select=*&unit_type=eq." + encodeURIComponent(unitType) + "&level=eq.1&limit=1"
-    );
-    const stats = unitLevelResult.ok && unitLevelResult.data?.[0] ? unitLevelResult.data[0] : {};
-    const unitResult = await supabase(
-      "units?select=*&city_id=eq." + encodeURIComponent(cityId) + "&unit_type=eq." + encodeURIComponent(unitType) + "&limit=1"
-    );
-    if (unitResult.ok && unitResult.data?.[0]) {
-      const u = unitResult.data[0];
-      await supabase("units?id=eq." + encodeURIComponent(u.id), {
-        method: "PATCH", headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({ quantity: Number(u.quantity || 0) + Number(item.quantity || 0) })
-      });
-    } else {
-      await supabase("units", {
-        method: "POST", headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({
-          city_id: cityId, unit_type: unitType, quantity: Number(item.quantity || 0),
-          level: 1, attack: Number(stats.attack || 0), defense: Number(stats.defense || 0),
-          hp: Number(stats.hp || 0), speed: Number(stats.speed || 100),
-          population_cost: Number((UNIT_CONFIG[unitType] || {}).population || 1)
-        })
-      });
-    }
-    await supabase("unit_production_queue?id=eq." + encodeURIComponent(item.id) + "&status=eq.training", {
-      method: "PATCH", headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ status: "completed" })
-    });
-  }
-  const finalResult = await supabase(
-    "unit_production_queue?select=*&player_id=eq." + encodeURIComponent(playerId) +
-      "&city_id=eq." + encodeURIComponent(cityId) + "&status=eq.training&order=finish_at.asc"
-  );
-  return { ok: finalResult.ok, queue: finalResult.data || [] };
+  const result = await supabase("rpc/nexora_complete_unit_training", {
+    method: "POST", body: JSON.stringify({ p_player_id: Number(playerId), p_city_id: Number(cityId) })
+  });
+  return { ok: result.ok && result.data?.success === true, queue: result.data?.queue || [] };
 }
 
 async function finalizeBuilding(building) {
   if (!building || !building.is_under_construction || !building.upgrade_ready_at) return building;
   if (new Date(building.upgrade_ready_at).getTime() > Date.now()) return building;
-  const updated = await supabase("buildings?id=eq." + encodeURIComponent(building.id) + "&is_under_construction=eq.true", {
+  const updated = await supabase("buildings?id=eq." + encodeURIComponent(building.id) + "&is_under_construction=eq.true&upgrade_ready_at=eq." + encodeURIComponent(building.upgrade_ready_at) + "&level=eq." + encodeURIComponent(building.level), {
     method: "PATCH", headers: { Prefer: "return=representation" },
-    body: JSON.stringify({ level: Number(building.level || 1) + 1, is_under_construction: false, upgrade_ready_at: null })
+    body: JSON.stringify({ level: Number(building.level || 0) + 1, is_under_construction: false, upgrade_ready_at: null })
   });
-  return updated.ok && updated.data?.[0] ? updated.data[0] : building;
+  if (updated.ok && updated.data?.[0]) return updated.data[0];
+  const current = await supabase("buildings?select=*&id=eq." + encodeURIComponent(building.id));
+  return current.ok && current.data?.[0] ? current.data[0] : building;
 }
 
 async function finalizeResearch(research) {
@@ -567,11 +529,13 @@ async function finalizeResearch(research) {
   if (new Date(research.upgrade_ready_at).getTime() > Date.now()) return research;
   const column = research.pending_column;
   if (!column) return research;
-  const updated = await supabase("research?id=eq." + encodeURIComponent(research.id), {
+  const updated = await supabase("research?id=eq." + encodeURIComponent(research.id) + "&upgrade_ready_at=eq." + encodeURIComponent(research.upgrade_ready_at) + "&pending_column=eq." + encodeURIComponent(column), {
     method: "PATCH", headers: { Prefer: "return=representation" },
     body: JSON.stringify({ [column]: Number(research[column] || 0) + 1, upgrade_ready_at: null, pending_column: null })
   });
-  return updated.ok && updated.data?.[0] ? updated.data[0] : research;
+  if (updated.ok && updated.data?.[0]) return updated.data[0];
+  const current = await supabase("research?select=*&id=eq." + encodeURIComponent(research.id));
+  return current.ok && current.data?.[0] ? current.data[0] : research;
 }
 
 function capResource(value, cap) { return Math.max(0, Math.min(Number(value || 0), cap)); }
@@ -683,38 +647,14 @@ async function produceArmy(req, res) {
   const cityResult = await supabase("cities?select=*&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
   if (!cityResult.ok || !cityResult.data?.[0]) return send(res, 404, { success: false, message: "Koloni bulunamadı." });
   const city = cityResult.data[0];
-  const buildingsResult = await supabase("buildings?select=*&city_id=eq." + encodeURIComponent(city.id));
-  const buildings = buildingsResult.ok ? (buildingsResult.data || []) : [];
   const production = await syncProductionQueue(playerId, city.id);
   if (!production.ok) return send(res, 500, { success: false, message: "Üretim kuyruğu okunamadı." });
-  const unitsResult = await supabase("units?select=*&city_id=eq." + encodeURIComponent(city.id));
-  const units = unitsResult.ok ? (unitsResult.data || []) : [];
-  const population = totalPopulation(units, production.queue);
-  const capacity = housingCapacity(buildings);
-  const armyCap = armyCapacity(buildings);
-  if (population + cfg.population > capacity) return send(res, 400, { success: false, message: "Konut kapasitesi yetersiz.", population, population_capacity: capacity, army_capacity: armyCap });
-  if (population + cfg.population > armyCap) return send(res, 400, { success: false, message: "Kışla/ordu kapasitesi yetersiz.", population, population_capacity: capacity, army_capacity: armyCap });
-  const cost = { metal: cfg.metal, energy: cfg.energy, water: 0, crystal: Number(cfg.crystal || 0) };
-
-  const barracks = Math.max(1, buildingLevel(buildings, "Kışla"));
-  const duration = Math.max(10, Math.round(cfg.train * Math.max(0.35, 1 - barracks * 0.04)));
-  const finishAt = new Date(Date.now() + duration * 1000).toISOString();
-
-  const spend=await spendCityResources(playerId,cost);
-  if(!spend.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
-  if(spend.data?.success===false){
-    return send(res,400,{
-      success:false,
-      message:spend.data?.message||"Yeterli kaynak yok.",
-      cost:spend.data?.cost||cost,
-      available:spend.data?.available
-    });
-  }
-  const updatedCity=spend.data?.city;
-  if(!updatedCity)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
-  const q = await supabase("unit_production_queue", { method:"POST", headers:{Prefer:"return=representation"}, body:JSON.stringify({ player_id:playerId, city_id:city.id, unit_type:unitType, quantity:1, finish_at:finishAt }) });
-  if (!q.ok) return send(res, 500, { success:false, message:"Üretim kuyruğuna eklenemedi." });
-  return send(res, 200, { success:true, message: cfg.label + " üretim sırasına alındı.", production:q.data?.[0], city:updatedCity, population, population_capacity:capacity, army_capacity:armyCap });
+  const result = await supabase("rpc/nexora_start_unit_training", {
+    method: "POST", body: JSON.stringify({ p_player_id: Number(playerId), p_city_id: Number(city.id), p_type: unitType })
+  });
+  if (!result.ok) return send(res, 500, { success: false, message: "Üretim başlatılamadı." });
+  if (result.data?.success !== true) return send(res, 400, result.data || { success: false, message: "Üretim başlatılamadı." });
+  return send(res, 200, { ...result.data, message: cfg.label + " üretim sırasına alındı." });
 }
 
 async function upgradeUnit(req, res) {
@@ -832,59 +772,13 @@ async function upgradeUnit(req, res) {
     });
   }
 
-  const cityUpdate = await supabase(
-    "cities?id=eq." + encodeURIComponent(city.id),
-    {
-      method: "PATCH",
-      headers: {
-        Prefer: "return=representation"
-      },
-      body: JSON.stringify({
-        metal: Number(city.metal) - cost.metal,
-        energy: Number(city.energy) - cost.energy,
-        crystal: Number(city.crystal) - cost.crystal
-      })
-    }
-  );
-
-  if (!cityUpdate.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "Kaynaklar güncellenemedi."
-    });
-  }
-
-  const unitUpdate = await supabase(
-    "units?id=eq." + encodeURIComponent(unit.id),
-    {
-      method: "PATCH",
-      headers: {
-        Prefer: "return=representation"
-      },
-      body: JSON.stringify({
-        level: nextLevel,
-        attack: Number(nextStats.attack),
-        defense: Number(nextStats.defense),
-        hp: Number(nextStats.hp),
-        speed: Number(nextStats.speed)
-      })
-    }
-  );
-
-  if (!unitUpdate.ok) {
-    return send(res, 500, {
-      success: false,
-      message: "Birlik seviyesi güncellenemedi."
-    });
-  }
-
-  return send(res, 200, {
-    success: true,
-    message: "Birlik seviyesi yükseltildi.",
-    unit: unitUpdate.data[0],
-    city: cityUpdate.data[0],
-    cost: cost
+  const upgraded = await supabase("rpc/nexora_upgrade_unit_atomic", {
+    method: "POST",
+    body: JSON.stringify({ p_player_id: Number(decoded.id), p_city_id: Number(city.id), p_unit_id: Number(unit.id), p_level: currentLevel })
   });
+  if (!upgraded.ok) return send(res, 500, { success: false, message: "Birlik seviyesi güncellenemedi." });
+  if (upgraded.data?.success !== true) return send(res, 400, upgraded.data || { success: false, message: "Birlik seviyesi güncellenemedi." });
+  return send(res, 200, { success: true, message: "Birlik seviyesi yükseltildi.", unit: upgraded.data.unit, city: upgraded.data.city, cost });
 }
 
 
@@ -1089,24 +983,9 @@ async function getMilitaryMission(req,res){
   for(const u of defenders){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*defenderLossBase*mod*(1-0.12*ratio))));defenderLosses[u.unit_type]=(defenderLosses[u.unit_type]||0)+loss;}
   for(const u of defenders){const loss=Number(defenderLosses[u.unit_type]||0);if(loss)await supabase("units?id=eq."+encodeURIComponent(u.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({quantity:Math.max(0,Number(u.quantity||0)-loss)})});}
 
-  const targetCityResult=await supabase("cities?select=*&id=eq."+encodeURIComponent(mission.defender_city_id)+"&limit=1");
-  const attackerCityResult=await supabase("cities?select=*&id=eq."+encodeURIComponent(mission.attacker_city_id)+"&limit=1");
-  const targetCity=targetCityResult.data?.[0],attackerCity=attackerCityResult.data?.[0];
-  const targetBuildings=defB;
-  const targetStorage=storageCapacity(targetBuildings),targetCrystalStorage=crystalStorageCapacity(targetBuildings);
-  const attackerBuildingsResult=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(mission.attacker_city_id));
-  const attackerBuildings=attackerBuildingsResult.data||[],attackerStorage=storageCapacity(attackerBuildings),attackerCrystalStorage=crystalStorageCapacity(attackerBuildings);
-  const lootRate=result==="Zafer"?0.10:0;
-  const loot={metal:targetCity?Math.floor(Number(targetCity.metal||0)*lootRate):0,energy:targetCity?Math.floor(Number(targetCity.energy||0)*lootRate):0,water:targetCity?Math.floor(Number(targetCity.water||0)*lootRate):0,crystal:targetCity?Math.floor(Number(targetCity.crystal||0)*lootRate):0};
-  if(targetCity&&attackerCity&&result==="Zafer"){
-    const available={metal:Math.max(0,targetStorage-Number(targetCity.metal||0)),energy:Math.max(0,targetStorage-Number(targetCity.energy||0)),water:Math.max(0,targetStorage-Number(targetCity.water||0)),crystal:Math.max(0,targetCrystalStorage-Number(targetCity.crystal||0))};
-    loot.metal=Math.min(loot.metal,Math.max(0,attackerStorage-Number(attackerCity.metal||0)));
-    loot.energy=Math.min(loot.energy,Math.max(0,attackerStorage-Number(attackerCity.energy||0)));
-    loot.water=Math.min(loot.water,Math.max(0,attackerStorage-Number(attackerCity.water||0)));
-    loot.crystal=Math.min(loot.crystal,Math.max(0,attackerCrystalStorage-Number(attackerCity.crystal||0)));
-    await supabase("cities?id=eq."+encodeURIComponent(targetCity.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({metal:Math.max(0,Number(targetCity.metal||0)-loot.metal),energy:Math.max(0,Number(targetCity.energy||0)-loot.energy),water:Math.max(0,Number(targetCity.water||0)-loot.water),crystal:Math.max(0,Number(targetCity.crystal||0)-loot.crystal)})});
-    await supabase("cities?id=eq."+encodeURIComponent(attackerCity.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({metal:Math.min(attackerStorage,Number(attackerCity.metal||0)+loot.metal),energy:Math.min(attackerStorage,Number(attackerCity.energy||0)+loot.energy),water:Math.min(attackerStorage,Number(attackerCity.water||0)+loot.water),crystal:Math.min(attackerCrystalStorage,Number(attackerCity.crystal||0)+loot.crystal)})});
-  }
+  const settled=await supabase("rpc/nexora_settle_mission_loot",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_mission_id:Number(mission.id),p_loot_rate:result==="Zafer"?0.10:0})});
+  if(!settled.ok||settled.data?.success!==true)return send(res,500,{success:false,message:"Savaş kaynakları işlenemedi."});
+  const loot=settled.data.loot;
   const outbound=Math.max(10,Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000));
   const returnAt=new Date(Date.now()+outbound*1000).toISOString();
   const attackerX=Number(mission.depart_x),attackerY=Number(mission.depart_y),defenderX=Number(mission.target_x),defenderY=Number(mission.target_y);
@@ -1173,21 +1052,21 @@ async function upgradeResearch(req,res){
   }
   const buildingsResult=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id)); const buildings=buildingsResult.ok?(buildingsResult.data||[]):[];
   const rr=await supabase("research?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"); let research=rr.data?.[0];
-  if(!research){const cr=await supabase("research",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,production_level:0,combat_level:0,defense_level:0,crystal_level:0,general_power_level:0,unit_attack_level:0,unit_defense_level:0,unit_hp_level:0,travel_speed_level:0})});if(!cr.ok)return send(res,500,{success:false,message:"Araştırma kaydı oluşturulamadı."});research=cr.data[0];}
+  if(!rr.ok)return send(res,500,{success:false,message:"Araştırma verisi alınamadı."});
+  if(!research)research={};
   if(research.upgrade_ready_at){research=await finalizeResearch(research);}
   city=await syncResearchCityResources(playerId,city,buildings,research);
   if(!city)return send(res,503,{success:false,message:"Koloni üretimi senkronize edilemedi."});
   if(research.upgrade_ready_at)return send(res,400,{success:false,message:"Başka bir araştırma zaten sürüyor.",finishAt:research.upgrade_ready_at});
   const level=Math.max(0,Number(research[column]||0)); if(level>=15)return send(res,400,{success:false,message:"Bu araştırma zaten 15. seviyede."});
   const mult=level+1; const cost={metal:base[type].metal*mult,energy:base[type].energy*mult,water:0,crystal:base[type].crystal*mult};
-  const duration=60+level*45; const finishAt=new Date(Date.now()+duration*1000).toISOString();
-  const spend=await spendCityResources(playerId,cost);
+  const duration=60+level*45;
+  const spend=await supabase("rpc/nexora_start_research_upgrade",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_city_id:Number(city.id),p_column:column,p_level:level,p_cost:cost,p_duration:duration})});
   if(!spend.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
   if(spend.data?.success===false)return send(res,400,{success:false,message:spend.data?.message||"Yeterli kaynak yok.",cost:spend.data?.cost||cost,available:spend.data?.available});
   city=spend.data?.city;
   if(!city)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
-  const ru=await supabase("research?id=eq."+encodeURIComponent(research.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({upgrade_ready_at:finishAt,pending_column:column})}); if(!ru.ok)return send(res,500,{success:false,message:"Araştırma başlatılamadı."});
-  return send(res,200,{success:true,message:"🔬 Araştırma başlatıldı.",research:ru.data[0],city,finishAt,duration});
+  return send(res,200,{success:true,message:"🔬 Araştırma başlatıldı.",research:spend.data.research,city,finishAt:spend.data.finishAt,duration});
 }
 
 async function createAlliance(req, res) {
@@ -1811,17 +1690,13 @@ async function upgradeBuilding(req,res){
   if(current>=maxLevel)return send(res,400,{success:false,message:buildingType+" maksimum seviye olan "+maxLevel+" seviyeye ulaştı."});
   const multiplier=current+1;
   const cost={metal:costs[buildingType].metal*multiplier,energy:costs[buildingType].energy*multiplier,water:costs[buildingType].water*multiplier,crystal:costs[buildingType].crystal*multiplier};
-  const duration=45+current*45, finishAt=new Date(Date.now()+duration*1000).toISOString();
-  const spend=await spendCityResources(playerId,cost);
+  const duration=45+current*45;
+  const spend=await supabase("rpc/nexora_start_building_upgrade",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_city_id:Number(city.id),p_type:buildingType,p_level:current,p_cost:cost,p_duration:duration})});
   if(!spend.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
   if(spend.data?.success===false)return send(res,400,{success:false,message:spend.data?.message||"Yeterli kaynak bulunmuyor.",cost:spend.data?.cost||cost,available:spend.data?.available,nextLevel:current+1});
   const spentCity=spend.data?.city;
   if(!spentCity)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
-  let bu;
-  if(building) bu=await supabase("buildings?id=eq."+encodeURIComponent(building.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({is_under_construction:true,upgrade_ready_at:finishAt})});
-  else bu=await supabase("buildings",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({city_id:city.id,building_type:buildingType,level:0,is_under_construction:true,upgrade_ready_at:finishAt})});
-  if(!bu.ok)return send(res,500,{success:false,message:"İnşaat başlatılamadı."});
-  return send(res,200,{success:true,message:buildingType+" için seviye "+(current+1)+" inşaatı başlatıldı.",city:spentCity,building:bu.data?.[0],finishAt,duration,cost,nextLevel:current+1,maxLevel});
+  return send(res,200,{success:true,message:buildingType+" için seviye "+(current+1)+" inşaatı başlatıldı.",city:spentCity,building:spend.data.building,finishAt:spend.data.finishAt,duration,cost,nextLevel:current+1,maxLevel});
 }
 
 async function getWorldPlayers(req,res){
@@ -2087,7 +1962,7 @@ async function getTradeOffers(req,res){
   // last-100 rows of all statuses hide older valid open offers.
   const market=await supabase(
     "trade_offers?select="+select+
-    "&status=eq.open"+
+    "&status=eq.open&escrow_refunded_amount=eq.0"+
     "&expires_at=gt."+encodeURIComponent(serverIso)+
     "&order=created_at.desc&limit=100"
   );
@@ -2440,3 +2315,4 @@ if (action === "upgrade") {
     });
   }
 };
+
