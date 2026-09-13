@@ -107,7 +107,9 @@ async function loadHistory(){
     if(!d.history?.length){el.innerHTML='<p class="muted">Henüz ticaret yok.</p>';return}
     el.innerHTML=d.history.map(x=>{
       const seller=Number(x.seller_player_id)===Number(currentPlayerId);
-      const myReceive=seller?n(x.seller_receive_amount):n(x.buyer_receive_amount);
+      const rawReceive=seller?x.seller_receive_amount:x.buyer_receive_amount;
+      const legacyReceive=seller?n(x.want_amount):n(x.give_amount);
+      const myReceive=rawReceive==null?legacyReceive:n(rawReceive);
       const myTax=seller?n(x.seller_tax_amount):n(x.buyer_tax_amount);
       const receiveResource=seller?x.want_resource:x.give_resource;
       const other=seller?(x.buyer_username||"Oyuncu"):(x.seller_username||"Oyuncu");
