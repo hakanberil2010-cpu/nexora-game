@@ -1778,7 +1778,6 @@ async function exploreWorld(req,res){
   if(!siteR.ok||!siteR.data?.[0]||siteR.data[0].active===false)return send(res,404,{success:false,message:"Keşif noktası bulunamadı veya aktif değil."});
 
   const city=cityR.data[0], site=siteR.data[0];
-  if(site.site_type==="alliance")return send(res,400,{success:false,message:"İttifak bölgeleri henüz keşfe açık değil."});
 
   const distance=Math.sqrt(Math.pow(Number(site.coordinate_x||0)-Number(city.coordinate_x||0),2)+Math.pow(Number(site.coordinate_y||0)-Number(city.coordinate_y||0),2));
   const research=researchR.ok&&researchR.data?.[0]?researchR.data[0]:{};
