@@ -221,6 +221,19 @@ async function register(req, res) {
       message: "Kullanıcı adı en az 3 karakter olmalı."
     });
   }
+if (username.length > 24) {
+  return send(res, 400, {
+    success: false,
+    message: "Kullanıcı adı en fazla 24 karakter olmalı."
+  });
+}
+
+if (!/^[A-Za-zÇĞİÖŞÜçğıöşü0-9_-]+$/.test(username)) {
+  return send(res, 400, {
+    success: false,
+    message: "Kullanıcı adı yalnızca harf, rakam, _ ve - içerebilir."
+  });
+}
 
   if (password.length < 6) {
     return send(res, 400, {
