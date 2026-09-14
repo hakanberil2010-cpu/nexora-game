@@ -19,20 +19,12 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .main{flex:1;padding:24px;max-width:1380px;margin:auto;width:100%}
 .mobileNav{display:none;width:100%;margin:0 0 14px;padding:11px 12px;border:1px solid #285476;border-radius:8px;background:#071526;color:#eaf4ff;font-weight:bold}
 
-.welcome{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:16px}
-.welcome h1{margin:0 0 6px;font-size:30px}
+.welcome{display:flex;justify-content:flex-start;align-items:flex-end;gap:18px;margin-bottom:12px}
+.welcome h1{margin:0 0 4px;font-size:30px}
 .welcome p{margin:0;color:#7897b6}
-.colony-level-badge{padding:8px 12px;border:1px solid #1d587d;border-radius:10px;background:#0b2135;color:#8edcff;white-space:nowrap}
 
-.resources{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-.resource{padding:12px 14px;background:linear-gradient(180deg,#0b2035,#081725);border:1px solid #173b5d;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15)}
-.resource-title{color:#83a6c6;font-size:12px;font-weight:bold;letter-spacing:.4px}
-.resource-value{font-size:23px;font-weight:bold;margin-top:4px}
-.capacity{color:#6f94b5;font-size:12px;margin-top:2px}
-
-.colony-layout{display:grid;grid-template-columns:minmax(0,1fr) 315px;gap:14px;align-items:stretch}
-.colony-panel,.building-inspector,.action{background:#091a2c;border:1px solid #173b5d;border-radius:14px}
-.colony-panel{padding:12px;min-width:0}
+.colony-layout{display:block}
+.colony-panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:12px;min-width:0}
 .colony-scene{
   position:relative;
   min-height:610px;
@@ -43,6 +35,26 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 }
 .scene-title{position:absolute;left:14px;top:12px;z-index:4;padding:7px 10px;border-radius:8px;background:rgba(5,13,24,.78);border:1px solid #24516f;color:#9fd8f6;font-size:12px;backdrop-filter:blur(3px)}
 .scene-hint{position:absolute;right:14px;top:12px;z-index:4;padding:7px 10px;border-radius:8px;background:rgba(5,13,24,.72);color:#789bb7;font-size:12px}
+.scene-hud{
+  position:absolute;
+  left:50%;
+  top:12px;
+  z-index:5;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:7px;
+  max-width:64%;
+  padding:5px 7px;
+  border:1px solid rgba(56,110,145,.65);
+  border-radius:9px;
+  background:rgba(5,13,24,.78);
+  backdrop-filter:blur(4px);
+  white-space:nowrap
+}
+.scene-hud span{display:flex;align-items:center;gap:4px;color:#d9efff;font-size:12px}
+.scene-hud b{font-size:12px}
+.scene-hud small{color:#789bb7;font-size:10px}
 .road-map{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
 .road-map line{stroke:#617786;stroke-width:2;stroke-linecap:round;opacity:.52;vector-effect:non-scaling-stroke}
 .building-map{position:absolute;inset:0;z-index:3}
@@ -75,40 +87,57 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .colony-status-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .status{padding:10px 11px;border-radius:9px;background:#071526;border:1px solid #17344e;color:#8bdcff;font-size:12px;line-height:1.45}
 
-.building-inspector{padding:18px;display:flex;flex-direction:column;min-width:0}
-.inspector-kicker{color:#5e86a7;font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:bold}
-.building-inspector h2{margin:6px 0 4px;font-size:23px}
-.inspector-level{color:#8bccef;font-weight:bold;margin-bottom:12px}
-.inspector-copy{color:#87a6bf;font-size:13px;line-height:1.45;margin:0 0 10px}
-.inspector-effect{padding:10px;border-radius:9px;background:#071526;border:1px solid #17344e;color:#b9d4eb;font-size:12px;line-height:1.4;margin-bottom:9px}
-.inspector-meta{display:grid;gap:7px;margin:8px 0 14px}
-.inspector-meta div{padding:8px 9px;border-radius:8px;background:#071526;color:#91abc2;font-size:12px}
+.building-popover{
+  position:absolute;
+  z-index:9;
+  width:300px;
+  max-width:calc(100% - 24px);
+  padding:15px;
+  border:1px solid #2d6689;
+  border-radius:12px;
+  background:rgba(5,18,31,.97);
+  box-shadow:0 18px 45px rgba(0,0,0,.55),0 0 24px rgba(24,191,255,.12);
+  display:none;
+  transform:translate(-50%,-50%)
+}
+.building-popover.open{display:block}
+.popover-close{
+  position:absolute;
+  right:8px;
+  top:8px;
+  width:28px;
+  height:28px;
+  border:0;
+  border-radius:7px;
+  background:#102e49;
+  color:#cdeaff;
+  cursor:pointer;
+  font-size:16px
+}
+.inspector-kicker{color:#5e86a7;font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:bold;padding-right:34px}
+.building-popover h2{margin:6px 34px 4px 0;font-size:21px}
+.inspector-level{color:#8bccef;font-weight:bold;margin-bottom:10px}
+.inspector-copy{color:#87a6bf;font-size:12px;line-height:1.4;margin:0 0 9px}
+.inspector-effect{padding:9px;border-radius:8px;background:#071526;border:1px solid #17344e;color:#b9d4eb;font-size:11px;line-height:1.4;margin-bottom:8px}
+.inspector-meta{display:grid;gap:6px;margin:7px 0 10px}
+.inspector-meta div{padding:7px 8px;border-radius:7px;background:#071526;color:#91abc2;font-size:11px}
 .lock{color:#ffb36b}
 .cost{color:#9bc8e8}
 .req{color:#ffcf7a}
 .time{color:#18bfff;font-weight:bold}
-.upgrade{width:100%;padding:11px 13px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
+.upgrade{width:100%;padding:10px 12px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
 .upgrade:hover:not(:disabled){filter:brightness(1.08)}
 .upgrade:disabled{opacity:.45;cursor:not-allowed}
-.queue{padding:11px;margin-top:auto;background:#071526;border:1px solid #17344f;border-radius:9px;color:#829fb8;font-size:12px}
-
-.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
-.action{padding:15px}
-.action h3{margin:0 0 6px}
-.action p{color:#7894a9;font-size:13px;min-height:36px;margin:0 0 10px}
-.action button{width:100%;padding:10px;border:0;border-radius:7px;background:#102e49;color:#28b7ff;cursor:pointer}
+.queue{padding:9px;margin-top:9px;background:#071526;border:1px solid #17344f;border-radius:8px;color:#829fb8;font-size:11px}
 
 @media(max-width:1050px){
-  .colony-layout{grid-template-columns:1fr}
-  .building-inspector{min-height:0}
-  .queue{margin-top:12px}
+  .queue{margin-top:9px}
 }
 @media(max-width:900px){
   .sidebar{width:180px}
-  .resources{grid-template-columns:repeat(2,1fr)}
-  .actions{grid-template-columns:1fr}
   .colony-scene{min-height:560px}
   .colony-status-row{grid-template-columns:1fr}
+  .scene-hud{max-width:62%;overflow-x:auto}
 }
 @media(max-width:600px){
   .sidebar{display:none}
@@ -120,17 +149,15 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   .main{padding:12px}
   .welcome{align-items:flex-start;flex-direction:column;gap:8px}
   .welcome h1{font-size:25px}
-  .resources{grid-template-columns:1fr 1fr}
-  .resource{padding:10px}
-  .resource-value{font-size:20px}
   .colony-panel{padding:8px;overflow-x:auto}
   .colony-scene{min-width:720px;min-height:560px}
   .scene-hint{display:none}
+  .scene-hud{left:148px;right:auto;top:11px;transform:none;max-width:540px}
   .building-node{width:86px;min-height:70px;padding:6px 5px}
   .building-icon{width:32px;height:32px;font-size:18px}
   .building-node-name{font-size:10px}
   .building-node-level,.building-node-time{font-size:9px}
-  .building-inspector{padding:15px}
+  .building-popover{width:270px}
 }
 
 </style></head><body>
@@ -185,44 +212,37 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 <section class="welcome">
   <div>
     <h1 id="cityName">Yeni Koloni</h1>
-    <p>Kolonini harita üzerinden yönet; bir binaya tıklayarak ayrıntılarını ve geliştirme seçeneklerini aç.</p>
-  </div>
-  <div class="colony-level-badge">🏛️ <span id="cityLevel">Seviye 1</span></div>
-</section>
-
-<section class="resources">
-  <div class="resource">
-    <div class="resource-title">⛏️ METAL</div>
-    <div class="resource-value" id="metal">0</div>
-    <div class="capacity" id="metalCap">/ 0</div>
-  </div>
-
-  <div class="resource">
-    <div class="resource-title">⚡ ENERJİ</div>
-    <div class="resource-value" id="energy">0</div>
-    <div class="capacity" id="energyCap">/ 0</div>
-  </div>
-
-  <div class="resource">
-    <div class="resource-title">💧 SU</div>
-    <div class="resource-value" id="water">0</div>
-    <div class="capacity" id="waterCap">/ 0</div>
-  </div>
-
-  <div class="resource">
-    <div class="resource-title">💎 KRİSTAL</div>
-    <div class="resource-value" id="crystal">0</div>
-    <div class="capacity" id="crystalCap">/ 0</div>
+    <p>Kolonini harita üzerinden yönet; bir binaya tıklayarak geliştirme seçeneklerini aç.</p>
   </div>
 </section>
 
 <section class="colony-layout">
   <div class="colony-panel">
-    <div class="colony-scene">
+    <div class="colony-scene" id="colonyScene">
       <div class="scene-title">🏙️ KOLONİ YERLEŞİMİ</div>
       <div class="scene-hint">Bir binaya tıkla</div>
+
+      <div class="scene-hud" aria-label="Kaynaklar">
+        <span>⛏️ <b id="metal">0</b> <small id="metalCap">/ 0</small></span>
+        <span>⚡ <b id="energy">0</b> <small id="energyCap">/ 0</small></span>
+        <span>💧 <b id="water">0</b> <small id="waterCap">/ 0</small></span>
+        <span>💎 <b id="crystal">0</b> <small id="crystalCap">/ 0</small></span>
+      </div>
+
       <svg class="road-map" id="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div class="building-map" id="buildings"></div>
+
+      <div class="building-popover" id="buildingPopup" role="dialog" aria-modal="false" aria-label="Bina seçenekleri">
+        <button class="popover-close" type="button" onclick="closeBuildingPopup()" aria-label="Kapat">×</button>
+        <div class="inspector-kicker">Seçili yapı</div>
+        <h2 id="selectedBuildingTitle">Merkez Bina</h2>
+        <div class="inspector-level" id="selectedBuildingLevel">Seviye 0</div>
+        <p class="inspector-copy" id="selectedBuildingDescription"></p>
+        <div class="inspector-effect" id="selectedBuildingEffect"></div>
+        <div class="inspector-meta" id="selectedBuildingMeta"></div>
+        <button id="selectedBuildingUpgrade" class="upgrade" type="button">Geliştir</button>
+        <div class="queue" id="constructionQueue">İnşaat kuyruğu boş.</div>
+      </div>
     </div>
 
     <div class="colony-status-row">
@@ -230,39 +250,6 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
       <div class="status" id="productionStats"></div>
     </div>
   </div>
-
-  <aside class="building-inspector">
-    <div class="inspector-kicker">Seçili yapı</div>
-    <h2 id="selectedBuildingTitle">Merkez Bina</h2>
-    <div class="inspector-level" id="selectedBuildingLevel">Seviye 0</div>
-    <p class="inspector-copy" id="selectedBuildingDescription"></p>
-    <div class="inspector-effect" id="selectedBuildingEffect"></div>
-    <div class="inspector-meta" id="selectedBuildingMeta"></div>
-    <button id="selectedBuildingUpgrade" class="upgrade" type="button">Geliştir</button>
-    <div class="queue" id="constructionQueue">İnşaat kuyruğu boş.</div>
-  </aside>
-</section>
-
-<section class="actions">
-
-<div class="action">
-  <h3>🪖 Ordu</h3>
-  <p>Birlik üret, seviyelerini geliştir ve birlik kapasitesini yönet.</p>
-  <button onclick="go('army.html')">Orduya Git</button>
-</div>
-
-<div class="action">
-  <h3>🌍 Dünya</h3>
-  <p>Koordinatlara göre gerçek zamanlı seferler düzenle.</p>
-  <button onclick="go('world.html')">Haritayı Aç</button>
-</div>
-
-<div class="action">
-  <h3>🏆 Sıralama</h3>
-  <p>Oyuncu puanı, koloni, ordu ve savaş skorlarını karşılaştır.</p>
-  <button onclick="go('ranking.html')">Sıralamayı Gör</button>
-</div>
-
 </section>
 
 </main>
@@ -330,7 +317,7 @@ const ROAD_LINKS=[
   ["Depo#1","Sur#1"]
 ];
 
-let selectedBuildingName="Merkez Bina";
+let selectedBuildingName=null;
 let selectedBuildingSlot=1;
 let latestBuildings=[];
 
@@ -699,11 +686,6 @@ async function loadCity(){
         c.name||'Yeni Koloni';
 
       document.getElementById(
-        'cityLevel'
-      ).textContent=
-        'Seviye '+Number(c.level||1);
-
-      document.getElementById(
         'colonyStats'
       ).textContent=
         '👥 Nüfus: '+
@@ -807,9 +789,47 @@ async function loadCity(){
 
 function selectBuilding(name,slot=1){
   if(!BUILDING_INFO[name])return;
+
+  const same=
+    selectedBuildingName===name&&
+    selectedBuildingSlot===slot&&
+    document.getElementById('buildingPopup')?.classList.contains('open');
+
+  if(same){
+    closeBuildingPopup();
+    return;
+  }
+
   selectedBuildingName=name;
   selectedBuildingSlot=slot;
   renderBuildings(latestBuildings);
+}
+
+function closeBuildingPopup(){
+  const popup=document.getElementById('buildingPopup');
+  if(popup)popup.classList.remove('open');
+  selectedBuildingName=null;
+  selectedBuildingSlot=1;
+  renderBuildings(latestBuildings);
+}
+
+function positionBuildingPopup(name,slot=1){
+  const popup=document.getElementById('buildingPopup');
+  if(!popup)return;
+
+  const site=BUILDING_SITES.find(
+    s=>s.name===name&&s.slot===slot
+  );
+  if(!site)return;
+
+  const x=Math.min(82,Math.max(18,site.x));
+  const y=site.y<46
+    ?Math.min(72,site.y+23)
+    :Math.max(27,site.y-23);
+
+  popup.style.left=x+'%';
+  popup.style.top=y+'%';
+  popup.classList.add('open');
 }
 
 
@@ -827,8 +847,8 @@ function renderBuildings(buildings){
     latestBuildings
   );
 
-  if(!BUILDING_INFO[selectedBuildingName]){
-    selectedBuildingName='Merkez Bina';
+  if(selectedBuildingName&&!BUILDING_INFO[selectedBuildingName]){
+    selectedBuildingName=null;
     selectedBuildingSlot=1;
   }
 
@@ -925,15 +945,25 @@ function renderBuildings(buildings){
     }
   ).join('');
 
-  renderBuildingInspector(
-    selectedBuildingName,
-    selectedBuildingSlot,
-    levels
-  );
+  const popup=document.getElementById('buildingPopup');
+
+  if(selectedBuildingName){
+    renderBuildingPopup(
+      selectedBuildingName,
+      selectedBuildingSlot,
+      levels
+    );
+    positionBuildingPopup(
+      selectedBuildingName,
+      selectedBuildingSlot
+    );
+  }else if(popup){
+    popup.classList.remove('open');
+  }
 }
 
 
-function renderBuildingInspector(
+function renderBuildingPopup(
   name,
   slot,
   levels
