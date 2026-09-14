@@ -517,13 +517,27 @@ async function hydrateArmyStats(army) {
   return hydrated;
 }
 
-function buildingLevel(buildings, name) {
-  const b = (buildings || []).find(x => x.building_type === name);
+function buildingLevel(buildings, name, slot = 1) {
+  const b = (buildings || []).find(
+    x =>
+      x.building_type === name &&
+      Math.max(1, Number(x.slot) || 1) === slot
+  );
   return b ? Math.max(0, Number(b.level) || 0) : 0;
 }
 
+function buildingTotalLevel(buildings, name) {
+  return (buildings || []).reduce(
+    (sum, b) =>
+      b.building_type === name
+        ? sum + Math.max(0, Number(b.level) || 0)
+        : sum,
+    0
+  );
+}
+
 function storageCapacity(buildings) {
-  const level = buildingLevel(buildings, "Depo");
+  const level = buildingTotalLevel(buildings, "Depo");
   return 5000 + level * 2500;
 }
 
@@ -554,15 +568,15 @@ function buildingMaxLevel(name) {
     "Kristal Deposu": 25,
     "Konut": 30,
     "Sur": 25,
-    "Savunma Kulesi": 20
+    "Savunma Kulesi": 20,
+    "Gözcü Kulesi": 20
   };
   return max[name] || 30;
 }
 
 function defenseBonus(buildings) {
   const wall = buildingLevel(buildings, "Sur");
-  const tower = buildingLevel(buildings, "Savunma Kulesi");
-  return 1 + wall * 0.05 + tower * 0.08;
+  return 1 + wall * 0.05;
 }
 
 function totalPopulation(units, queue, activeMissionPopulation = 0) {
@@ -629,7 +643,7 @@ async function getCity(req, res) {
   }
 
   let city = result.data[0];
-  const buildingsResult = await supabase("buildings?select=*&city_id=eq." + encodeURIComponent(city.id) + "&order=building_type.asc");
+  const buildingsResult = await supabase("buildings?select=*&city_id=eq." + encodeURIComponent(city.id) + "&order=building_type.asc,slot.asc");
   if (!buildingsResult.ok) return send(res, 500, { success: false, message: "Bina verileri al\u0131namad\u0131." });
   let buildings = [];
   for (const b of (buildingsResult.data || [])) buildings.push(await finalizeBuilding(b));
@@ -667,10 +681,10 @@ async function getCity(req, res) {
   const research = researchResult.ok && researchResult.data?.[0] ? researchResult.data[0] : {};
   const prodMultiplier = 1 + Number(research.production_level || 0) * 0.10;
   const crystalMultiplier = 1 + Number(research.crystal_level || 0) * 0.08;
-  const metalRate = buildingLevel(buildings, "Metal Madeni") * 10 * prodMultiplier;
-  const energyRate = buildingLevel(buildings, "Enerji Santrali") * 10 * prodMultiplier;
-  const waterRate = buildingLevel(buildings, "Su Ar\u0131tma") * 10 * prodMultiplier;
-  const crystalRate = buildingLevel(buildings, "Kristal Madeni") * 5 * crystalMultiplier;
+  const metalRate = buildingTotalLevel(buildings, "Metal Madeni") * 10 * prodMultiplier;
+  const energyRate = buildingTotalLevel(buildings, "Enerji Santrali") * 10 * prodMultiplier;
+  const waterRate = buildingTotalLevel(buildings, "Su Ar\u0131tma") * 10 * prodMultiplier;
+  const crystalRate = buildingTotalLevel(buildings, "Kristal Madeni") * 5 * crystalMultiplier;
   const resourceCap = storageCapacity(buildings);
   const crystalCap = crystalStorageCapacity(buildings);
 
@@ -2223,11 +2237,30 @@ async function getBattleReports(req, res) {
 
 async function upgradeBuilding(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
-  const body=await readBody(req); const buildingType=String(body.building||"").trim();
-  const costs={"Metal Madeni":{metal:500,energy:100,water:50,crystal:25},"Enerji Santrali":{metal:400,energy:50,water:50,crystal:20},"Su Arıtma":{metal:350,energy:75,water:50,crystal:20},"Kristal Madeni":{metal:600,energy:120,water:40,crystal:30},"Kışla":{metal:450,energy:100,water:50,crystal:25},"Merkez Bina":{metal:750,energy:150,water:100,crystal:50},"Depo":{metal:700,energy:120,water:60,crystal:40},"Kristal Deposu":{metal:800,energy:140,water:70,crystal:45},"Konut":{metal:500,energy:80,water:100,crystal:25},"Sur":{metal:900,energy:150,water:80,crystal:80},"Savunma Kulesi":{metal:1200,energy:220,water:100,crystal:100}};
+  const body=await readBody(req);
+  const buildingType=String(body.building||"").trim();
+  const slot=body.slot==null?1:Number(body.slot);
+  const costs={"Metal Madeni":{metal:500,energy:100,water:50,crystal:25},"Enerji Santrali":{metal:400,energy:50,water:50,crystal:20},"Su Arıtma":{metal:350,energy:75,water:50,crystal:20},"Kristal Madeni":{metal:600,energy:120,water:40,crystal:30},"Kışla":{metal:450,energy:100,water:50,crystal:25},"Merkez Bina":{metal:750,energy:150,water:100,crystal:50},"Depo":{metal:700,energy:120,water:60,crystal:40},"Kristal Deposu":{metal:800,energy:140,water:70,crystal:45},"Konut":{metal:500,energy:80,water:100,crystal:25},"Sur":{metal:900,energy:150,water:80,crystal:80},"Savunma Kulesi":{metal:1200,energy:220,water:100,crystal:100},"Gözcü Kulesi":{metal:1200,energy:220,water:100,crystal:100}};
+  const slotTwoTypes=new Set(["Metal Madeni","Enerji Santrali","Su Arıtma","Kristal Madeni","Depo"]);
   if(!costs[buildingType])return send(res,400,{success:false,message:"Geçersiz bina."});
+  if(!Number.isInteger(slot)||slot<1||slot>2)return send(res,400,{success:false,message:"Geçersiz bina yuvası."});
+  if(slot===2&&!slotTwoTypes.has(buildingType))return send(res,400,{success:false,message:"Bu bina türünün ikinci kopyası olamaz."});
   const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});const city=cityResult.data[0];
-  const br=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id)+"&building_type=eq."+encodeURIComponent(buildingType)+"&limit=1");if(!br.ok)return send(res,500,{success:false,message:"Bina verisi alınamadı."});
+  const allBuildings=await supabase("buildings?select=building_type,level,slot&city_id=eq."+encodeURIComponent(city.id));
+  if(!allBuildings.ok)return send(res,500,{success:false,message:"Bina verileri alınamadı."});
+  const prerequisiteLevels={};
+  for(const b of (allBuildings.data||[])){
+    prerequisiteLevels[b.building_type]=Math.max(
+      Number(prerequisiteLevels[b.building_type]||0),
+      Math.max(0,Number(b.level||0))
+    );
+  }
+  if(slot===2){
+    const centerLevel=Number(prerequisiteLevels["Merkez Bina"]||0);
+    const requiredCenter=buildingType==="Depo"?7:5;
+    if(centerLevel<requiredCenter)return send(res,400,{success:false,message:buildingType+" II için Merkez Bina seviye "+requiredCenter+" gerekli.",required:{building:"Merkez Bina",level:requiredCenter}});
+  }
+  const br=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id)+"&building_type=eq."+encodeURIComponent(buildingType)+"&slot=eq."+encodeURIComponent(slot)+"&limit=1");if(!br.ok)return send(res,500,{success:false,message:"Bina verisi alınamadı."});
   let building=br.data?.[0]; if(building) building=await finalizeBuilding(building);
   if(building?.is_under_construction)return send(res,400,{success:false,message:"Bu bina zaten inşa ediliyor.",finishAt:building.upgrade_ready_at});
   const current=building?Math.max(0,Number(building.level||0)):0;
@@ -2238,24 +2271,24 @@ async function upgradeBuilding(req,res){
     "Kışla":{"Merkez Bina":2},
     "Konut":{"Merkez Bina":2},
     "Sur":{"Merkez Bina":3},
-    "Savunma Kulesi":{"Merkez Bina":5,"Sur":2}
+    "Savunma Kulesi":{"Merkez Bina":5,"Sur":2},
+    "Gözcü Kulesi":{"Merkez Bina":5,"Sur":2}
   };
-  const allBuildings=await supabase("buildings?select=building_type,level&city_id=eq."+encodeURIComponent(city.id));
-  const prerequisiteLevels={}; for(const b of (allBuildings.data||[]))prerequisiteLevels[b.building_type]=Math.max(0,Number(b.level||0));
   const reqs=prerequisites[buildingType]||{};
   for(const [reqName,reqLevel] of Object.entries(reqs)){
     if(Number(prerequisiteLevels[reqName]||0)<Number(reqLevel))return send(res,400,{success:false,message:buildingType+" için "+reqName+" seviye "+reqLevel+" gerekli.",required:{building:reqName,level:reqLevel}});
   }
-  if(current>=maxLevel)return send(res,400,{success:false,message:buildingType+" maksimum seviye olan "+maxLevel+" seviyeye ulaştı."});
+  if(current>=maxLevel)return send(res,400,{success:false,message:buildingType+(slot===2?" II":"")+" maksimum seviye olan "+maxLevel+" seviyeye ulaştı."});
   const multiplier=current+1;
   const cost={metal:costs[buildingType].metal*multiplier,energy:costs[buildingType].energy*multiplier,water:costs[buildingType].water*multiplier,crystal:costs[buildingType].crystal*multiplier};
   const duration=45+current*45;
-  const spend=await supabase("rpc/nexora_start_building_upgrade",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_city_id:Number(city.id),p_type:buildingType,p_level:current,p_cost:cost,p_duration:duration})});
+  const spend=await supabase("rpc/nexora_start_building_upgrade_slot",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_city_id:Number(city.id),p_type:buildingType,p_slot:slot,p_level:current,p_cost:cost,p_duration:duration})});
   if(!spend.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
-  if(spend.data?.success===false)return send(res,400,{success:false,message:spend.data?.message||"Yeterli kaynak bulunmuyor.",cost:spend.data?.cost||cost,available:spend.data?.available,nextLevel:current+1});
+  if(spend.data?.success===false)return send(res,400,{success:false,message:spend.data?.message||"Yeterli kaynak bulunmuyor.",cost:spend.data?.cost||cost,available:spend.data?.available,nextLevel:current+1,slot});
   const spentCity=spend.data?.city;
   if(!spentCity)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
-  return send(res,200,{success:true,message:buildingType+" için seviye "+(current+1)+" inşaatı başlatıldı.",city:spentCity,building:spend.data.building,finishAt:spend.data.finishAt,duration,cost,nextLevel:current+1,maxLevel});
+  const label=buildingType+(slot===2?" II":"");
+  return send(res,200,{success:true,message:label+" için seviye "+(current+1)+" inşaatı başlatıldı.",city:spentCity,building:spend.data.building,finishAt:spend.data.finishAt,duration,cost,nextLevel:current+1,maxLevel,slot});
 }
 
 async function getWorldPlayers(req,res){
