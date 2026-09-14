@@ -87,6 +87,7 @@ if(user?.username)document.getElementById('playerName').textContent=user.usernam
 
 let snapshot=null;
 let claimPending=false;
+let objectivesLoadPromise=null;
 
 function escapeHtml(value){
   return String(value??'')
@@ -194,28 +195,37 @@ function render(data){
 }
 
 async function loadObjectives(silent=false){
+  if(objectivesLoadPromise)return objectivesLoadPromise;
+
   if(!silent)showStatus('Görevler yükleniyor...');
-  try{
-    const response=await fetch('/api/auth?action=gameobjectives',{
-      method:'POST',
-      headers:{Authorization:'Bearer '+token}
-    });
-    const data=await response.json();
-    if(response.status===401){
-      localStorage.removeItem('nexora_token');
-      location.href='login.html';
-      return;
+
+  objectivesLoadPromise=(async()=>{
+    try{
+      const response=await fetch('/api/auth?action=gameobjectives',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token}
+      });
+      const data=await response.json();
+      if(response.status===401){
+        localStorage.removeItem('nexora_token');
+        location.href='login.html';
+        return;
+      }
+      if(!response.ok||!data.success){
+        showStatus(data.message||'Görevler yüklenemedi.');
+        return;
+      }
+      render(data);
+      if(!silent)showStatus('');
+    }catch(error){
+      console.error(error);
+      showStatus('Bağlantı hatası.');
     }
-    if(!response.ok||!data.success){
-      showStatus(data.message||'Görevler yüklenemedi.');
-      return;
-    }
-    render(data);
-    if(!silent)showStatus('');
-  }catch(error){
-    console.error(error);
-    showStatus('Bağlantı hatası.');
-  }
+  })().finally(()=>{
+    objectivesLoadPromise=null;
+  });
+
+  return objectivesLoadPromise;
 }
 
 async function claimMission(missionId){
