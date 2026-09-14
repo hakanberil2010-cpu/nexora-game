@@ -44,8 +44,12 @@ h1{margin-bottom:6px}
 
 .quantityRow{
   display:grid;
-  grid-template-columns:minmax(90px,1fr) repeat(4,44px);
+  grid-template-columns:repeat(4,minmax(0,1fr));
   gap:6px
+}
+
+.quantityInput{
+  grid-column:1/-1;
 }
 
 .quantityInput{
@@ -175,16 +179,7 @@ h1{margin-bottom:6px}
     grid-template-columns:repeat(2,1fr)
   }
 }
-
-@media(max-width:420px){
-  .quantityRow{
-    grid-template-columns:1fr 1fr 1fr
-  }
-
-  .quantityInput{
-    grid-column:1/-1
-  }
-}
+  
 </style>
 </head>
 
