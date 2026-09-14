@@ -2552,9 +2552,7 @@ if (action === "upgrade") {
     if (action === "missionstatus") {
   return await getMilitaryMission(req, res);
 }
-    if (action === "attack") {
-  return await attackPlayer(req, res);
-}
+
     if (action === "reports") {
   return await getBattleReports(req, res);
 }
