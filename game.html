@@ -3,7 +3,156 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>NEXORA - Koloni</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.topbar{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.player{color:#9fc0df}.logout{margin-left:12px;padding:7px 12px;border:0;border-radius:7px;background:#16344f;color:#fff;cursor:pointer}.layout{display:flex;min-height:calc(100vh - 76px)}.sidebar{width:210px;background:#07111f;border-right:1px solid #173451;padding:24px 14px}.sidebar h3{margin:0 10px 12px;color:#678cae;font-size:12px;text-transform:uppercase}.menu{list-style:none;padding:0;margin:0 0 26px}.menu li{padding:12px;border-radius:8px;margin-bottom:5px;color:#b9d4eb;cursor:pointer}.menu li:hover,.menu li.active{background:#102e49;color:#23b8ff}.main{flex:1;padding:28px;max-width:1250px;margin:auto;width:100%}.welcome{margin-bottom:22px}.welcome h1{margin:0 0 8px;font-size:32px}.welcome p{margin:0;color:#7897b6}.resources{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.resource,.panel,.action,.queue{background:#091a2c;border:1px solid #173b5d;border-radius:12px}.resource{padding:15px}.resource-title{color:#83a6c6;font-size:13px}.resource-value{font-size:24px;font-weight:bold;margin-top:6px}.layout2{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}.panel{padding:22px;margin-bottom:20px}.panel h2{margin-top:0}.city{height:190px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#153957,#071526 65%);border-radius:12px}.city-core{width:120px;height:120px;border:2px solid #18bfff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 35px #0c6689}.city-core strong{font-size:20px}.buildings{display:grid;gap:10px}.building{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#071526;border:1px solid #17344e;border-radius:9px;padding:12px}.building-info{display:flex;flex-direction:column;gap:4px}.building-info span{font-size:12px;color:#7997b5}.building-info small{color:#6d91ad}.building.locked{opacity:.68;border-color:#3b2e25}.building .lock{color:#ffb36b}.building .cost{color:#9bc8e8}.building .req{color:#ffcf7a}.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}.topBack:hover{filter:brightness(1.08)}.upgrade{padding:9px 13px;border:0;border-radius:7px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}.upgrade:disabled{opacity:.45;cursor:not-allowed}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.action{padding:18px}.action h3{margin:0 0 8px}.action p{color:#7894a9;font-size:14px;min-height:42px}.action button{width:100%;padding:10px;border:0;border-radius:7px;background:#102e49;color:#28b7ff;cursor:pointer}.status{margin-top:10px;color:#8bdcff;font-size:13px}.queue{padding:14px;margin-top:14px}.queue-item{padding:10px 0;border-bottom:1px solid #17344f}.queue-item:last-child{border-bottom:0}.time{color:#18bfff;font-weight:bold}@media(max-width:900px){.sidebar{width:180px}.resources{grid-template-columns:repeat(2,1fr)}.layout2{grid-template-columns:1fr}.actions{grid-template-columns:1fr}}.mobileNav{display:none;width:100%;margin:0 0 14px;padding:11px 12px;border:1px solid #285476;border-radius:8px;background:#071526;color:#eaf4ff;font-weight:bold}@media(max-width:600px){.sidebar{display:none}.mobileNav{display:block}.topbar{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:24px;letter-spacing:4px}.player{font-size:13px}.logout{margin-left:6px}.main{padding:15px}.resources{grid-template-columns:1fr 1fr}}
+
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
+.topbar{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:100}
+.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
+.player{color:#9fc0df}
+.logout{margin-left:12px;padding:7px 12px;border:0;border-radius:7px;background:#16344f;color:#fff;cursor:pointer}
+.layout{display:flex;min-height:calc(100vh - 76px)}
+.sidebar{width:210px;background:#07111f;border-right:1px solid #173451;padding:24px 14px}
+.sidebar h3{margin:0 10px 12px;color:#678cae;font-size:12px;text-transform:uppercase}
+.menu{list-style:none;padding:0;margin:0 0 26px}
+.menu li{padding:12px;border-radius:8px;margin-bottom:5px;color:#b9d4eb;cursor:pointer}
+.menu li:hover,.menu li.active{background:#102e49;color:#23b8ff}
+.main{flex:1;padding:24px;max-width:1380px;margin:auto;width:100%}
+.mobileNav{display:none;width:100%;margin:0 0 14px;padding:11px 12px;border:1px solid #285476;border-radius:8px;background:#071526;color:#eaf4ff;font-weight:bold}
+
+.welcome{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:16px}
+.welcome h1{margin:0 0 6px;font-size:30px}
+.welcome p{margin:0;color:#7897b6}
+.colony-level-badge{padding:8px 12px;border:1px solid #1d587d;border-radius:10px;background:#0b2135;color:#8edcff;white-space:nowrap}
+
+.resources{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.resource{padding:12px 14px;background:linear-gradient(180deg,#0b2035,#081725);border:1px solid #173b5d;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.resource-title{color:#83a6c6;font-size:12px;font-weight:bold;letter-spacing:.4px}
+.resource-value{font-size:23px;font-weight:bold;margin-top:4px}
+.capacity{color:#6f94b5;font-size:12px;margin-top:2px}
+
+.colony-layout{display:grid;grid-template-columns:minmax(0,1fr) 315px;gap:14px;align-items:stretch}
+.colony-panel,.building-inspector,.action{background:#091a2c;border:1px solid #173b5d;border-radius:14px}
+.colony-panel{padding:12px;min-width:0}
+.colony-scene{
+  position:relative;
+  min-height:610px;
+  overflow:hidden;
+  border-radius:12px;
+  border:1px solid #1c4b68;
+  background:
+    radial-gradient(circle at 49% 48%,rgba(31,116,150,.24) 0 7%,transparent 8%),
+    linear-gradient(33deg,transparent 47%,rgba(78,122,128,.20) 48% 52%,transparent 53%),
+    linear-gradient(-31deg,transparent 47%,rgba(78,122,128,.16) 48% 52%,transparent 53%),
+    radial-gradient(circle at 18% 23%,rgba(35,110,74,.42),transparent 23%),
+    radial-gradient(circle at 79% 28%,rgba(33,98,71,.42),transparent 24%),
+    radial-gradient(circle at 23% 76%,rgba(61,82,106,.28),transparent 20%),
+    radial-gradient(circle at 79% 75%,rgba(25,96,110,.30),transparent 23%),
+    linear-gradient(145deg,#0d2b2b 0%,#102f3a 42%,#0a1e30 100%);
+}
+.colony-scene:before{
+  content:"";
+  position:absolute;inset:0;
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 34px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 34px);
+  pointer-events:none
+}
+.colony-scene:after{
+  content:"";
+  position:absolute;left:8%;right:8%;bottom:-54px;height:150px;
+  border-radius:50%;
+  background:radial-gradient(ellipse,rgba(12,83,104,.55),rgba(5,13,24,0) 70%);
+  pointer-events:none
+}
+.scene-title{position:absolute;left:14px;top:12px;z-index:4;padding:7px 10px;border-radius:8px;background:rgba(5,13,24,.78);border:1px solid #24516f;color:#9fd8f6;font-size:12px;backdrop-filter:blur(3px)}
+.scene-hint{position:absolute;right:14px;top:12px;z-index:4;padding:7px 10px;border-radius:8px;background:rgba(5,13,24,.72);color:#789bb7;font-size:12px}
+.building-map{position:absolute;inset:0;z-index:3}
+.building-node{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  width:108px;
+  min-height:80px;
+  padding:8px 7px 7px;
+  border:1px solid #315b78;
+  border-radius:13px;
+  background:linear-gradient(180deg,rgba(10,38,57,.95),rgba(6,22,35,.95));
+  color:#dff5ff;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:0 10px 22px rgba(0,0,0,.35),0 0 0 1px rgba(24,191,255,.04);
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease,filter .16s ease;
+}
+.building-node:hover{transform:translate(-50%,-50%) scale(1.06);border-color:#23b8ff;box-shadow:0 10px 28px rgba(0,0,0,.40),0 0 22px rgba(24,191,255,.18)}
+.building-node.selected{border-color:#38d2ff;box-shadow:0 0 0 2px rgba(56,210,255,.18),0 0 28px rgba(24,191,255,.28)}
+.building-node.locked{filter:saturate(.45);opacity:.72}
+.building-node.pending{border-color:#d9a441}
+.building-icon{display:flex;align-items:center;justify-content:center;width:38px;height:38px;margin:0 auto 4px;border-radius:10px;background:#102d48;border:1px solid #245a7e;font-size:21px;box-shadow:inset 0 0 15px rgba(24,191,255,.08)}
+.building-node.pending .building-icon{border-color:#b98528}
+.building-node-name{display:block;font-size:11px;font-weight:bold;line-height:1.15;white-space:normal}
+.building-node-level{display:block;margin-top:3px;color:#82b5d4;font-size:10px}
+.building-node-time{display:block;margin-top:3px;color:#ffd37b;font-size:10px;font-weight:bold}
+
+.colony-status-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.status{padding:10px 11px;border-radius:9px;background:#071526;border:1px solid #17344e;color:#8bdcff;font-size:12px;line-height:1.45}
+
+.building-inspector{padding:18px;display:flex;flex-direction:column;min-width:0}
+.inspector-kicker{color:#5e86a7;font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:bold}
+.building-inspector h2{margin:6px 0 4px;font-size:23px}
+.inspector-level{color:#8bccef;font-weight:bold;margin-bottom:12px}
+.inspector-copy{color:#87a6bf;font-size:13px;line-height:1.45;margin:0 0 10px}
+.inspector-effect{padding:10px;border-radius:9px;background:#071526;border:1px solid #17344e;color:#b9d4eb;font-size:12px;line-height:1.4;margin-bottom:9px}
+.inspector-meta{display:grid;gap:7px;margin:8px 0 14px}
+.inspector-meta div{padding:8px 9px;border-radius:8px;background:#071526;color:#91abc2;font-size:12px}
+.lock{color:#ffb36b}
+.cost{color:#9bc8e8}
+.req{color:#ffcf7a}
+.time{color:#18bfff;font-weight:bold}
+.upgrade{width:100%;padding:11px 13px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
+.upgrade:hover:not(:disabled){filter:brightness(1.08)}
+.upgrade:disabled{opacity:.45;cursor:not-allowed}
+.queue{padding:11px;margin-top:auto;background:#071526;border:1px solid #17344f;border-radius:9px;color:#829fb8;font-size:12px}
+
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.action{padding:15px}
+.action h3{margin:0 0 6px}
+.action p{color:#7894a9;font-size:13px;min-height:36px;margin:0 0 10px}
+.action button{width:100%;padding:10px;border:0;border-radius:7px;background:#102e49;color:#28b7ff;cursor:pointer}
+
+@media(max-width:1050px){
+  .colony-layout{grid-template-columns:1fr}
+  .building-inspector{min-height:0}
+  .queue{margin-top:12px}
+}
+@media(max-width:900px){
+  .sidebar{width:180px}
+  .resources{grid-template-columns:repeat(2,1fr)}
+  .actions{grid-template-columns:1fr}
+  .colony-scene{min-height:560px}
+  .colony-status-row{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .sidebar{display:none}
+  .mobileNav{display:block}
+  .topbar{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}
+  .logo{font-size:24px;letter-spacing:4px}
+  .player{font-size:13px}
+  .logout{margin-left:6px}
+  .main{padding:12px}
+  .welcome{align-items:flex-start;flex-direction:column;gap:8px}
+  .welcome h1{font-size:25px}
+  .resources{grid-template-columns:1fr 1fr}
+  .resource{padding:10px}
+  .resource-value{font-size:20px}
+  .colony-panel{padding:8px}
+  .colony-scene{min-height:500px}
+  .scene-hint{display:none}
+  .building-node{width:86px;min-height:70px;padding:6px 5px}
+  .building-icon{width:32px;height:32px;font-size:18px}
+  .building-node-name{font-size:10px}
+  .building-node-level,.building-node-time{font-size:9px}
+  .building-inspector{padding:15px}
+}
+
 </style></head><body>
 
 <header class="topbar">
@@ -53,11 +202,12 @@
   <option value="settings.html">⚙️ Ayarlar</option>
 </select>
 
-<a class="topBack" href="game.html">← Koloniye Dön</a>
-
 <section class="welcome">
-  <h1 id="cityName">Yeni Koloni</h1>
-  <p>Kolonini geliştir, ekonomini büyüt ve gerçek zamanlı görevler yönet.</p>
+  <div>
+    <h1 id="cityName">Yeni Koloni</h1>
+    <p>Kolonini harita üzerinden yönet; bir binaya tıklayarak ayrıntılarını ve geliştirme seçeneklerini aç.</p>
+  </div>
+  <div class="colony-level-badge">🏛️ <span id="cityLevel">Seviye 1</span></div>
 </section>
 
 <section class="resources">
@@ -86,28 +236,30 @@
   </div>
 </section>
 
-<section class="layout2">
+<section class="colony-layout">
+  <div class="colony-panel">
+    <div class="colony-scene">
+      <div class="scene-title">🏙️ KOLONİ YERLEŞİMİ</div>
+      <div class="scene-hint">Bir binaya tıkla</div>
+      <div class="building-map" id="buildings"></div>
+    </div>
 
-<div class="panel">
-  <h2>🏙️ Koloni Merkezi</h2>
-
-  <div class="city">
-    <div class="city-core">
-      <strong>MERKEZ</strong>
-      <span id="cityLevel">Seviye 1</span>
+    <div class="colony-status-row">
+      <div class="status" id="colonyStats"></div>
+      <div class="status" id="productionStats"></div>
     </div>
   </div>
 
-  <div class="status" id="colonyStats"></div>
-  <div class="status" id="productionStats"></div>
-</div>
-
-<div class="panel">
-  <h2>🏗️ Binalar</h2>
-  <div class="buildings" id="buildings"></div>
-  <div class="queue" id="constructionQueue">İnşaat kuyruğu boş.</div>
-</div>
-
+  <aside class="building-inspector">
+    <div class="inspector-kicker">Seçili yapı</div>
+    <h2 id="selectedBuildingTitle">Merkez Bina</h2>
+    <div class="inspector-level" id="selectedBuildingLevel">Seviye 0</div>
+    <p class="inspector-copy" id="selectedBuildingDescription"></p>
+    <div class="inspector-effect" id="selectedBuildingEffect"></div>
+    <div class="inspector-meta" id="selectedBuildingMeta"></div>
+    <button id="selectedBuildingUpgrade" class="upgrade" type="button">Geliştir</button>
+    <div class="queue" id="constructionQueue">İnşaat kuyruğu boş.</div>
+  </aside>
 </section>
 
 <section class="actions">
@@ -159,6 +311,23 @@ const BUILDING_INFO={
   "Sur":"Koloni savunmasına bonus verir.",
   "Savunma Kulesi":"Koloni savunmasına güçlü bonus verir."
 };
+
+const BUILDING_VISUALS={
+  "Merkez Bina":{icon:"🏛️",x:50,y:48},
+  "Metal Madeni":{icon:"⛏️",x:16,y:25},
+  "Enerji Santrali":{icon:"⚡",x:81,y:23},
+  "Su Arıtma":{icon:"💧",x:86,y:52},
+  "Kristal Madeni":{icon:"💎",x:17,y:70},
+  "Kışla":{icon:"🪖",x:35,y:75},
+  "Depo":{icon:"📦",x:66,y:76},
+  "Kristal Deposu":{icon:"🔷",x:84,y:78},
+  "Konut":{icon:"🏠",x:33,y:26},
+  "Sur":{icon:"🧱",x:50,y:88},
+  "Savunma Kulesi":{icon:"🗼",x:68,y:28}
+};
+
+let selectedBuildingName="Merkez Bina";
+let latestBuildings=[];
 
 const BUILDING_RULES={
   "Merkez Bina":{
@@ -582,28 +751,39 @@ async function loadCity(){
 }
 
 
+function selectBuilding(name){
+  if(!BUILDING_INFO[name])return;
+  selectedBuildingName=name;
+  renderBuildings(latestBuildings);
+}
+
+
 function renderBuildings(buildings){
+
+  latestBuildings=Array.isArray(buildings)
+    ?buildings
+    :[];
 
   const el=document.getElementById(
     'buildings'
+  );
+
+  const levels=getBuildingLevels(
+    latestBuildings
   );
 
   const names=Object.keys(
     BUILDING_INFO
   );
 
-  const levels=getBuildingLevels(
-    buildings
-  );
-
-  const centerLevel=Number(
-    levels['Merkez Bina']||0
-  );
+  if(!BUILDING_INFO[selectedBuildingName]){
+    selectedBuildingName='Merkez Bina';
+  }
 
   el.innerHTML=names.map(
     name=>{
 
-      const b=buildings.find(
+      const b=latestBuildings.find(
         x=>x.building_type===name
       );
 
@@ -655,125 +835,246 @@ function renderBuildings(buildings){
         capLocked||
         maxed;
 
-      let lockText='';
-
-      if(maxed){
-
-        lockText='Maksimum seviye';
-
-      }else if(!prereq){
-
-        lockText=
-          '🔒 Ön koşul: '+
-          prerequisiteText(
-            name,
-            levels
-          );
-
-      }else if(capLocked){
-
-        lockText=
-          '🔒 Merkez Bina sınırı: '+
-          max;
-      }
-
-      const reqLine=
-        prerequisiteText(
-          name,
-          levels
-        );
+      const visual=
+        BUILDING_VISUALS[name]||
+        {icon:'🏢',x:50,y:50};
 
       return `
-        <div class="building ${locked&&!pending?'locked':''}">
-          <div class="building-info">
-
-            <strong>
-              ${esc(name)}
-            </strong>
-
-            <span>
-              Seviye ${level} / ${rule.max}
-            </span>
-
-            <small>
-              ${esc(BUILDING_INFO[name])}
-            </small>
-
-            <small>
-              ${esc(rule.effect)}
-            </small>
-
-            ${
-              reqLine&&!prereq
-                ?'<small class="req">'+
-                  esc(reqLine)+
-                  '</small>'
-                :''
-            }
-
-            ${
-              !maxed&&
-              name!=='Merkez Bina'
-                ?'<small>Merkez Bina sınırı: '+
-                  max+
-                  ' (Merkez '+
-                  centerLevel+
-                  ')</small>'
-                :''
-            }
-
-            ${
-              !maxed&&!pending
-                ?'<small class="cost">'+
-                  esc(
-                    costText(
-                      name,
-                      level
-                    )
-                  )+
-                  '</small>'
-                :''
-            }
-
-            ${
-              pending
-                ?'<small class="time">İnşaat: '+
-                  remain(left)+
-                  '</small>'
-                :''
-            }
-
-            ${
-              lockText&&!pending
-                ?'<small class="lock">'+
-                  esc(lockText)+
-                  '</small>'
-                :''
-            }
-
-          </div>
-
-          <button
-            class="upgrade"
-            ${(pending||locked)?'disabled':''}
-            onclick="upgrade('${name.replace(/'/g,"\\'")}')"
-          >
-            ${
-              pending
-                ?'İnşa ediliyor'
-                :maxed
-                  ?'Maksimum'
-                  :locked
-                    ?'Kilitli'
-                    :'Geliştir'
-            }
-          </button>
-
-        </div>
+        <button
+          class="building-node ${locked&&!pending?'locked':''} ${pending?'pending':''} ${selectedBuildingName===name?'selected':''}"
+          style="left:${visual.x}%;top:${visual.y}%"
+          type="button"
+          onclick="selectBuilding('${name.replace(/'/g,"\\'")}')"
+          aria-label="${esc(name)} Seviye ${level}"
+        >
+          <span class="building-icon">${visual.icon}</span>
+          <span class="building-node-name">${esc(name)}</span>
+          <span class="building-node-level">Sv. ${level}</span>
+          ${pending?`<span class="building-node-time">${remain(left)}</span>`:''}
+        </button>
       `;
 
     }
   ).join('');
+
+  renderBuildingInspector(
+    selectedBuildingName,
+    levels
+  );
+}
+
+
+function renderBuildingInspector(
+  name,
+  levels
+){
+
+  const b=latestBuildings.find(
+    x=>x.building_type===name
+  );
+
+  const level=b
+    ?Number(b.level||0)
+    :0;
+
+  const pending=
+    b&&b.is_under_construction;
+
+  const left=pending
+    ?Math.max(
+      0,
+      Math.ceil(
+        (
+          new Date(
+            b.upgrade_ready_at
+          ).getTime()-
+          Date.now()
+        )/1000
+      )
+    )
+    :0;
+
+  const rule=
+    BUILDING_RULES[name];
+
+  const max=
+    effectiveMax(
+      name,
+      levels
+    );
+
+  const prereq=
+    prerequisiteOk(
+      name,
+      levels
+    );
+
+  const capLocked=
+    level>=max&&
+    name!=='Merkez Bina';
+
+  const maxed=
+    level>=rule.max;
+
+  const locked=
+    !prereq||
+    capLocked||
+    maxed;
+
+  const reqLine=
+    prerequisiteText(
+      name,
+      levels
+    );
+
+  document.getElementById(
+    'selectedBuildingTitle'
+  ).textContent=name;
+
+  document.getElementById(
+    'selectedBuildingLevel'
+  ).textContent=
+    'Seviye '+level+
+    ' / '+rule.max;
+
+  document.getElementById(
+    'selectedBuildingDescription'
+  ).textContent=
+    BUILDING_INFO[name];
+
+  document.getElementById(
+    'selectedBuildingEffect'
+  ).textContent=
+    rule.effect;
+
+  const meta=[];
+
+  if(reqLine){
+    meta.push(
+      '<div class="'+
+      (prereq?'':'req')+
+      '">Ön koşul: '+
+      esc(reqLine)+
+      '</div>'
+    );
+  }
+
+  if(
+    !maxed&&
+    name!=='Merkez Bina'
+  ){
+    meta.push(
+      '<div>Merkez Bina sınırı: '+
+      max+
+      '</div>'
+    );
+  }
+
+  if(
+    !maxed&&
+    !pending
+  ){
+    meta.push(
+      '<div class="cost">'+
+      esc(
+        costText(
+          name,
+          level
+        )
+      )+
+      '</div>'
+    );
+  }
+
+  if(pending){
+    meta.push(
+      '<div class="time">İnşaat sürüyor: '+
+      remain(left)+
+      '</div>'
+    );
+  }
+
+  if(maxed){
+    meta.push(
+      '<div class="lock">Maksimum seviyeye ulaştı.</div>'
+    );
+  }else if(!prereq){
+    meta.push(
+      '<div class="lock">Geliştirmek için ön koşulu tamamla.</div>'
+    );
+  }else if(capLocked){
+    meta.push(
+      '<div class="lock">Önce Merkez Bina seviyesini yükselt.</div>'
+    );
+  }
+
+  document.getElementById(
+    'selectedBuildingMeta'
+  ).innerHTML=
+    meta.join('');
+
+  const button=document.getElementById(
+    'selectedBuildingUpgrade'
+  );
+
+  button.disabled=
+    !!pending||
+    locked;
+
+  button.textContent=
+    pending
+      ?'İnşa ediliyor'
+      :maxed
+        ?'Maksimum'
+        :locked
+          ?'Kilitli'
+          :'Geliştir';
+
+  button.onclick=
+    ()=>{
+      upgrade(name);
+    };
+
+  const queue=document.getElementById(
+    'constructionQueue'
+  );
+
+  if(pending){
+    queue.innerHTML=
+      '🏗️ '+esc(name)+
+      ' geliştiriliyor.<br>'+
+      '<span class="time">'+
+      remain(left)+
+      '</span>';
+  }else{
+    const active=latestBuildings.find(
+      x=>x&&x.is_under_construction
+    );
+
+    if(active){
+      const activeLeft=Math.max(
+        0,
+        Math.ceil(
+          (
+            new Date(
+              active.upgrade_ready_at
+            ).getTime()-
+            Date.now()
+          )/1000
+        )
+      );
+
+      queue.innerHTML=
+        '🏗️ '+esc(active.building_type)+
+        ' geliştiriliyor.<br>'+
+        '<span class="time">'+
+        remain(activeLeft)+
+        '</span>';
+    }else{
+      queue.textContent=
+        'İnşaat kuyruğu boş.';
+    }
+  }
 }
 
 
