@@ -222,6 +222,19 @@ async function register(req, res) {
     });
   }
 
+  if (username.length > 24) {
+    return send(res, 400, {
+      success: false,
+      message: "Kullanıcı adı en fazla 24 karakter olmalı."
+    });
+  }
+
+  if (!/^[A-Za-zÇĞİÖŞÜçğıöşü0-9_-]+$/.test(username)) {
+    return send(res, 400, {
+      success: false,
+      message: "Kullanıcı adı yalnızca harf, rakam, _ ve - içerebilir."
+    });
+  }
   if (password.length < 6) {
     return send(res, 400, {
       success: false,
@@ -1022,25 +1035,32 @@ async function createMilitaryMission(req, res) {
   });
 }
 
-async function completeMissionReturn(mission,res){
-  const claim=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.returning",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"completed",completed_at:new Date().toISOString()})});
-  if(!claim.ok || !claim.data?.[0]){
-    const current=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&limit=1");
-    return send(res,200,{success:true,mission:current.data?.[0]||mission});
+async function completeMissionReturn(mission,res,playerId){
+  const returnedResult=await supabase("rpc/nexora_complete_military_return",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_mission_id:Number(mission.id)
+    })
+  });
+
+  if(!returnedResult.ok){
+    console.error("Atomik sefer dönüş RPC hatası:",returnedResult.data);
+    return send(res,500,{success:false,message:"Sefer dönüşü tamamlanamadı."});
   }
-  const result=mission.result||{};
-  const survivors=await hydrateArmyStats(Array.isArray(result.survivorArmy)?result.survivorArmy:[]);
-  for(const u of survivors){
-    if(Number(u.quantity)<=0)continue;
-    const existing=await supabase("units?select=id,quantity&city_id=eq."+encodeURIComponent(mission.attacker_city_id)+"&unit_type=eq."+encodeURIComponent(u.unit_type)+"&limit=1");
-    if(existing.ok&&existing.data?.[0]){
-      const row=existing.data[0];
-      await supabase("units?id=eq."+encodeURIComponent(row.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({quantity:Number(row.quantity||0)+Number(u.quantity),level:Number(u.level),attack:Number(u.attack),defense:Number(u.defense),hp:Number(u.hp),speed:Number(u.speed),population_cost:Number(u.population_cost)})});
-    } else {
-      await supabase("units",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({city_id:mission.attacker_city_id,unit_type:u.unit_type,quantity:Number(u.quantity),level:Number(u.level),attack:Number(u.attack),defense:Number(u.defense),hp:Number(u.hp),speed:Number(u.speed),population_cost:Number(u.population_cost)})});
-    }
+
+  const returned=returnedResult.data||{};
+  if(returned.success!==true){
+    const code=String(returned.code||"");
+    const status=code==="FORBIDDEN"?403:code==="MISSION_NOT_FOUND"?404:400;
+    return send(res,status,{
+      success:false,
+      code:code||"MISSION_RETURN_FAILED",
+      message:returned.message||"Sefer dönüşü tamamlanamadı."
+    });
   }
-  return send(res,200,{success:true,mission:claim.data[0]});
+
+  return send(res,200,{success:true,mission:returned.mission||mission});
 }
 
 async function getMilitaryMission(req,res){
@@ -1050,8 +1070,8 @@ async function getMilitaryMission(req,res){
   let mission=m.data[0]; if(playerId!==Number(mission.attacker_player_id)&&playerId!==Number(mission.defender_player_id))return send(res,403,{success:false,message:"Bu sefere erişemezsin."});
   if(mission.status==="completed")return send(res,200,{success:true,mission});
   let remaining=Math.ceil((new Date(mission.arrive_at).getTime()-Date.now())/1000);
-  if(mission.status==="returning"&&remaining<=0)return completeMissionReturn(mission,res);
-  if(mission.status==="returning"||mission.status==="resolving"||remaining>0)return send(res,200,{success:true,mission:{id:mission.id,status:mission.status,arriveAt:mission.arrive_at,remainingSeconds:Math.max(0,remaining),result:mission.result||null,attack_power:mission.attack_power||0}});
+  if(mission.status==="returning"&&remaining<=0)return completeMissionReturn(mission,res,playerId);
+  if(mission.status==="returning"||remaining>0)return send(res,200,{success:true,mission:{id:mission.id,status:mission.status,arriveAt:mission.arrive_at,remainingSeconds:Math.max(0,remaining),result:mission.result||null,attack_power:mission.attack_power||0}});
 
   const claim=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.traveling",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"resolving"})});
   if(!claim.ok||!claim.data?.[0]){const reread=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&limit=1");return send(res,200,{success:true,mission:reread.data?.[0]||mission});}
@@ -1065,7 +1085,7 @@ async function getMilitaryMission(req,res){
   ]);
   const rawDefenders=defUnitsResult.data||[],defR=defResearchResult.data?.[0]||{},defB=defBuildingsResult.data||[],attR=attResearchResult.data?.[0]||{};
   const army=await hydrateArmyStats(Array.isArray(mission.army)?mission.army:[]);
-  const defenders=await hydrateArmyStats(rawDefenders.filter(u=>Number(u.quantity||0)>0).map(u=>({unit_type:u.unit_type,quantity:Number(u.quantity||0),level:Number(u.level||1),population_cost:Number(u.population_cost||1)})));
+  const defenders=await hydrateArmyStats(rawDefenders.filter(u=>Number(u.quantity||0)>0).map(u=>({id:Number(u.id),unit_type:u.unit_type,quantity:Number(u.quantity||0),level:Number(u.level||1),population_cost:Number(u.population_cost||1)})));
   const roleOf=type=>COMBAT_ROLE_V2[type]||COMBAT_ROLE_V2.piyade;
   const researchMul=r=>({general:1+Number(r.general_power_level||0)*0.05,combat:1+Number(r.combat_level||0)*0.05,attack:1+Number(r.unit_attack_level||0)*0.05,defense:1+Number(r.unit_defense_level||0)*0.05,hp:1+Number(r.unit_hp_level||0)*0.05});
   const am=researchMul(attR),dm={general:1+Number(defR.general_power_level||0)*0.05,combat:1+Number(defR.combat_level||0)*0.05,defense:1+Number(defR.unit_defense_level||0)*0.05,hp:1+Number(defR.unit_hp_level||0)*0.05};
@@ -1100,20 +1120,76 @@ async function getMilitaryMission(req,res){
   const attackerLosses={},survivorArmy=[],defenderLosses={};
   for(const u of army){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*attackerLossBase*mod*(1-0.12*ratio))));attackerLosses[u.unit_type]=(attackerLosses[u.unit_type]||0)+loss;survivorArmy.push({...u,quantity:q-loss});}
   for(const u of defenders){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*defenderLossBase*mod*(1-0.12*ratio))));defenderLosses[u.unit_type]=(defenderLosses[u.unit_type]||0)+loss;}
-  for(const u of defenders){const loss=Number(defenderLosses[u.unit_type]||0);if(loss)await supabase("units?id=eq."+encodeURIComponent(u.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({quantity:Math.max(0,Number(u.quantity||0)-loss)})});}
-
-  const settled=await supabase("rpc/nexora_settle_mission_loot",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_mission_id:Number(mission.id),p_loot_rate:result==="Zafer"?0.10:0})});
-  if(!settled.ok||settled.data?.success!==true)return send(res,500,{success:false,message:"Savaş kaynakları işlenemedi."});
-  const loot=settled.data.loot;
   const outbound=Math.max(10,Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000));
-  const returnAt=new Date(Date.now()+outbound*1000).toISOString();
   const attackerX=Number(mission.depart_x),attackerY=Number(mission.depart_y),defenderX=Number(mission.target_x),defenderY=Number(mission.target_y);
   const battlePoints=calculateBattlePoints(result,attackPower,defensePower);
-  const report={version:3,result,attackPower,defensePower,rawAttackPower:Math.round(rawAttackPower),rawDefensePower:Math.round(rawDefensePower),defenseBonus:wallBonus,advantageRatio:Number(ratio.toFixed(4)),attackerLosses,defenderLosses,loot,survivorArmy,returnAt,battleAt:new Date().toISOString(),battlePoints,winnerPlayerId:result==="Zafer"?Number(mission.attacker_player_id):result==="Yenilgi"?Number(mission.defender_player_id):null,attackerX:Number.isFinite(attackerX)?attackerX:null,attackerY:Number.isFinite(attackerY)?attackerY:null,defenderX:Number.isFinite(defenderX)?defenderX:null,defenderY:Number.isFinite(defenderY)?defenderY:null,attackerBreakdown,defenderBreakdown};
-  await supabase("battle_reports",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({attacker_player_id:Number(mission.attacker_player_id),defender_player_id:Number(mission.defender_player_id),result:JSON.stringify(report),attack_power:attackPower,defense_power:defensePower,attacker_losses:attackerLosses,defender_losses:defenderLosses,loot,battle_points:battlePoints,winner_player_id:report.winnerPlayerId})});
-  const updated=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.resolving",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"returning",arrive_at:returnAt,attack_power:attackPower,result:report})});
-  if(!updated.ok||!updated.data?.[0])return send(res,500,{success:false,message:"Savaş sonucu kaydedilemedi."});
-  return send(res,200,{success:true,mission:{...updated.data[0],remainingSeconds:outbound}});
+  const winnerPlayerId=result==="Zafer"?Number(mission.attacker_player_id):result==="Yenilgi"?Number(mission.defender_player_id):null;
+  const reportBase={
+    version:4,
+    result,
+    attackPower,
+    defensePower,
+    rawAttackPower:Math.round(rawAttackPower),
+    rawDefensePower:Math.round(rawDefensePower),
+    defenseBonus:wallBonus,
+    advantageRatio:Number(ratio.toFixed(4)),
+    attackerLosses,
+    defenderLosses,
+    survivorArmy,
+    battlePoints,
+    winnerPlayerId,
+    attackerX:Number.isFinite(attackerX)?attackerX:null,
+    attackerY:Number.isFinite(attackerY)?attackerY:null,
+    defenderX:Number.isFinite(defenderX)?defenderX:null,
+    defenderY:Number.isFinite(defenderY)?defenderY:null,
+    attackerBreakdown,
+    defenderBreakdown
+  };
+  const defenderSnapshot=defenders.map(u=>({
+    id:Number(u.id),
+    unit_type:u.unit_type,
+    quantity:Number(u.quantity||0),
+    level:Number(u.level||1)
+  }));
+
+  const resolvedResult=await supabase("rpc/nexora_resolve_military_mission",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_mission_id:Number(mission.id),
+      p_defender_snapshot:defenderSnapshot,
+      p_defender_losses:defenderLosses,
+      p_report_base:reportBase,
+      p_attack_power:attackPower,
+      p_defense_power:defensePower,
+      p_loot_rate:result==="Zafer"?0.10:0,
+      p_battle_points:battlePoints,
+      p_winner_player_id:winnerPlayerId,
+      p_return_seconds:outbound
+    })
+  });
+
+  if(!resolvedResult.ok){
+    console.error("Atomik savaş çözümleme RPC hatası:",resolvedResult.data);
+    return send(res,500,{success:false,message:"Savaş sonucu işlenemedi."});
+  }
+
+  const resolved=resolvedResult.data||{};
+  if(resolved.success!==true){
+    const code=String(resolved.code||"");
+    const status=code==="DEFENDER_CHANGED"?409:code==="FORBIDDEN"?403:code==="MISSION_NOT_FOUND"?404:400;
+    return send(res,status,{
+      success:false,
+      code:code||"MISSION_RESOLVE_FAILED",
+      message:resolved.message||"Savaş sonucu işlenemedi."
+    });
+  }
+
+  const resolvedMission=resolved.mission||mission;
+  const remainingSeconds=resolvedMission.status==="returning"
+    ?Math.max(0,Math.ceil((new Date(resolvedMission.arrive_at).getTime()-Date.now())/1000))
+    :0;
+  return send(res,200,{success:true,mission:{...resolvedMission,remainingSeconds}});
 }
 
 async function syncResearchCityResources(playerId, city, buildings, research){
@@ -2433,4 +2509,5 @@ if (action === "upgrade") {
     });
   }
 };
+
 
