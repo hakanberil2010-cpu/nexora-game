@@ -790,6 +790,13 @@ const savedUser = JSON.parse(
   localStorage.getItem("nexora_player") || "null"
 );
 
+const pageToken =
+  localStorage.getItem("nexora_token");
+
+if (!pageToken) {
+  location.href = "login.html";
+}
+
 let myCoordinateX = 25;
 let myCoordinateY = 35;
 
