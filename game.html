@@ -441,6 +441,17 @@ async function loadCity(){
 
       const d=await r.json();
 
+    if(r.status===401){
+
+      localStorage.removeItem(
+        'nexora_token'
+      );
+
+      location.href='login.html';
+
+      return;
+    }
+
       if(!r.ok||!d.success){
         return;
       }
@@ -785,6 +796,17 @@ async function upgrade(name){
     );
 
     const d=await r.json();
+
+    if(r.status===401){
+
+      localStorage.removeItem(
+        'nexora_token'
+      );
+
+      location.href='login.html';
+
+      return;
+    }
 
     if(!r.ok||!d.success){
 
