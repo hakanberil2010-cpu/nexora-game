@@ -149,21 +149,13 @@
 </head>
 
 <body>
-
   <div class="top">
     <div class="logo">NEXORA</div>
-
-    <div>
-      Oyuncu:
-      <strong id="playerName">Oyuncu</strong>
-    </div>
+    <div>Oyuncu: <strong id="playerName">Oyuncu</strong></div>
   </div>
 
   <div class="container">
-
-    <a class="topBack" href="game.html">
-      ← Koloniye Dön
-    </a>
+    <a class="topBack" href="game.html">← Koloniye Dön</a>
 
     <h1>🔬 Araştırma Merkezi</h1>
 
@@ -172,88 +164,39 @@
     </div>
 
     <div class="resources">
-
-      <div class="res">
-        ⛏️ Metal
-        <b id="metal">0</b>
-      </div>
-
-      <div class="res">
-        ⚡ Enerji
-        <b id="energy">0</b>
-      </div>
-
-      <div class="res">
-        💎 Kristal
-        <b id="crystal">0</b>
-      </div>
-
-      <div class="res">
-        ⏱️ Durum
-        <b id="globalTimer">Hazır</b>
-      </div>
-
+      <div class="res">⛏️ Metal <b id="metal">0</b></div>
+      <div class="res">⚡ Enerji <b id="energy">0</b></div>
+      <div class="res">💎 Kristal <b id="crystal">0</b></div>
+      <div class="res">⏱️ Durum <b id="globalTimer">Hazır</b></div>
     </div>
 
-    <div
-      class="status"
-      id="status"
-    ></div>
+    <div class="status" id="status"></div>
+    <div class="grid" id="grid"></div>
 
-    <div
-      class="grid"
-      id="grid"
-    ></div>
-
-    <a class="back" href="game.html">
-      ← Koloniye Dön
-    </a>
-
+    <a class="back" href="game.html">← Koloniye Dön</a>
   </div>
 
   <script>
-
-    const token =
-      localStorage.getItem(
-        'nexora_token'
-      );
-
-    const u =
-      JSON.parse(
-        localStorage.getItem(
-          'nexora_player'
-        ) || 'null'
-      );
+    const token = localStorage.getItem('nexora_token');
+    const u = JSON.parse(localStorage.getItem('nexora_player') || 'null');
 
     if (!token) {
-      location.href =
-        'login.html';
+      location.href = 'login.html';
     }
 
     if (u?.username) {
-      document.getElementById(
-        'playerName'
-      ).textContent =
-        u.username;
+      document.getElementById('playerName').textContent = u.username;
     }
 
-
-    let serverClockOffset =
-      0;
-
+    let serverClockOffset = 0;
+    let latestResearchData = null;
+    let researchLoadPromise = null;
 
     function nowMs() {
-
-      return (
-        Date.now() +
-        serverClockOffset
-      );
-
+      return Date.now() + serverClockOffset;
     }
 
-
     const R = {
-
       production: [
         '⚙️',
         'Üretim Teknolojisi',
@@ -262,7 +205,6 @@
         150,
         25
       ],
-
       combat: [
         '⚔️',
         'Muharebe',
@@ -271,7 +213,6 @@
         200,
         40
       ],
-
       defense: [
         '🛡️',
         'Savunma',
@@ -280,7 +221,6 @@
         180,
         35
       ],
-
       crystal: [
         '💎',
         'Kristal Teknolojisi',
@@ -289,7 +229,6 @@
         250,
         60
       ],
-
       general_power: [
         '🌟',
         'Genel Güç',
@@ -298,7 +237,6 @@
         300,
         50
       ],
-
       unit_attack: [
         '🔥',
         'Birlik Saldırısı',
@@ -307,7 +245,6 @@
         250,
         45
       ],
-
       unit_defense: [
         '🧱',
         'Birlik Savunması',
@@ -316,7 +253,6 @@
         250,
         45
       ],
-
       unit_hp: [
         '❤️',
         'Birlik HP',
@@ -325,7 +261,6 @@
         275,
         50
       ],
-
       travel_speed: [
         '🚀',
         'Seyahat Hızı',
@@ -334,412 +269,217 @@
         350,
         65
       ]
-
     };
 
-
     function syncServerTime(d) {
-
       if (d?.serverTime) {
+        const t = Date.parse(d.serverTime);
 
-        const t =
-          Date.parse(
-            d.serverTime
-          );
-
-        if (
-          Number.isFinite(t)
-        ) {
-
-          serverClockOffset =
-            t -
-            Date.now();
-
+        if (Number.isFinite(t)) {
+          serverClockOffset = t - Date.now();
         }
-
       }
-
     }
-
 
     function remain(s) {
-
-      s =
-        Math.max(
-          0,
-          Number(s) || 0
-        );
+      s = Math.max(0, Number(s) || 0);
 
       return (
-        String(
-          Math.floor(
-            s / 60
-          )
-        ).padStart(
-          2,
-          '0'
-        ) +
+        String(Math.floor(s / 60)).padStart(2, '0') +
         ':' +
-        String(
-          s % 60
-        ).padStart(
-          2,
-          '0'
-        )
+        String(s % 60).padStart(2, '0')
       );
-
     }
-
 
     function keyToId(k) {
-
-      return k.replace(
-        /_/g,
-        '-'
-      );
-
+      return k.replace(/_/g, '-');
     }
 
-
     function render(d) {
+      latestResearchData = d;
 
-      const r =
-        d.research ||
-        {};
+      const r = d.research || {};
 
-      document.getElementById(
-        'metal'
-      ).textContent =
-        Math.floor(
-          d.city?.metal ||
-          0
-        ).toLocaleString(
-          'tr-TR'
-        );
+      document.getElementById('metal').textContent =
+        Math.floor(d.city?.metal || 0).toLocaleString('tr-TR');
 
-      document.getElementById(
-        'energy'
-      ).textContent =
-        Math.floor(
-          d.city?.energy ||
-          0
-        ).toLocaleString(
-          'tr-TR'
-        );
+      document.getElementById('energy').textContent =
+        Math.floor(d.city?.energy || 0).toLocaleString('tr-TR');
 
-      document.getElementById(
-        'crystal'
-      ).textContent =
-        Math.floor(
-          d.city?.crystal ||
-          0
-        ).toLocaleString(
-          'tr-TR'
-        );
+      document.getElementById('crystal').textContent =
+        Math.floor(d.city?.crystal || 0).toLocaleString('tr-TR');
 
-
-      document.getElementById(
-        'grid'
-      ).innerHTML =
+      document.getElementById('grid').innerHTML =
         Object.entries(R)
-          .map(
-            ([k, v]) => {
+          .map(([k, v]) => {
+            const lvl = Number(r[k + '_level'] || 0);
+            const pending = r.upgrade_ready_at;
+            const left = pending
+              ? Math.max(
+                  0,
+                  Math.ceil(
+                    (new Date(pending).getTime() - nowMs()) / 1000
+                  )
+                )
+              : 0;
 
-              const lvl =
-                Number(
-                  r[
-                    k +
-                    '_level'
-                  ] ||
-                  0
-                );
+            const busy = !!pending;
+            const active = busy && r.pending_column === k + '_level';
 
-              const pending =
-                r.upgrade_ready_at;
+            return `
+              <div class="card">
+                <div class="icon">${v[0]}</div>
+                <h2>${v[1]}</h2>
+                <p>${v[2]}</p>
+                <div class="level">Seviye ${lvl}/15</div>
 
-              const left =
-                pending
-                  ? Math.max(
-                      0,
-                      Math.ceil(
-                        (
-                          new Date(
-                            pending
-                          ).getTime() -
-                          nowMs()
-                        ) /
-                        1000
-                      )
-                    )
-                  : 0;
-
-              const busy =
-                !!pending;
-
-              const active =
-                busy &&
-                r.pending_column ===
-                  k +
-                  '_level';
-
-
-              return `
-                <div class="card">
-
-                  <div class="icon">
-                    ${v[0]}
-                  </div>
-
-                  <h2>
-                    ${v[1]}
-                  </h2>
-
-                  <p>
-                    ${v[2]}
-                  </p>
-
-                  <div class="level">
-                    Seviye ${lvl}/15
-                  </div>
-
-                  <div class="cost">
-
-                    Maliyet:
-                    ${v[3] * (lvl + 1)}
-                    Metal +
-
-                    ${v[4] * (lvl + 1)}
-                    Enerji +
-
-                    ${v[5] * (lvl + 1)}
-                    Kristal
-
-                  </div>
-
-                  <div class="timer">
-
-                    ${
-                      active
-                        ? '⏱️ ' +
-                          remain(left)
-                        : busy
-                          ? 'Başka araştırma sürüyor'
-                          : 'Hazır'
-                    }
-
-                  </div>
-
-                  <button
-                    class="button"
-                    ${
-                      busy ||
-                      lvl >= 15
-                        ? 'disabled'
-                        : ''
-                    }
-                    onclick="research('${k}')"
-                  >
-
-                    ${
-                      lvl >= 15
-                        ? 'Maksimum'
-                        : active
-                          ? 'Araştırılıyor'
-                          : busy
-                            ? 'Bekle'
-                            : 'Araştır'
-                    }
-
-                  </button>
-
+                <div class="cost">
+                  Maliyet:
+                  ${v[3] * (lvl + 1)} Metal +
+                  ${v[4] * (lvl + 1)} Enerji +
+                  ${v[5] * (lvl + 1)} Kristal
                 </div>
-              `;
 
-            }
-          )
+                <div class="timer" data-research-key="${k}">
+                  ${
+                    active
+                      ? '⏱️ ' + remain(left)
+                      : busy
+                        ? 'Başka araştırma sürüyor'
+                        : 'Hazır'
+                  }
+                </div>
+
+                <button
+                  class="button"
+                  ${busy || lvl >= 15 ? 'disabled' : ''}
+                  onclick="research('${k}')"
+                >
+                  ${
+                    lvl >= 15
+                      ? 'Maksimum'
+                      : active
+                        ? 'Araştırılıyor'
+                        : busy
+                          ? 'Bekle'
+                          : 'Araştır'
+                  }
+                </button>
+              </div>
+            `;
+          })
           .join('');
 
-
-      document.getElementById(
-        'globalTimer'
-      ).textContent =
+      document.getElementById('globalTimer').textContent =
         r.upgrade_ready_at
           ? remain(
               Math.max(
                 0,
                 Math.ceil(
-                  (
-                    new Date(
-                      r.upgrade_ready_at
-                    ).getTime() -
-                    nowMs()
-                  ) /
-                  1000
+                  (new Date(r.upgrade_ready_at).getTime() - nowMs()) / 1000
                 )
               )
             )
           : 'Hazır';
-
     }
 
+    function updateResearchTimers() {
+      const r = latestResearchData?.research || {};
+      const pending = r.upgrade_ready_at;
 
-    let researchLoadPromise =
-      null;
-
-
-    async function load() {
-
-      if (
-        researchLoadPromise
-      ) {
-
-        return researchLoadPromise;
-
+      if (!pending) {
+        document.getElementById('globalTimer').textContent = 'Hazır';
+        return;
       }
 
+      const left = Math.max(
+        0,
+        Math.ceil(
+          (new Date(pending).getTime() - nowMs()) / 1000
+        )
+      );
 
-      researchLoadPromise =
-        (
-          async () => {
+      document.getElementById('globalTimer').textContent = remain(left);
 
-            try {
-
-              const r =
-                await fetch(
-                  '/api/auth?action=research',
-                  {
-
-                    method:
-                      'POST',
-
-                    headers: {
-
-                      Authorization:
-                        'Bearer ' +
-                        token
-
-                    }
-
-                  }
-                );
-
-
-              const d =
-                await r.json();
-
-
-              syncServerTime(
-                d
-              );
-
-
-              if (
-                r.ok &&
-                d.success
-              ) {
-
-                render(
-                  d
-                );
-
-              }
-
-            } catch (e) {
-
-              console.error(
-                e
-              );
-
-            }
-
-          }
-        )().finally(
-          () => {
-
-            researchLoadPromise =
-              null;
-
-          }
+      Object.keys(R).forEach(function (k) {
+        const timer = document.querySelector(
+          '.timer[data-research-key="' + k + '"]'
         );
 
+        if (!timer) {
+          return;
+        }
 
-      return researchLoadPromise;
+        const active = r.pending_column === k + '_level';
 
+        timer.textContent = active
+          ? '⏱️ ' + remain(left)
+          : 'Başka araştırma sürüyor';
+      });
     }
 
-
-    async function research(k) {
-
-      document.getElementById(
-        'status'
-      ).textContent =
-        'Araştırma başlatılıyor...';
-
-
-      try {
-
-        const r =
-          await fetch(
-            '/api/auth?action=upgradeResearch',
-            {
-
-              method:
-                'POST',
-
-              headers: {
-
-                'Content-Type':
-                  'application/json',
-
-                Authorization:
-                  'Bearer ' +
-                  token
-
-              },
-
-              body:
-                JSON.stringify({
-                  researchType:
-                    k
-                })
-
-            }
-          );
-
-
-        const d =
-          await r.json();
-
-
-        document.getElementById(
-          'status'
-        ).textContent =
-          d.message ||
-          '';
-
-
-        load();
-
-      } catch (e) {
-
-        document.getElementById(
-          'status'
-        ).textContent =
-          'Bağlantı hatası.';
-
+    async function load() {
+      if (researchLoadPromise) {
+        return researchLoadPromise;
       }
 
+      researchLoadPromise = (async () => {
+        try {
+          const r = await fetch('/api/auth?action=research', {
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer ' + token
+            }
+          });
+
+          const d = await r.json();
+          syncServerTime(d);
+
+          if (r.ok && d.success) {
+            render(d);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      })().finally(() => {
+        researchLoadPromise = null;
+      });
+
+      return researchLoadPromise;
     }
 
+    async function research(k) {
+      document.getElementById('status').textContent =
+        'Araştırma başlatılıyor...';
+
+      try {
+        const r = await fetch('/api/auth?action=upgradeResearch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token
+          },
+          body: JSON.stringify({
+            researchType: k
+          })
+        });
+
+        const d = await r.json();
+
+        document.getElementById('status').textContent =
+          d.message || '';
+
+        load();
+      } catch (e) {
+        document.getElementById('status').textContent =
+          'Bağlantı hatası.';
+      }
+    }
 
     load();
 
-    setInterval(
-      load,
-      5000
-    );
-
+    setInterval(load, 5000);
+    setInterval(updateResearchTimers, 1000);
   </script>
-
 </body>
 </html>
