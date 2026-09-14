@@ -35,7 +35,7 @@ DECLARE
   q public.unit_production_queue%ROWTYPE;
   u public.units%ROWTYPE;
   s public.unit_levels%ROWTYPE;
-  v_now timestamptz := clock_timestamp();
+  v_now timestamptz;
   v_defender_units jsonb := '[]'::jsonb;
   v_defender_buildings jsonb := '[]'::jsonb;
   v_defender_research jsonb := '{}'::jsonb;
@@ -116,6 +116,11 @@ BEGIN
       'message', 'Sefer çözüm aşamasında değil.'
     );
   END IF;
+
+  -- Capture the authoritative snapshot time only after the city + mission
+  -- locks are held. If this transaction had to wait for another writer,
+  -- jobs that became due during that wait must be visible to this battle.
+  v_now := clock_timestamp();
 
   IF mission.arrive_at > v_now THEN
     RETURN jsonb_build_object(
