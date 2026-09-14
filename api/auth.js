@@ -1073,9 +1073,16 @@ async function getMilitaryMission(req,res){
   if(mission.status==="returning"&&remaining<=0)return completeMissionReturn(mission,res,playerId);
   if(mission.status==="returning"||remaining>0)return send(res,200,{success:true,mission:{id:mission.id,status:mission.status,arriveAt:mission.arrive_at,remainingSeconds:Math.max(0,remaining),result:mission.result||null,attack_power:mission.attack_power||0}});
 
-  const claim=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.traveling",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"resolving"})});
-  if(!claim.ok||!claim.data?.[0]){const reread=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&limit=1");return send(res,200,{success:true,mission:reread.data?.[0]||mission});}
-  mission=claim.data[0];
+  if(mission.status==="traveling"){
+    const claim=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.traveling",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"resolving"})});
+    if(!claim.ok||!claim.data?.[0]){
+      const reread=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&limit=1");
+      return send(res,200,{success:true,mission:reread.data?.[0]||mission});
+    }
+    mission=claim.data[0];
+  } else if(mission.status!=="resolving"){
+    return send(res,409,{success:false,message:"Sefer durumu çözümlenemiyor."});
+  }
 
   const [defUnitsResult,defResearchResult,defBuildingsResult,attResearchResult]=await Promise.all([
     supabase("units?select=*&city_id=eq."+encodeURIComponent(mission.defender_city_id)),
@@ -2509,5 +2516,6 @@ if (action === "upgrade") {
     });
   }
 };
+
 
 
