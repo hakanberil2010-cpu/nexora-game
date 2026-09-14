@@ -2412,6 +2412,88 @@ async function getWorldExploration(req,res){
 }
 
 
+async function startEspionage(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  const targetPlayerId=Number(body?.targetPlayerId);
+  if(!Number.isSafeInteger(targetPlayerId)||targetPlayerId<=0)return send(res,400,{success:false,message:"Geçersiz casusluk hedefi."});
+  if(targetPlayerId===Number(playerId))return send(res,400,{success:false,message:"Kendi kolonine casus gönderemezsin."});
+
+  const [attackerCityR,targetCityR,researchR]=await Promise.all([
+    supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
+    supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(targetPlayerId)+"&limit=1"),
+    supabase("research?select=travel_speed_level&player_id=eq."+encodeURIComponent(playerId)+"&limit=1")
+  ]);
+
+  if(!attackerCityR.ok)return send(res,503,{success:false,message:"Koloni bilgisi alınamadı."});
+  if(!targetCityR.ok)return send(res,503,{success:false,message:"Hedef koloni bilgisi alınamadı."});
+  if(!attackerCityR.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
+  if(!targetCityR.data?.[0])return send(res,404,{success:false,message:"Hedef koloni bulunamadı."});
+
+  const attackerCity=attackerCityR.data[0];
+  const targetCity=targetCityR.data[0];
+  const distance=Math.sqrt(
+    Math.pow(Number(targetCity.coordinate_x||0)-Number(attackerCity.coordinate_x||0),2)+
+    Math.pow(Number(targetCity.coordinate_y||0)-Number(attackerCity.coordinate_y||0),2)
+  );
+  const research=researchR.ok&&researchR.data?.[0]?researchR.data[0]:{};
+  const speedResearch=Math.max(0.25,1-Number(research.travel_speed_level||0)*0.05);
+  const travelSeconds=Math.max(5,Math.ceil((Math.max(1,distance)/2)*speedResearch));
+
+  const started=await supabase("rpc/nexora_start_espionage",{
+    method:"POST",
+    body:JSON.stringify({
+      p_attacker_player_id:Number(playerId),
+      p_defender_player_id:Number(targetPlayerId),
+      p_travel_seconds:travelSeconds,
+      p_distance:Number(distance.toFixed(2))
+    })
+  });
+
+  if(!started.ok){
+    console.error("Casusluk başlatma RPC hatası:",started.data);
+    return send(res,503,{success:false,message:"Casusluk görevi şu anda başlatılamıyor."});
+  }
+
+  const result=started.data||{};
+  if(result.success!==true){
+    const code=String(result.code||"");
+    const status=code==="ACTIVE_ESPIONAGE"?409:(code==="CITY_NOT_FOUND"||code==="TARGET_CITY_NOT_FOUND")?404:400;
+    return send(res,status,{
+      ...result,
+      success:false,
+      message:result.message||"Casusluk görevi başlatılamadı."
+    });
+  }
+
+  return send(res,200,result);
+}
+
+async function getEspionageStatus(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const missionId=Number(req.query.id);
+  if(!Number.isSafeInteger(missionId)||missionId<=0)return send(res,400,{success:false,message:"Geçersiz casusluk görevi."});
+
+  const resolved=await supabase("rpc/nexora_resolve_espionage",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:Number(playerId),p_mission_id:missionId})
+  });
+
+  if(!resolved.ok){
+    console.error("Casusluk sonuçlandırma RPC hatası:",resolved.data);
+    return send(res,503,{success:false,message:"Casusluk durumu şu anda alınamıyor."});
+  }
+
+  const result=resolved.data||{};
+  if(result.success!==true){
+    const status=String(result.code||"")==="MISSION_NOT_FOUND"?404:400;
+    return send(res,status,result);
+  }
+
+  return send(res,200,result);
+}
+
+
 async function getMilitaryMissions(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const r=await supabase("military_missions?select=*&or=(attacker_player_id.eq."+encodeURIComponent(playerId)+",defender_player_id.eq."+encodeURIComponent(playerId)+")&order=depart_at.desc&limit=20");
@@ -2821,6 +2903,12 @@ if (action === "claimgamemission") {
 }
 if (action === "explorestatus") {
   return await getWorldExploration(req, res);
+}
+if (action === "spy") {
+  return await startEspionage(req, res);
+}
+if (action === "spystatus") {
+  return await getEspionageStatus(req, res);
 }
 if (action === "move") {
   return await moveColony(req, res);
