@@ -262,7 +262,8 @@ const BUILDING_COSTS={
     crystal:25
   },
 
-  "Merkez Bina":{    metal:750,
+  "Merkez Bina":{
+    metal:750,
     energy:150,
     water:100,
     crystal:50
@@ -511,6 +512,7 @@ async function loadCity(){
         'water'
       ].forEach(
         k=>{
+
           const e=document.getElementById(
             k+'Cap'
           );
@@ -760,7 +762,8 @@ function renderBuildings(buildings){
       `;
 
     }
-  ).join('');}
+  ).join('');
+}
 
 
 async function upgrade(name){
