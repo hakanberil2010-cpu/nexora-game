@@ -39,33 +39,12 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   overflow:hidden;
   border-radius:12px;
   border:1px solid #1c4b68;
-  background:
-    radial-gradient(circle at 49% 48%,rgba(31,116,150,.24) 0 7%,transparent 8%),
-    linear-gradient(33deg,transparent 47%,rgba(78,122,128,.20) 48% 52%,transparent 53%),
-    linear-gradient(-31deg,transparent 47%,rgba(78,122,128,.16) 48% 52%,transparent 53%),
-    radial-gradient(circle at 18% 23%,rgba(35,110,74,.42),transparent 23%),
-    radial-gradient(circle at 79% 28%,rgba(33,98,71,.42),transparent 24%),
-    radial-gradient(circle at 23% 76%,rgba(61,82,106,.28),transparent 20%),
-    radial-gradient(circle at 79% 75%,rgba(25,96,110,.30),transparent 23%),
-    linear-gradient(145deg,#0d2b2b 0%,#102f3a 42%,#0a1e30 100%);
-}
-.colony-scene:before{
-  content:"";
-  position:absolute;inset:0;
-  background:
-    repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 34px),
-    repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 34px);
-  pointer-events:none
-}
-.colony-scene:after{
-  content:"";
-  position:absolute;left:8%;right:8%;bottom:-54px;height:150px;
-  border-radius:50%;
-  background:radial-gradient(ellipse,rgba(12,83,104,.55),rgba(5,13,24,0) 70%);
-  pointer-events:none
+  background:linear-gradient(145deg,#0d252c 0%,#0a1a28 100%);
 }
 .scene-title{position:absolute;left:14px;top:12px;z-index:4;padding:7px 10px;border-radius:8px;background:rgba(5,13,24,.78);border:1px solid #24516f;color:#9fd8f6;font-size:12px;backdrop-filter:blur(3px)}
 .scene-hint{position:absolute;right:14px;top:12px;z-index:4;padding:7px 10px;border-radius:8px;background:rgba(5,13,24,.72);color:#789bb7;font-size:12px}
+.road-map{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+.road-map line{stroke:#617786;stroke-width:2;stroke-linecap:round;opacity:.52;vector-effect:non-scaling-stroke}
 .building-map{position:absolute;inset:0;z-index:3}
 .building-node{
   position:absolute;
@@ -91,6 +70,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .building-node-name{display:block;font-size:11px;font-weight:bold;line-height:1.15;white-space:normal}
 .building-node-level{display:block;margin-top:3px;color:#82b5d4;font-size:10px}
 .building-node-time{display:block;margin-top:3px;color:#ffd37b;font-size:10px;font-weight:bold}
+.building-node-unlock{display:block;margin-top:3px;color:#ffcf7a;font-size:9px;font-weight:bold}
 
 .colony-status-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .status{padding:10px 11px;border-radius:9px;background:#071526;border:1px solid #17344e;color:#8bdcff;font-size:12px;line-height:1.45}
@@ -143,8 +123,8 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   .resources{grid-template-columns:1fr 1fr}
   .resource{padding:10px}
   .resource-value{font-size:20px}
-  .colony-panel{padding:8px}
-  .colony-scene{min-height:500px}
+  .colony-panel{padding:8px;overflow-x:auto}
+  .colony-scene{min-width:720px;min-height:560px}
   .scene-hint{display:none}
   .building-node{width:86px;min-height:70px;padding:6px 5px}
   .building-icon{width:32px;height:32px;font-size:18px}
@@ -241,6 +221,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
     <div class="colony-scene">
       <div class="scene-title">🏙️ KOLONİ YERLEŞİMİ</div>
       <div class="scene-hint">Bir binaya tıkla</div>
+      <svg class="road-map" id="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div class="building-map" id="buildings"></div>
     </div>
 
@@ -309,24 +290,48 @@ const BUILDING_INFO={
   "Kristal Deposu":"Kristal depolama kapasitesini artırır.",
   "Konut":"Nüfus ve ordu kapasitesini artırır.",
   "Sur":"Koloni savunmasına bonus verir.",
-  "Savunma Kulesi":"Koloni savunmasına güçlü bonus verir."
+  "Gözcü Kulesi":"Casusluk ve karşı-casusluk faaliyetleri için altyapı sağlar."
 };
 
-const BUILDING_VISUALS={
-  "Merkez Bina":{icon:"🏛️",x:50,y:48},
-  "Metal Madeni":{icon:"⛏️",x:16,y:25},
-  "Enerji Santrali":{icon:"⚡",x:81,y:23},
-  "Su Arıtma":{icon:"💧",x:86,y:52},
-  "Kristal Madeni":{icon:"💎",x:17,y:70},
-  "Kışla":{icon:"🪖",x:35,y:75},
-  "Depo":{icon:"📦",x:66,y:76},
-  "Kristal Deposu":{icon:"🔷",x:84,y:78},
-  "Konut":{icon:"🏠",x:33,y:26},
-  "Sur":{icon:"🧱",x:50,y:88},
-  "Savunma Kulesi":{icon:"🗼",x:68,y:28}
-};
+const BUILDING_SITES=[
+  {name:"Metal Madeni",slot:1,icon:"⛏️",x:12,y:22},
+  {name:"Konut",slot:1,icon:"🏠",x:30,y:22},
+  {name:"Gözcü Kulesi",slot:1,icon:"🔭",x:50,y:22},
+  {name:"Enerji Santrali",slot:1,icon:"⚡",x:70,y:22},
+  {name:"Su Arıtma",slot:1,icon:"💧",x:88,y:22},
+  {name:"Kristal Madeni",slot:1,icon:"💎",x:10,y:48},
+  {name:"Metal Madeni",slot:2,icon:"⛏️",x:28,y:48},
+  {name:"Merkez Bina",slot:1,icon:"🏛️",x:50,y:48},
+  {name:"Enerji Santrali",slot:2,icon:"⚡",x:72,y:48},
+  {name:"Kristal Madeni",slot:2,icon:"💎",x:90,y:48},
+  {name:"Kışla",slot:1,icon:"🪖",x:12,y:74},
+  {name:"Su Arıtma",slot:2,icon:"💧",x:30,y:74},
+  {name:"Depo",slot:1,icon:"📦",x:50,y:74},
+  {name:"Depo",slot:2,icon:"📦",x:70,y:74},
+  {name:"Kristal Deposu",slot:1,icon:"🔷",x:88,y:74},
+  {name:"Sur",slot:1,icon:"🧱",x:50,y:91}
+];
+
+const ROAD_LINKS=[
+  ["Merkez Bina#1","Gözcü Kulesi#1"],
+  ["Merkez Bina#1","Konut#1"],
+  ["Konut#1","Metal Madeni#1"],
+  ["Merkez Bina#1","Enerji Santrali#1"],
+  ["Enerji Santrali#1","Su Arıtma#1"],
+  ["Merkez Bina#1","Metal Madeni#2"],
+  ["Metal Madeni#2","Kristal Madeni#1"],
+  ["Merkez Bina#1","Enerji Santrali#2"],
+  ["Enerji Santrali#2","Kristal Madeni#2"],
+  ["Merkez Bina#1","Depo#1"],
+  ["Depo#1","Su Arıtma#2"],
+  ["Su Arıtma#2","Kışla#1"],
+  ["Depo#1","Depo#2"],
+  ["Depo#2","Kristal Deposu#1"],
+  ["Depo#1","Sur#1"]
+];
 
 let selectedBuildingName="Merkez Bina";
+let selectedBuildingSlot=1;
 let latestBuildings=[];
 
 const BUILDING_RULES={
@@ -337,23 +342,23 @@ const BUILDING_RULES={
 
   "Metal Madeni":{
     max:30,
-    effect:"Her seviyede +10 metal/dk."
+    effect:"Her seviyede +10 metal/dk. İki madenin üretimi birlikte hesaplanır."
   },
 
   "Enerji Santrali":{
     max:30,
-    effect:"Her seviyede +10 enerji/dk."
+    effect:"Her seviyede +10 enerji/dk. İki santralin üretimi birlikte hesaplanır."
   },
 
   "Su Arıtma":{
     max:30,
-    effect:"Her seviyede +10 su/dk."
+    effect:"Her seviyede +10 su/dk. İki tesisin üretimi birlikte hesaplanır."
   },
 
   "Kristal Madeni":{
     max:30,
     req:{"Merkez Bina":2},
-    effect:"Her seviyede +5 kristal/dk."
+    effect:"Her seviyede +5 kristal/dk. İki madenin üretimi birlikte hesaplanır."
   },
 
   "Kışla":{
@@ -364,7 +369,7 @@ const BUILDING_RULES={
 
   "Depo":{
     max:25,
-    effect:"Her seviyede +2.500 kaynak kapasitesi."
+    effect:"Her seviyede +2.500 kaynak kapasitesi. İki deponun kapasitesi birlikte hesaplanır."
   },
 
   "Kristal Deposu":{
@@ -385,13 +390,13 @@ const BUILDING_RULES={
     effect:"Her seviyede +%5 savunma."
   },
 
-  "Savunma Kulesi":{
+  "Gözcü Kulesi":{
     max:20,
     req:{
       "Merkez Bina":5,
       "Sur":2
     },
-    effect:"Her seviyede +%8 savunma."
+    effect:"Casusluk ve karşı-casusluk sistemi için gözetleme altyapısı sağlar."
   }
 };
 
@@ -466,7 +471,7 @@ const BUILDING_COSTS={
     crystal:80
   },
 
-  "Savunma Kulesi":{
+  "Gözcü Kulesi":{
     metal:1200,
     energy:220,
     water:100,
@@ -516,13 +521,62 @@ function getBuildingLevels(buildings){
   (buildings||[]).forEach(
     b=>{
       map[b.building_type]=Math.max(
-        0,
-        Number(b.level||0)
+        Number(map[b.building_type]||0),
+        Math.max(
+          0,
+          Number(b.level||0)
+        )
       );
     }
   );
 
   return map;
+}
+
+function siteKey(name,slot=1){
+  return name+'#'+slot;
+}
+
+function buildingLabel(name,slot=1){
+  return name+(slot===2?' II':'');
+}
+
+function buildingRecord(name,slot=1){
+  return latestBuildings.find(
+    x=>
+      x.building_type===name&&
+      Math.max(1,Number(x.slot)||1)===slot
+  );
+}
+
+function slotCenterRequirement(name,slot=1){
+  if(slot!==2)return 0;
+  return name==='Depo'?7:5;
+}
+
+function slotUnlocked(name,slot,levels){
+  const required=slotCenterRequirement(name,slot);
+  return !required||Number(levels['Merkez Bina']||0)>=required;
+}
+
+function renderRoads(){
+  const roadMap=document.getElementById('roads');
+  if(!roadMap)return;
+
+  const sites=Object.fromEntries(
+    BUILDING_SITES.map(
+      s=>[siteKey(s.name,s.slot),s]
+    )
+  );
+
+  roadMap.innerHTML=ROAD_LINKS.map(
+    ([from,to])=>{
+      const a=sites[from];
+      const b=sites[to];
+      if(!a||!b)return '';
+      return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+    }
+  ).join('');
 }
 
 function effectiveMax(name,levels){
@@ -751,9 +805,10 @@ async function loadCity(){
 }
 
 
-function selectBuilding(name){
+function selectBuilding(name,slot=1){
   if(!BUILDING_INFO[name])return;
   selectedBuildingName=name;
+  selectedBuildingSlot=slot;
   renderBuildings(latestBuildings);
 }
 
@@ -772,19 +827,21 @@ function renderBuildings(buildings){
     latestBuildings
   );
 
-  const names=Object.keys(
-    BUILDING_INFO
-  );
-
   if(!BUILDING_INFO[selectedBuildingName]){
     selectedBuildingName='Merkez Bina';
+    selectedBuildingSlot=1;
   }
 
-  el.innerHTML=names.map(
-    name=>{
+  renderRoads();
 
-      const b=latestBuildings.find(
-        x=>x.building_type===name
+  el.innerHTML=BUILDING_SITES.map(
+    site=>{
+
+      const name=site.name;
+      const slot=site.slot;
+      const b=buildingRecord(
+        name,
+        slot
       );
 
       const level=b
@@ -823,6 +880,13 @@ function renderBuildings(buildings){
           levels
         );
 
+      const slotReady=
+        slotUnlocked(
+          name,
+          slot,
+          levels
+        );
+
       const capLocked=
         level>=max&&
         name!=='Merkez Bina';
@@ -832,25 +896,29 @@ function renderBuildings(buildings){
 
       const locked=
         !prereq||
+        !slotReady||
         capLocked||
         maxed;
 
-      const visual=
-        BUILDING_VISUALS[name]||
-        {icon:'🏢',x:50,y:50};
+      const requiredCenter=
+        slotCenterRequirement(
+          name,
+          slot
+        );
 
       return `
         <button
-          class="building-node ${locked&&!pending?'locked':''} ${pending?'pending':''} ${selectedBuildingName===name?'selected':''}"
-          style="left:${visual.x}%;top:${visual.y}%"
+          class="building-node ${locked&&!pending?'locked':''} ${pending?'pending':''} ${selectedBuildingName===name&&selectedBuildingSlot===slot?'selected':''}"
+          style="left:${site.x}%;top:${site.y}%"
           type="button"
-          onclick="selectBuilding('${name.replace(/'/g,"\\'")}')"
-          aria-label="${esc(name)} Seviye ${level}"
+          onclick="selectBuilding('${name.replace(/'/g,"\\'")}',${slot})"
+          aria-label="${esc(buildingLabel(name,slot))} Seviye ${level}"
         >
-          <span class="building-icon">${visual.icon}</span>
-          <span class="building-node-name">${esc(name)}</span>
+          <span class="building-icon">${site.icon}</span>
+          <span class="building-node-name">${esc(buildingLabel(name,slot))}</span>
           <span class="building-node-level">Sv. ${level}</span>
           ${pending?`<span class="building-node-time">${remain(left)}</span>`:''}
+          ${!slotReady&&requiredCenter?`<span class="building-node-unlock">Merkez ${requiredCenter}</span>`:''}
         </button>
       `;
 
@@ -859,6 +927,7 @@ function renderBuildings(buildings){
 
   renderBuildingInspector(
     selectedBuildingName,
+    selectedBuildingSlot,
     levels
   );
 }
@@ -866,11 +935,13 @@ function renderBuildings(buildings){
 
 function renderBuildingInspector(
   name,
+  slot,
   levels
 ){
 
-  const b=latestBuildings.find(
-    x=>x.building_type===name
+  const b=buildingRecord(
+    name,
+    slot
   );
 
   const level=b
@@ -909,6 +980,19 @@ function renderBuildingInspector(
       levels
     );
 
+  const slotReady=
+    slotUnlocked(
+      name,
+      slot,
+      levels
+    );
+
+  const requiredCenter=
+    slotCenterRequirement(
+      name,
+      slot
+    );
+
   const capLocked=
     level>=max&&
     name!=='Merkez Bina';
@@ -918,6 +1002,7 @@ function renderBuildingInspector(
 
   const locked=
     !prereq||
+    !slotReady||
     capLocked||
     maxed;
 
@@ -927,9 +1012,15 @@ function renderBuildingInspector(
       levels
     );
 
+  const label=
+    buildingLabel(
+      name,
+      slot
+    );
+
   document.getElementById(
     'selectedBuildingTitle'
-  ).textContent=name;
+  ).textContent=label;
 
   document.getElementById(
     'selectedBuildingLevel'
@@ -948,6 +1039,17 @@ function renderBuildingInspector(
     rule.effect;
 
   const meta=[];
+
+  if(requiredCenter){
+    meta.push(
+      '<div class="'+
+      (slotReady?'':'req')+
+      '">İkinci bina açılışı: Merkez Bina '+
+      Number(levels['Merkez Bina']||0)+
+      '/'+requiredCenter+
+      '</div>'
+    );
+  }
 
   if(reqLine){
     meta.push(
@@ -972,7 +1074,8 @@ function renderBuildingInspector(
 
   if(
     !maxed&&
-    !pending
+    !pending&&
+    slotReady
   ){
     meta.push(
       '<div class="cost">'+
@@ -997,6 +1100,12 @@ function renderBuildingInspector(
   if(maxed){
     meta.push(
       '<div class="lock">Maksimum seviyeye ulaştı.</div>'
+    );
+  }else if(!slotReady){
+    meta.push(
+      '<div class="lock">Bu ikinci bina için Merkez Bina seviye '+
+      requiredCenter+
+      ' gerekli.</div>'
     );
   }else if(!prereq){
     meta.push(
@@ -1032,7 +1141,10 @@ function renderBuildingInspector(
 
   button.onclick=
     ()=>{
-      upgrade(name);
+      upgrade(
+        name,
+        slot
+      );
     };
 
   const queue=document.getElementById(
@@ -1041,8 +1153,8 @@ function renderBuildingInspector(
 
   if(pending){
     queue.innerHTML=
-      '🏗️ '+esc(name)+
-      ' geliştiriliyor.<br>'+
+      '🏗️ '+esc(label)+
+      ' geliştiriliyor.<br>'+ 
       '<span class="time">'+
       remain(left)+
       '</span>';
@@ -1065,8 +1177,13 @@ function renderBuildingInspector(
       );
 
       queue.innerHTML=
-        '🏗️ '+esc(active.building_type)+
-        ' geliştiriliyor.<br>'+
+        '🏗️ '+esc(
+          buildingLabel(
+            active.building_type,
+            Math.max(1,Number(active.slot)||1)
+          )
+        )+
+        ' geliştiriliyor.<br>'+ 
         '<span class="time">'+
         remain(activeLeft)+
         '</span>';
@@ -1077,8 +1194,7 @@ function renderBuildingInspector(
   }
 }
 
-
-async function upgrade(name){
+async function upgrade(name,slot=1){
 
   try{
 
@@ -1091,7 +1207,8 @@ async function upgrade(name){
           Authorization:'Bearer '+token
         },
         body:JSON.stringify({
-          building:name
+          building:name,
+          slot
         })
       }
     );
