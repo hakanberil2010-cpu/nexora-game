@@ -2100,6 +2100,20 @@ async function getBattleReports(req, res) {
     });
   }
 
+  const espionageResult = await supabase(
+    "espionage_missions?select=id,attacker_player_id,defender_player_id,status,depart_at,arrive_at,completed_at,distance,attacker_watchtower_level,defender_watchtower_level,detected,result,created_at" +
+      "&attacker_player_id=eq." +
+      encodeURIComponent(playerId) +
+      "&status=eq.completed&order=completed_at.desc,id.desc&limit=100"
+  );
+
+  if (!espionageResult.ok) {
+    console.error(
+      "Casusluk raporları alınamadı:",
+      espionageResult.data
+    );
+  }
+
   const playersResult = await supabase(
     "players?select=id,username"
   );
@@ -2229,9 +2243,45 @@ async function getBattleReports(req, res) {
     };
   });
 
+  const espionageReports = (espionageResult.ok ? (espionageResult.data || []) : []).map(function(report) {
+    let normalizedResult = {};
+
+    if (
+      report.result &&
+      typeof report.result === "object" &&
+      !Array.isArray(report.result)
+    ) {
+      normalizedResult = report.result;
+    } else if (typeof report.result === "string") {
+      try {
+        const parsed = JSON.parse(report.result);
+
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          !Array.isArray(parsed)
+        ) {
+          normalizedResult = parsed;
+        }
+      } catch {}
+    }
+
+    return {
+      ...report,
+      result: normalizedResult,
+      attacker_username:
+        playerMap[report.attacker_player_id] ||
+        "Bilinmeyen Oyuncu",
+      defender_username:
+        playerMap[report.defender_player_id] ||
+        "Bilinmeyen Oyuncu"
+    };
+  });
+
   return send(res, 200, {
     success: true,
-    reports: reports
+    reports: reports,
+    espionageReports: espionageReports
   });
 }
 
