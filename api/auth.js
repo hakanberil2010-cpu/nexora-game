@@ -849,7 +849,165 @@ async function produceArmy(req, res) {
     message
   });
 }
+async function upgradeUnit(req, res) {
+  const authHeader = String(req.headers.authorization || "");
 
+  if (!authHeader.startsWith("Bearer ")) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamadı."
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  const decoded = verifyToken(token);
+
+  if (!decoded || !decoded.id) {
+    return send(res, 401, {
+      success: false,
+      message: "Geçersiz oturum."
+    });
+  }
+
+  const body = await readBody(req);
+  const unitType = String(body.unitType || "").trim();
+
+  if (!unitType) {
+    return send(res, 400, {
+      success: false,
+      message: "Birlik türü belirtilmedi."
+    });
+  }
+
+  const cityResult = await supabase(
+    "cities?select=*&player_id=eq." +
+      encodeURIComponent(decoded.id) +
+      "&limit=1"
+  );
+
+  if (!cityResult.ok || !cityResult.data || !cityResult.data[0]) {
+    return send(res, 404, {
+      success: false,
+      message: "Koloni bulunamadı."
+    });
+  }
+
+  const city = cityResult.data[0];
+
+  const unitResult = await supabase(
+    "units?select=*&city_id=eq." +
+      encodeURIComponent(city.id) +
+      "&unit_type=eq." +
+      encodeURIComponent(unitType) +
+      "&limit=1"
+  );
+
+  if (!unitResult.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Birlik verisi alınamadı."
+    });
+  }
+
+  if (!unitResult.data || !unitResult.data[0]) {
+    return send(res, 404, {
+      success: false,
+      message: "Bu türden birlik bulunamadı."
+    });
+  }
+
+  const unit = unitResult.data[0];
+
+  const currentLevel = Math.max(
+    1,
+    Number(unit.level) || 1
+  );
+
+  if (currentLevel >= 15) {
+    return send(res, 400, {
+      success: false,
+      message: "Bu birlik zaten 15. seviyede."
+    });
+  }
+
+  const nextLevel = currentLevel + 1;
+
+  const levelResult = await supabase(
+    "unit_levels?select=*&unit_type=eq." +
+      encodeURIComponent(unitType) +
+      "&level=eq." +
+      encodeURIComponent(nextLevel) +
+      "&limit=1"
+  );
+
+  if (
+    !levelResult.ok ||
+    !levelResult.data ||
+    !levelResult.data[0]
+  ) {
+    return send(res, 500, {
+      success: false,
+      message: "Bir sonraki seviye verisi bulunamadı."
+    });
+  }
+
+  const cost = {
+    metal: currentLevel * 500,
+    energy: currentLevel * 100,
+    crystal: currentLevel * 50
+  };
+
+  if (
+    Number(city.metal) < cost.metal ||
+    Number(city.energy) < cost.energy ||
+    Number(city.crystal) < cost.crystal
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Seviye yükseltmek için yeterli kaynak yok.",
+      cost
+    });
+  }
+
+  const upgraded = await supabase(
+    "rpc/nexora_upgrade_unit_atomic",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        p_player_id: Number(decoded.id),
+        p_city_id: Number(city.id),
+        p_unit_id: Number(unit.id),
+        p_level: currentLevel
+      })
+    }
+  );
+
+  if (!upgraded.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Birlik seviyesi güncellenemedi."
+    });
+  }
+
+  if (upgraded.data?.success !== true) {
+    return send(
+      res,
+      400,
+      upgraded.data || {
+        success: false,
+        message: "Birlik seviyesi güncellenemedi."
+      }
+    );
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: "Birlik seviyesi yükseltildi.",
+    unit: upgraded.data.unit,
+    city: upgraded.data.city,
+    cost
+  });
+}
 async function moveColony(req, res) {
   const playerId = authPlayerId(req);
   if (playerId === null) {
