@@ -783,21 +783,63 @@ async function upgradeUnit(req, res) {
 
 async function moveColony(req, res) {
   const playerId = authPlayerId(req);
-  if (playerId === null) return send(res,401,{success:false,message:"Oturum bulunamadı."});
+  if (playerId === null) {
+    return send(res, 401, {
+      success: false,
+      message: "Oturum bulunamad\u0131."
+    });
+  }
+
   const body = await readBody(req);
-  const x = Number(body.x), y = Number(body.y);
-  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 1 || x > 100 || y < 1 || y > 100) return send(res,400,{success:false,message:"X ve Y koordinatları 1-100 arasında tam sayı olmalı."});
-  const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
-  if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
-  const city=cityResult.data[0];
-  if(Number(city.coordinate_x)===x&&Number(city.coordinate_y)===y)return send(res,400,{success:false,message:"Zaten bu koordinattasın."});
-  const occupied=await supabase("cities?select=id&coordinate_x=eq."+encodeURIComponent(x)+"&coordinate_y=eq."+encodeURIComponent(y)+"&limit=1");
-  if(occupied.ok&&occupied.data?.[0]&&Number(occupied.data[0].id)!==Number(city.id))return send(res,400,{success:false,message:"Bu koordinat dolu."});
-  const active=await supabase("military_missions?select=id&attacker_player_id=eq."+encodeURIComponent(playerId)+"&status=in.(traveling,resolving,returning)&limit=1");
-  if(active.ok&&active.data?.[0])return send(res,400,{success:false,message:"Aktif askeri sefer varken koloni koordinatı değiştirilemez."});
-  const updated=await supabase("cities?id=eq."+encodeURIComponent(city.id),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({coordinate_x:x,coordinate_y:y,updated_at:new Date().toISOString()})});
-  if(!updated.ok||!updated.data?.[0])return send(res,500,{success:false,message:"Koloni koordinatı güncellenemedi."});
-  return send(res,200,{success:true,message:"Koloni taşındı.",city:updated.data[0]});
+  const x = Number(body.x);
+  const y = Number(body.y);
+
+  if (
+    !Number.isInteger(x) ||
+    !Number.isInteger(y) ||
+    x < 1 || x > 100 ||
+    y < 1 || y > 100
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "X ve Y koordinatlar\u0131 1-100 aras\u0131nda tam say\u0131 olmal\u0131."
+    });
+  }
+
+  const moved = await supabase("rpc/nexora_move_colony_atomic", {
+    method: "POST",
+    body: JSON.stringify({
+      p_player_id: Number(playerId),
+      p_x: x,
+      p_y: y
+    })
+  });
+
+  if (!moved.ok) {
+    console.error("Atomik koloni tasima hatasi:", moved.data);
+    return send(res, 500, {
+      success: false,
+      message: "Koloni koordinat\u0131 g\u00fcncellenemedi."
+    });
+  }
+
+  if (moved.data?.success !== true) {
+    const status = moved.data?.code === "CITY_NOT_FOUND" ? 404 : 400;
+    return send(
+      res,
+      status,
+      moved.data || {
+        success: false,
+        message: "Koloni ta\u015f\u0131namad\u0131."
+      }
+    );
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: moved.data.message || "Koloni ta\u015f\u0131nd\u0131.",
+    city: moved.data.city
+  });
 }
 
 
