@@ -1190,9 +1190,19 @@ async function loadServerMissions() {
     })
     .forEach(function(m) {
       const mine = Number(m.attacker_player_id) === Number(savedUser && savedUser.id);
+      const existing = local.find(function(item) {
+        return String(item.id) === String(m.id);
+      });
+      const serverTargetX = Number(m.target_x);
+      const serverTargetY = Number(m.target_y);
       upsertSavedMission({
-        id:m.id, status:m.status, remainingSeconds: Math.max(0, Math.ceil((new Date(m.arrive_at).getTime()-Date.now())/1000)),
-        targetName: mine ? "Hedef Koloni" : "Sana gelen saldırı", targetX:"-", targetY:"-", result:m.result||null
+        id:m.id,
+        status:m.status,
+        remainingSeconds: Math.max(0, Math.ceil((new Date(m.arrive_at).getTime()-Date.now())/1000)),
+        targetName: existing?.targetName || (mine ? "Hedef Koloni" : "Sana gelen saldırı"),
+        targetX: Number.isFinite(serverTargetX) ? serverTargetX : (existing?.targetX ?? "-"),
+        targetY: Number.isFinite(serverTargetY) ? serverTargetY : (existing?.targetY ?? "-"),
+        result:m.result||null
       });
     });
   } catch (error) { console.error("Seferler yüklenemedi", error); }
@@ -1432,8 +1442,7 @@ function createPlayerColony(
     Number.isFinite(savedX) &&
     Number.isFinite(savedY) &&
     savedX >= 1 && savedX <= 100 &&
-    savedY >= 1 && savedY <= 100 &&
-    !(savedX === 25 && savedY === 35);
+    savedY >= 1 && savedY <= 100;
 
   const fallbackPosition =
     getPlayerPosition(player.player_id);
@@ -1729,3 +1738,4 @@ loadMyCoordinates().then(function() {
 </script>
 </body>
 </html>
+
