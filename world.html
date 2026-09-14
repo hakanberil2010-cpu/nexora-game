@@ -12,57 +12,27 @@
 
 body {
   margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
   font-family: Arial, sans-serif;
   background: #050d18;
   color: #eaf4ff;
 }
 
-.topbar {
-  height: 76px;
-  background: #071526;
-  border-bottom: 1px solid #173451;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 35px;
-}
-
-.logo {
-  font-size: 30px;
-  letter-spacing: 7px;
-  color: #16b9ff;
-  font-weight: bold;
-}
-
-.player {
-  color: #8fc9ef;
-}
-
-.player span {
-  color: #ffffff;
-  font-weight: bold;
-}
-
 .container {
-  max-width: 1500px;
-  margin: 28px auto;
-  padding: 0 22px;
+  width: 100vw;
+  height: 100vh;
+  padding: 12px;
 }
 
-h1 {
-  font-size: 34px;
-  margin-bottom: 8px;
-}
-
-.subtitle {
-  color: #78b9e6;
-  margin-bottom: 25px;
+.map-only-layout {
+  display: flex;
 }
 
 .world {
   position: relative;
   width: 100%;
-  height: 720px;
+  height: calc(100vh - 24px);
   overflow: hidden;
   border: 1px solid #1d5278;
   border-radius: 18px;
@@ -72,6 +42,19 @@ h1 {
   touch-action: none;
   user-select: none;
 }
+
+.world::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 80px rgba(0,0,0,0.28);
+}
+
+
+
+
+
 
 .world.grabbing {
   cursor: grabbing;
@@ -166,13 +149,14 @@ h1 {
 
 .mission-panel {
   display:none;
-  position: fixed;
-  top: 82px;
-  right: 22px;
+  position: absolute;
+  top: 18px;
+  right: 18px;
   width: 280px;
-  max-height: 42vh;
+  max-width: calc(100% - 36px);
+  max-height: 34vh;
   overflow-y: auto;
-  z-index: 100;
+  z-index: 70;
   background: rgba(8,14,28,.96);
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 14px;
@@ -218,12 +202,11 @@ h1 {
 
 @media (max-width:800px) {
   .mission-panel {
-    top:auto;
-    bottom:14px;
-    left:14px;
-    right:14px;
-    width:auto;
-    max-height:42vh;
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+    max-height: 30vh;
   }
 }
 
@@ -403,14 +386,21 @@ h1 {
 }
 
 .info {
-  position: relative;
-  z-index: 20;
-  margin-top: 20px;
-  padding: 20px;
-  background: #091b2d;
+  position: absolute;
+  z-index: 65;
+  right: 18px;
+  bottom: 18px;
+  width: min(420px, calc(100% - 36px));
+  max-height: calc(100% - 120px);
+  overflow-y: auto;
+  margin-top: 0;
+  padding: 18px;
+  background: rgba(9,27,45,.96);
   border: 1px solid #173e5d;
   border-radius: 14px;
   display: none;
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  backdrop-filter: blur(8px);
 }
 
 .info h2 {
@@ -471,16 +461,7 @@ h1 {
   cursor: not-allowed;
 }
 
-.back {
-  display: inline-block;
-  margin-top: 25px;
-  color: #16b9ff;
-  text-decoration: none;
-}
 
-.back:hover {
-  text-decoration: underline;
-}
 
 .attack-unit-selector {
   margin:16px 0;
@@ -524,44 +505,34 @@ h1 {
 }
 
 @media (max-width: 700px) {
-  .topbar {
-    padding: 0 15px;
-  }
-
-  .logo {
-    font-size: 22px;
-    letter-spacing: 4px;
-  }
-
   .container {
-    padding: 0 12px;
-    margin-top: 20px;
+    padding: 8px;
   }
 
   .world {
-    height: 620px;
+    height: calc(100vh - 16px);
+    border-radius: 12px;
   }
 
   .detail-box {
     width: 100%;
+    min-width: 0;
   }
-}
 
-.world-site {
-  position:absolute;
-  transform:translate(-50%,-50%);
-  width:42px;
-  height:42px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  z-index:7;
-  font-size:21px;
-  background:rgba(5,15,28,.9);
-  border:2px solid rgba(255,255,255,.35);
-  box-shadow:0 0 14px rgba(0,0,0,.45);
+  .info,
+  .explore-panel {
+    width: calc(100% - 16px);
+    right: 8px;
+    bottom: 8px;
+    max-height: 46vh;
+  }
+
+  .map-legend {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    max-width: none;
+  }
 }
 
 .world-site:hover {
@@ -610,45 +581,56 @@ h1 {
 }
 
 .explore-panel {
-  margin-top:16px;
-  padding:16px;
-  border-radius:14px;
-  background:#091b2d;
-  border:1px solid #173e5d;
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 65;
+  display: none;
+  width: min(420px, calc(100% - 36px));
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(9,27,45,.96);
+  border: 1px solid #173e5d;
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  backdrop-filter: blur(8px);
+}
+
+.explore-panel.active {
+  display: block;
 }
 
 .explore-panel h3 {
-  margin:0 0 10px;
-  color:#ffd35a;
+  margin: 0 0 10px;
+  color: #ffd35a;
 }
 
 .explore-site-meta {
-  color:#9cc6e2;
-  font-size:13px;
-  line-height:1.5;
+  color: #9cc6e2;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .explore-button {
-  margin-top:10px;
-  background:#b67bff;
-  color:white;
-  border:0;
-  border-radius:8px;
-  padding:10px 16px;
-  font-weight:bold;
-  cursor:pointer;
+  margin-top: 10px;
+  margin-right: 8px;
+  background: #b67bff;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .explore-button:disabled {
-  opacity:.55;
-  cursor:not-allowed;
+  opacity: .55;
+  cursor: not-allowed;
 }
 
 .site-legend {
   display:flex;
   gap:10px;
   flex-wrap:wrap;
-  margin:14px 0 0;
   font-size:12px;
   color:#9cc6e2;
 }
@@ -656,181 +638,156 @@ h1 {
 .site-legend span {
   padding:6px 9px;
   border-radius:8px;
-  background:rgba(255,255,255,.05);
+  background:rgba(5,15,28,.82);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(4px);
 }
 
-.topBack {
-  display:inline-block;
-  margin:0 0 18px;
-  padding:10px 16px;
-  border-radius:8px;
-  background:#138dcc;
-  color:#fff;
-  text-decoration:none;
-  font-weight:bold;
-  border:1px solid #1aa9ee
+.map-legend {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: 60;
+  max-width: calc(100% - 36px);
 }
 
-.topBack:hover {
-  filter:brightness(1.08)
-}
+
 </style>
 </head>
 
 <body>
 
-<div class="topbar">
-  <div class="logo">NEXORA</div>
-
-  <div class="player">
-    Oyuncu: <span id="playerName">Oyuncu</span>
-  </div>
-</div>
-
-<div class="container">
-
-  <a class="topBack" href="game.html">← Koloniye Dön</a>
-
-  <h1>🗺️ Dünya Haritası</h1>
-
-  <div class="subtitle">
-    Galaksideki kolonileri keşfet, rakiplerini seç ve saldır.
-  </div>
-
+<div class="container map-only-layout">
   <div class="world" id="worldViewport">
     <div class="world-canvas" id="worldCanvas">
+            <div class="grid"></div>
+            <div id="worldSites"></div>
 
-      <div class="grid"></div>
-      <div id="worldSites"></div>
+            <div class="region desert">🏜️ Çöl Bölgesi</div>
+            <div class="region forest">🌲 Orman Bölgesi</div>
+            <div class="region ice">❄️ Buz Bölgesi</div>
+            <div class="region mountain">⛰️ Dağ Bölgesi</div>
+            <div class="region volcanic">🌋 Volkanik Bölge</div>
+            <div class="region ocean">🌊 Okyanus</div>
 
-      <div class="region desert">🏜️ Çöl Bölgesi</div>
-      <div class="region forest">🌲 Orman Bölgesi</div>
-      <div class="region ice">❄️ Buz Bölgesi</div>
-      <div class="region mountain">⛰️ Dağ Bölgesi</div>
-      <div class="region volcanic">🌋 Volkanik Bölge</div>
-      <div class="region ocean">🌊 Okyanus</div>
+            <div
+              class="colony you c1"
+              onclick="selectColony('Senin Kolonin', true)"
+            >
+              <div class="colony-icon">🏰</div>
+              <div class="colony-name">Senin Kolonin</div>
+            </div>
 
-      <div
-        class="colony you c1"
-        onclick="selectColony('Senin Kolonin', true)"
-      >
-        <div class="colony-icon">🏰</div>
-        <div class="colony-name">Senin Kolonin</div>
+            <div class="own-colony-menu" id="ownColonyMenu">
+              <h3>🏰 Senin Kolonin</h3>
+              <div class="own-colony-coordinate" id="ownColonyCoordinate">X:-- Y:--</div>
+
+              <div class="own-colony-actions">
+                <button type="button" onclick="openOwnMoveForm()">🚚 Koloniyi Taşı</button>
+                <button type="button" onclick="copyOwnCoordinates()">📋 Koordinatı Paylaş</button>
+                <button type="button" onclick="location.href='game.html'">🏙️ Şehire Dön</button>
+              </div>
+
+              <div class="own-move-form" id="ownMoveForm">
+                <div class="own-move-inputs">
+                  <input id="ownMoveX" type="number" min="1" max="100" step="1" placeholder="X (1-100)">
+                  <input id="ownMoveY" type="number" min="1" max="100" step="1" placeholder="Y (1-100)">
+                </div>
+                <button type="button" onclick="submitOwnColonyMove()">Yeni Koordinata Taşı</button>
+              </div>
+            </div>
+
+            <div id="realPlayers"></div>
+            <div id="attackFleet"></div>
+
+
+    </div>
+
+    <div class="mission-panel" id="missionPanel">
+        <h3>🚀 Aktif Sefer</h3>
+        <div id="missionList"></div>
       </div>
 
-      <div class="own-colony-menu" id="ownColonyMenu">
-        <h3>🏰 Senin Kolonin</h3>
-        <div class="own-colony-coordinate" id="ownColonyCoordinate">X:-- Y:--</div>
+    <div class="explore-panel" id="explorePanel">
+        <h3>🔭 Keşif Sistemi</h3>
 
-        <div class="own-colony-actions">
-          <button type="button" onclick="openOwnMoveForm()">🚚 Koloniyi Taşı</button>
-          <button type="button" onclick="copyOwnCoordinates()">📋 Koordinatı Paylaş</button>
-          <button type="button" onclick="location.href='game.html'">🏙️ Şehire Dön</button>
+        <div
+          id="exploreSiteMeta"
+          class="explore-site-meta"
+        >
+          Haritadaki nötr, kaynak ve terk edilmiş noktaları seçerek keşif başlatabilirsin.
         </div>
 
-        <div class="own-move-form" id="ownMoveForm">
-          <div class="own-move-inputs">
-            <input id="ownMoveX" type="number" min="1" max="100" step="1" placeholder="X (1-100)">
-            <input id="ownMoveY" type="number" min="1" max="100" step="1" placeholder="Y (1-100)">
+        <button
+          id="exploreButton"
+          class="explore-button"
+          style="display:none"
+          onclick="startWorldExploration()"
+        >
+          🔭 Keşif Başlat
+        </button>
+
+        <button
+          id="claimWorldSiteButton"
+          class="explore-button"
+          style="display:none"
+          onclick="claimSelectedWorldSite()"
+        >
+          🏳️ Kontrol Altına Al
+        </button>
+
+        </div>
+
+    <div class="info" id="info">
+
+        <h2 id="selectedName">Koloni</h2>
+
+        <div class="colony-details">
+
+          <div class="detail-box">
+            <span class="detail-label">📍 Koordinat</span>
+            <span class="detail-value" id="selectedCoordinates">
+              X:-- Y:--
+            </span>
           </div>
-          <button type="button" onclick="submitOwnColonyMove()">Yeni Koordinata Taşı</button>
+
+          <div class="detail-box">
+            <span class="detail-label">🌍 Bölge</span>
+            <span class="detail-value" id="selectedRegion">
+              -
+            </span>
+          </div>
+
         </div>
+
+        <p id="selectedText"></p>
+
+        <div
+          id="attackUnitSelector"
+          class="attack-unit-selector"
+          style="display:none;"
+        >
+          <h3>⚔️ Gönderilecek Birlikler</h3>
+          <div id="attackUnitList"></div>
+        </div>
+
+        <button
+          class="attack"
+          id="attackButton"
+          onclick="attack()"
+        >
+          ⚔️ Saldır
+        </button>
+
       </div>
 
-      <div id="realPlayers"></div>
-      <div id="attackFleet"></div>
-
-    </div>
+    <div class="site-legend map-legend">
+          <span>🏔️ Nötr Bölge</span>
+          <span>💎 Kaynak Bölgesi</span>
+          <span>🏚️ Terk Edilmiş Koloni</span>
+          <span>🛡️ İttifak Bölgesi</span>
+        </div>
   </div>
-
-  <div class="mission-panel" id="missionPanel">
-    <h3>🚀 Aktif Sefer</h3>
-    <div id="missionList"></div>
-  </div>
-
-  <div class="explore-panel">
-    <h3>🔭 Keşif Sistemi</h3>
-
-    <div
-      id="exploreSiteMeta"
-      class="explore-site-meta"
-    >
-      Haritadaki nötr, kaynak ve terk edilmiş noktaları seçerek keşif başlatabilirsin.
-    </div>
-
-    <button
-      id="exploreButton"
-      class="explore-button"
-      style="display:none"
-      onclick="startWorldExploration()"
-    >
-      🔭 Keşif Başlat
-    </button>
-
-    <button
-      id="claimWorldSiteButton"
-      class="explore-button"
-      style="display:none"
-      onclick="claimSelectedWorldSite()"
-    >
-      🏳️ Kontrol Altına Al
-    </button>
-
-    <div class="site-legend">
-      <span>🏔️ Nötr Bölge</span>
-      <span>💎 Kaynak Bölgesi</span>
-      <span>🏚️ Terk Edilmiş Koloni</span>
-      <span>🛡️ İttifak Bölgesi</span>
-    </div>
-  </div>
-
-  <div class="info" id="info">
-
-    <h2 id="selectedName">Koloni</h2>
-
-    <div class="colony-details">
-
-      <div class="detail-box">
-        <span class="detail-label">📍 Koordinat</span>
-        <span class="detail-value" id="selectedCoordinates">
-          X:-- Y:--
-        </span>
-      </div>
-
-      <div class="detail-box">
-        <span class="detail-label">🌍 Bölge</span>
-        <span class="detail-value" id="selectedRegion">
-          -
-        </span>
-      </div>
-
-    </div>
-
-    <p id="selectedText"></p>
-
-    <div
-      id="attackUnitSelector"
-      class="attack-unit-selector"
-      style="display:none;"
-    >
-      <h3>⚔️ Gönderilecek Birlikler</h3>
-      <div id="attackUnitList"></div>
-    </div>
-
-    <button
-      class="attack"
-      id="attackButton"
-      onclick="attack()"
-    >
-      ⚔️ Saldır
-    </button>
-
-  </div>
-
-  <a class="back" href="game.html">
-    ← Koloniye Dön
-  </a>
-
 </div>
 
 <script>
@@ -1045,6 +1002,20 @@ function initWorldPan() {
           )
       ) {
         closeOwnColonyMenu();
+        closeFloatingPanels();
+
+        document.querySelectorAll(
+          ".colony.selected,.world-site.selected"
+        ).forEach(
+          function(item) {
+            item.classList.remove(
+              "selected"
+            );
+          }
+        );
+
+        selectedWorldSite =
+          null;
       }
     }
   );
@@ -1306,6 +1277,7 @@ function selectColony(
 
   selectedWorldSite = null;
   updateWorldClaimButton();
+  closeFloatingPanels();
 
   const info =
     document.getElementById(
@@ -1441,6 +1413,7 @@ function selectPlayerColony(
 
   selectedWorldSite = null;
   updateWorldClaimButton();
+  closeFloatingPanels();
 
   document.querySelectorAll(
     ".colony.selected"
@@ -1532,20 +1505,6 @@ function selectPlayerColony(
     "info"
   ).style.display =
     "block";
-
-  setTimeout(
-    function() {
-
-      document.getElementById(
-        "info"
-      ).scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-
-    },
-    50
-  );
 
 }
 
@@ -1640,6 +1599,32 @@ function closeOwnColonyMenu() {
   if (form) {
     form.classList.remove(
       "open"
+    );
+  }
+
+}
+
+
+function closeFloatingPanels() {
+
+  const info =
+    document.getElementById(
+      "info"
+    );
+
+  const explorePanel =
+    document.getElementById(
+      "explorePanel"
+    );
+
+  if (info) {
+    info.style.display =
+      "none";
+  }
+
+  if (explorePanel) {
+    explorePanel.classList.remove(
+      "active"
     );
   }
 
@@ -3769,6 +3754,18 @@ function selectWorldSite(
   selectedWorldSite =
     site;
 
+  const explorePanel =
+    document.getElementById(
+      "explorePanel"
+    );
+
+  if (explorePanel) {
+    explorePanel.classList.add(
+      "active"
+    );
+  }
+
+
   document.querySelectorAll(
     ".world-site.selected"
   ).forEach(
@@ -4409,6 +4406,7 @@ async function loadWorldPlayers() {
         selectedWorldSite =
           null;
 
+        closeFloatingPanels();
         updateWorldClaimButton();
 
       }
