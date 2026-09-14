@@ -1945,38 +1945,110 @@ async function getBattleReports(req, res) {
   });
 
   const reportsRaw = reportsResult.data || [];
-  const playerIds = Array.from(new Set(
-    reportsRaw.flatMap(function(report){
-      return [Number(report.attacker_player_id), Number(report.defender_player_id)];
-    }).filter(function(id){ return Number.isInteger(id) && id > 0; })
-  ));
+
+  const playerIds = Array.from(
+    new Set(
+      reportsRaw
+        .flatMap(function(report) {
+          return [
+            Number(report.attacker_player_id),
+            Number(report.defender_player_id)
+          ];
+        })
+        .filter(function(id) {
+          return Number.isInteger(id) && id > 0;
+        })
+    )
+  );
+
   let cityMap = {};
+
   if (playerIds.length) {
-    const cityQuery = "cities?select=player_id,coordinate_x,coordinate_y&player_id=in.(" + playerIds.join(",") + ")";
+    const cityQuery =
+      "cities?select=player_id,coordinate_x,coordinate_y&player_id=in.(" +
+      playerIds.join(",") +
+      ")";
+
     const citiesResult = await supabase(cityQuery);
+
     if (citiesResult.ok) {
-      (citiesResult.data || []).forEach(function(city){
+      (citiesResult.data || []).forEach(function(city) {
         cityMap[Number(city.player_id)] = city;
       });
     }
   }
 
-  const reports = reportsRaw.map(
-    function(report) {
-      const battle = report.result && typeof report.result === "object" ? report.result : {};
-      const attackerCity = cityMap[Number(report.attacker_player_id)] || {};
-      const defenderCity = cityMap[Number(report.defender_player_id)] || {};
-      return {
-        ...report,
-        attacker_username: playerMap[report.attacker_player_id] || "Bilinmeyen Oyuncu",
-        defender_username: playerMap[report.defender_player_id] || "Bilinmeyen Oyuncu",
-        attacker_x: battle.attackerX ?? attackerCity.coordinate_x ?? null,
-        attacker_y: battle.attackerY ?? attackerCity.coordinate_y ?? null,
-        defender_x: battle.defenderX ?? defenderCity.coordinate_x ?? null,
-        defender_y: battle.defenderY ?? defenderCity.coordinate_y ?? null
-      };
+  const reports = reportsRaw.map(function(report) {
+    let normalizedResult = {};
+
+    if (
+      report.result &&
+      typeof report.result === "object" &&
+      !Array.isArray(report.result)
+    ) {
+      normalizedResult = report.result;
+    } else if (typeof report.result === "string") {
+      try {
+        const parsed = JSON.parse(report.result);
+
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          !Array.isArray(parsed)
+        ) {
+          normalizedResult = parsed;
+        } else {
+          normalizedResult = {
+            result: String(report.result || "")
+          };
+        }
+      } catch {
+        normalizedResult = {
+          result: String(report.result || "")
+        };
+      }
     }
-  );
+
+    const attackerCity =
+      cityMap[Number(report.attacker_player_id)] || {};
+
+    const defenderCity =
+      cityMap[Number(report.defender_player_id)] || {};
+
+    return {
+      ...report,
+
+      result: normalizedResult,
+
+      attacker_username:
+        playerMap[report.attacker_player_id] ||
+        "Bilinmeyen Oyuncu",
+
+      defender_username:
+        playerMap[report.defender_player_id] ||
+        "Bilinmeyen Oyuncu",
+
+      attacker_x:
+        normalizedResult.attackerX ??
+        attackerCity.coordinate_x ??
+        null,
+
+      attacker_y:
+        normalizedResult.attackerY ??
+        attackerCity.coordinate_y ??
+        null,
+
+      defender_x:
+        normalizedResult.defenderX ??
+        defenderCity.coordinate_x ??
+        null,
+
+      defender_y:
+        normalizedResult.defenderY ??
+        defenderCity.coordinate_y ??
+        null
+    };
+  });
 
   return send(res, 200, {
     success: true,
