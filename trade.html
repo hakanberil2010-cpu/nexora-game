@@ -10,6 +10,7 @@ body{margin:0;background:#0b1020;color:#eaf1ff;font-family:Arial,sans-serif}.wra
 const API="/api/auth.js";let token=localStorage.getItem("nexora_token")||localStorage.getItem("token")||"";
 const names={metal:"Metal",energy:"Enerji",water:"Su",crystal:"Kristal"};
 let serverOffsetMs=0,currentPlayerId=null,tradeConfig={};
+let offersLoadPromise=null,historyLoadPromise=null;
 
 function headers(){return {"Content-Type":"application/json",Authorization:"Bearer "+token}}
 function msg(t){document.getElementById("msg").textContent=t||""}
@@ -82,46 +83,62 @@ async function cancelOffer(id,expired){
 }
 
 async function loadOffers(){
-  try{
-    const d=await post("tradeoffers");
-    const el=document.getElementById("offers");
-    if(!d.offers?.length){el.innerHTML='<p class="muted">Açık teklif yok.</p>';return}
-    el.innerHTML=d.offers.map(o=>{
-      const own=Number(o.creator_player_id)===Number(currentPlayerId);
-      const expiresAt=new Date(o.expires_at||"").getTime();
-      const expired=Number.isFinite(expiresAt)&&expiresAt<=serverNow();
-      const action=!expired&&!own
-        ?`<button class="btn" onclick="acceptOffer(${Number(o.id)})">Kabul Et</button>`
-        :own&&o.status==="open"
-          ?`<button class="btn danger" onclick="cancelOffer(${Number(o.id)},${expired})">${expired?"Kaynağı İade Al":"İptal Et"}</button>`
-          :"";
-      return `<div class="offer"><div class="row"><strong>${esc(o.creator_username||"Oyuncu")}</strong><span class="muted">${expired?"Süresi doldu":fmtDate(o.expires_at)}</span></div><p><span class="resource">${fmtNumber(o.give_amount)} ${esc(names[o.give_resource]||o.give_resource)}</span> ➜ <span class="resource">${fmtNumber(o.want_amount)} ${esc(names[o.want_resource]||o.want_resource)}</span></p>${action}</div>`
-    }).join("")
-  }catch(e){document.getElementById("offers").textContent="❌ "+e.message}
+  if(offersLoadPromise)return offersLoadPromise;
+
+  offersLoadPromise=(async()=>{
+    try{
+      const d=await post("tradeoffers");
+      const el=document.getElementById("offers");
+      if(!d.offers?.length){el.innerHTML='<p class="muted">Açık teklif yok.</p>';return}
+      el.innerHTML=d.offers.map(o=>{
+        const own=Number(o.creator_player_id)===Number(currentPlayerId);
+        const expiresAt=new Date(o.expires_at||"").getTime();
+        const expired=Number.isFinite(expiresAt)&&expiresAt<=serverNow();
+        const action=!expired&&!own
+          ?`<button class="btn" onclick="acceptOffer(${Number(o.id)})">Kabul Et</button>`
+          :own&&o.status==="open"
+            ?`<button class="btn danger" onclick="cancelOffer(${Number(o.id)},${expired})">${expired?"Kaynağı İade Al":"İptal Et"}</button>`
+            :"";
+        return `<div class="offer"><div class="row"><strong>${esc(o.creator_username||"Oyuncu")}</strong><span class="muted">${expired?"Süresi doldu":fmtDate(o.expires_at)}</span></div><p><span class="resource">${fmtNumber(o.give_amount)} ${esc(names[o.give_resource]||o.give_resource)}</span> ➜ <span class="resource">${fmtNumber(o.want_amount)} ${esc(names[o.want_resource]||o.want_resource)}</span></p>${action}</div>`
+      }).join("")
+    }catch(e){document.getElementById("offers").textContent="❌ "+e.message}
+  })().finally(()=>{
+    offersLoadPromise=null
+  });
+
+  return offersLoadPromise
 }
 
 async function loadHistory(){
-  try{
-    const d=await post("tradehistory");
-    const el=document.getElementById("history");
-    if(!d.history?.length){el.innerHTML='<p class="muted">Henüz ticaret yok.</p>';return}
-    el.innerHTML=d.history.map(x=>{
-      const seller=Number(x.seller_player_id)===Number(currentPlayerId);
-      const rawReceive=seller?x.seller_receive_amount:x.buyer_receive_amount;
-      const legacyReceive=seller?n(x.want_amount):n(x.give_amount);
-      const myReceive=rawReceive==null?legacyReceive:n(rawReceive);
-      const myTax=seller?n(x.seller_tax_amount):n(x.buyer_tax_amount);
-      const receiveResource=seller?x.want_resource:x.give_resource;
-      const other=seller?(x.buyer_username||"Oyuncu"):(x.seller_username||"Oyuncu");
-      const status=statusText(x.status);
-      const countdown=x.status==="in_transit"&&x.delivery_at
-        ?` · ⏳ <span data-delivery-at="${esc(x.delivery_at)}"></span>`
-        :"";
-      const blocked=x.status==="blocked"?" · Depo alanı açıldığında yeniden kontrol edilir.":"";
-      return `<div class="history"><div class="row"><strong>${esc(other)}</strong><span>${esc(status)}</span></div>${fmtDate(x.created_at)} — ${fmtNumber(x.give_amount)} ${esc(names[x.give_resource]||x.give_resource)} karşılığında ${fmtNumber(x.want_amount)} ${esc(names[x.want_resource]||x.want_resource)}<br><span class="muted">Net alacağın: ${fmtNumber(myReceive)} ${esc(names[receiveResource]||receiveResource)} · Vergi: ${fmtNumber(myTax)} · Mesafe: ${n(x.distance).toFixed(2)}${countdown}${blocked}</span></div>`
-    }).join("");
-    updateCountdowns()
-  }catch(e){document.getElementById("history").textContent="❌ "+e.message}
+  if(historyLoadPromise)return historyLoadPromise;
+
+  historyLoadPromise=(async()=>{
+    try{
+      const d=await post("tradehistory");
+      const el=document.getElementById("history");
+      if(!d.history?.length){el.innerHTML='<p class="muted">Henüz ticaret yok.</p>';return}
+      el.innerHTML=d.history.map(x=>{
+        const seller=Number(x.seller_player_id)===Number(currentPlayerId);
+        const rawReceive=seller?x.seller_receive_amount:x.buyer_receive_amount;
+        const legacyReceive=seller?n(x.want_amount):n(x.give_amount);
+        const myReceive=rawReceive==null?legacyReceive:n(rawReceive);
+        const myTax=seller?n(x.seller_tax_amount):n(x.buyer_tax_amount);
+        const receiveResource=seller?x.want_resource:x.give_resource;
+        const other=seller?(x.buyer_username||"Oyuncu"):(x.seller_username||"Oyuncu");
+        const status=statusText(x.status);
+        const countdown=x.status==="in_transit"&&x.delivery_at
+          ?` · ⏳ <span data-delivery-at="${esc(x.delivery_at)}"></span>`
+          :"";
+        const blocked=x.status==="blocked"?" · Depo alanı açıldığında yeniden kontrol edilir.":"";
+        return `<div class="history"><div class="row"><strong>${esc(other)}</strong><span>${esc(status)}</span></div>${fmtDate(x.created_at)} — ${fmtNumber(x.give_amount)} ${esc(names[x.give_resource]||x.give_resource)} karşılığında ${fmtNumber(x.want_amount)} ${esc(names[x.want_resource]||x.want_resource)}<br><span class="muted">Net alacağın: ${fmtNumber(myReceive)} ${esc(names[receiveResource]||receiveResource)} · Vergi: ${fmtNumber(myTax)} · Mesafe: ${n(x.distance).toFixed(2)}${countdown}${blocked}</span></div>`
+      }).join("");
+      updateCountdowns()
+    }catch(e){document.getElementById("history").textContent="❌ "+e.message}
+  })().finally(()=>{
+    historyLoadPromise=null
+  });
+
+  return historyLoadPromise
 }
 
 loadOffers();
