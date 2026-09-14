@@ -553,48 +553,53 @@ function capResource(value, cap) { return Math.max(0, Math.min(Number(value || 0
 
 async function getCity(req, res) {
   const playerId = authPlayerId(req);
-  if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamadı." });
+  if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamadÄ±." });
 
   const result = await supabase("cities?select=*&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
-  if (!result.ok) return send(res, 500, { success: false, message: "Koloni veritabanından alınamadı." });
+  if (!result.ok) return send(res, 500, { success: false, message: "Koloni veritabanÄ±ndan alÄ±namadÄ±." });
 
   if (!result.data?.[0]) {
     const createResult = await supabase("cities", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({
       player_id: playerId, name: "Yeni Koloni", level: 1, metal: 1000, energy: 500, water: 500, crystal: 250
     }) });
-    if (!createResult.ok) return send(res, 500, { success: false, message: "Koloni oluşturulamadı." });
+    if (!createResult.ok) return send(res, 500, { success: false, message: "Koloni oluÅŸturulamadÄ±." });
     return send(res, 200, { success: true, city: createResult.data[0], buildings: [], units: [], productionQueue: [] });
   }
 
   let city = result.data[0];
   const buildingsResult = await supabase("buildings?select=*&city_id=eq." + encodeURIComponent(city.id) + "&order=building_type.asc");
-  if (!buildingsResult.ok) return send(res, 500, { success: false, message: "Bina verileri alınamadı." });
+  if (!buildingsResult.ok) return send(res, 500, { success: false, message: "Bina verileri alÄ±namadÄ±." });
   let buildings = [];
   for (const b of (buildingsResult.data || [])) buildings.push(await finalizeBuilding(b));
 
   const production = await syncProductionQueue(playerId, city.id);
-  if (!production.ok) return send(res, 500, { success: false, message: "Üretim kuyruğu alınamadı." });
-
-  const unitsResult = await supabase("units?select=*&city_id=eq." + encodeURIComponent(city.id));
-  if (!unitsResult.ok) return send(res, 500, { success: false, message: "Ordu verileri alınamadı." });
-  const units = unitsResult.data || [];
-
-  const activeMissionPopulationResult = await supabase("rpc/nexora_active_military_population", {
-    method: "POST",
-    body: JSON.stringify({ p_player_id: playerId })
-  });
-  if (!activeMissionPopulationResult.ok) return send(res, 500, { success: false, message: "Sefer kapasitesi alınamadı." });
-  const activeMissionPopulation = Math.max(0, Number(activeMissionPopulationResult.data) || 0);
+  if (!production.ok) return send(res, 500, { success: false, message: "Ãœretim kuyruÄŸu alÄ±namadÄ±." });
 
   const productionSync = await supabase("rpc/nexora_sync_city_production", {
     method: "POST",
     body: JSON.stringify({ p_player_id: playerId })
   });
   if (!productionSync.ok || productionSync.data?.success === false || !productionSync.data?.city) {
-    console.error("Atomik üretim senkronizasyonu hatası:", productionSync.data);
-    return send(res, 503, { success: false, message: "Koloni üretimi senkronize edilemedi." });
+    console.error("Atomik Ã¼retim senkronizasyonu hatasÄ±:", productionSync.data);
+    return send(res, 503, { success: false, message: "Koloni Ã¼retimi senkronize edilemedi." });
   }
   city = productionSync.data.city;
+
+  const populationSnapshot = await supabase("rpc/nexora_sync_city_population_snapshot", {
+    method: "POST",
+    body: JSON.stringify({ p_player_id: playerId })
+  });
+  if (!populationSnapshot.ok || populationSnapshot.data?.success === false || !populationSnapshot.data?.city) {
+    console.error("Atomik nÃ¼fus snapshot hatasÄ±:", populationSnapshot.data);
+    return send(res, 503, { success: false, message: "Koloni nÃ¼fusu senkronize edilemedi." });
+  }
+
+  city = populationSnapshot.data.city;
+  const units = Array.isArray(populationSnapshot.data.units) ? populationSnapshot.data.units : [];
+  const productionQueue = Array.isArray(populationSnapshot.data.queue) ? populationSnapshot.data.queue : [];
+  const population = Math.max(0, Number(populationSnapshot.data.population ?? city.population) || 0);
+  const populationCap = Math.max(0, Number(populationSnapshot.data.population_capacity ?? city.population_capacity) || 0);
+  const armyCap = Math.max(0, Number(populationSnapshot.data.army_capacity ?? city.army_capacity) || 0);
 
   const researchResult = await supabase("research?select=production_level,crystal_level&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
   const research = researchResult.ok && researchResult.data?.[0] ? researchResult.data[0] : {};
@@ -602,45 +607,21 @@ async function getCity(req, res) {
   const crystalMultiplier = 1 + Number(research.crystal_level || 0) * 0.08;
   const metalRate = buildingLevel(buildings, "Metal Madeni") * 10 * prodMultiplier;
   const energyRate = buildingLevel(buildings, "Enerji Santrali") * 10 * prodMultiplier;
-  const waterRate = buildingLevel(buildings, "Su Arıtma") * 10 * prodMultiplier;
+  const waterRate = buildingLevel(buildings, "Su ArÄ±tma") * 10 * prodMultiplier;
   const crystalRate = buildingLevel(buildings, "Kristal Madeni") * 5 * crystalMultiplier;
   const resourceCap = storageCapacity(buildings);
   const crystalCap = crystalStorageCapacity(buildings);
 
-  const populationNow = totalPopulation(units, production.queue, activeMissionPopulation);
-  const populationCapNow = housingCapacity(buildings);
-  const armyCapNow = armyCapacity(buildings);
-  if (
-    Number(city.population || 0) !== populationNow ||
-    Number(city.population_capacity || 0) !== populationCapNow ||
-    Number(city.army_capacity || 0) !== armyCapNow
-  ) {
-    const updated = await supabase("cities?id=eq." + encodeURIComponent(city.id), {
-      method: "PATCH",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({
-        population: populationNow,
-        population_capacity: populationCapNow,
-        army_capacity: armyCapNow
-      })
-    });
-    if (updated.ok && updated.data?.[0]) city = updated.data[0];
-  }
-
-  const population = totalPopulation(units, production.queue, activeMissionPopulation);
-  const populationCap = housingCapacity(buildings);
-  const armyCap = armyCapacity(buildings);
   return send(res, 200, {
     success: true,
     city: { ...city, population, population_capacity: populationCap, army_capacity: armyCap, storage_capacity: resourceCap, crystal_storage_capacity: crystalCap, defense_bonus: defenseBonus(buildings) },
     buildings,
     units,
-    productionQueue: production.queue,
+    productionQueue,
     production: { metalPerMinute: metalRate, energyPerMinute: energyRate, waterPerMinute: waterRate, crystalPerMinute: crystalRate },
     capacities: { metal_capacity: resourceCap, energy_capacity: resourceCap, water_capacity: resourceCap, crystal_capacity: crystalCap, population_capacity: populationCap, army_capacity: armyCap, defense_bonus: defenseBonus(buildings) }
   });
 }
-
 async function spendCityResources(playerId,cost={}){
   return await supabase("rpc/nexora_spend_city_resources",{
     method:"POST",
