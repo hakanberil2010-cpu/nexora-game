@@ -461,6 +461,43 @@ body {
   cursor: not-allowed;
 }
 
+.spy {
+  margin-left: 8px;
+  background: #6f4bd8;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.spy:hover {
+  background: #825cf0;
+}
+
+.spy:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spy-status {
+  display: none;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #3b4f75;
+  border-radius: 10px;
+  background: rgba(7,18,34,.92);
+  color: #dcecff;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.spy-status.active {
+  display: block;
+}
+
 
 
 .attack-unit-selector {
@@ -795,6 +832,16 @@ body {
         >
           ⚔️ Saldır
         </button>
+
+        <button
+          class="spy"
+          id="spyButton"
+          onclick="startEspionage()"
+        >
+          🕵️ Casus Gönder
+        </button>
+
+        <div id="spyStatus" class="spy-status"></div>
 
       </div>
 
@@ -1161,6 +1208,10 @@ let selectedPlayerId = null;
 let selectedPlayerX = null;
 let selectedPlayerY = null;
 
+const ESPIONAGE_MISSION_KEY = "nexora_espionage_mission";
+const ESPIONAGE_REPORT_KEY = "nexora_espionage_last_report";
+let espionagePolling = false;
+
 
 /*
   Haritadaki sabit başlangıç koordinatları.
@@ -1349,6 +1400,14 @@ function selectColony(
         "none";
     }
 
+    const spyButton = document.getElementById("spyButton");
+    const spyStatus = document.getElementById("spyStatus");
+    if (spyButton) spyButton.style.display = "none";
+    if (spyStatus) {
+      spyStatus.classList.remove("active");
+      spyStatus.textContent = "";
+    }
+
     selectedPlayer = null;
     selectedPlayerId = null;
     selectedPlayerX = null;
@@ -1397,7 +1456,7 @@ function selectColony(
       y +
       " | Bölge: " +
       regionName +
-      ". Saldırı gönderebilirsin."
+      ". Saldırı veya casusluk gönderebilirsin."
   );
 
   if (info) {
@@ -1409,6 +1468,10 @@ function selectColony(
     attackButton.style.display =
       "inline-block";
   }
+
+  const spyButton = document.getElementById("spyButton");
+  if (spyButton) spyButton.style.display = "inline-block";
+  refreshEspionageUi();
 
   if (
     typeof renderAttackUnitSelector ===
@@ -1503,13 +1566,17 @@ function selectPlayerColony(
       " | 📏 Mesafe: " +
       roundedDistance +
       " km. " +
-      "Saldırı gönderebilirsin."
+      "Saldırı veya casusluk gönderebilirsin."
   );
 
   document.getElementById(
     "attackButton"
   ).style.display =
     "inline-block";
+
+  const spyButton = document.getElementById("spyButton");
+  if (spyButton) spyButton.style.display = "inline-block";
+  refreshEspionageUi();
 
   if (
     typeof renderAttackUnitSelector ===
@@ -2800,6 +2867,307 @@ function renderAttackUnitSelector() {
       }
     );
 
+}
+
+
+/* ---------------- CASUSLUK ---------------- */
+
+
+function readEspionageStorage(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null");
+  } catch {
+    return null;
+  }
+}
+
+
+function setSpyStatus(message) {
+  const box = document.getElementById("spyStatus");
+  if (!box) return;
+  box.textContent = message || "";
+  box.classList.toggle("active", Boolean(message));
+}
+
+
+function formatEspionageReport(result) {
+  if (!result) return "";
+
+  if (result.detected === true || result.outcome === "detected") {
+    return "🚨 Casusluk başarısız\n" +
+      (result.message || "Casusun hedef kolonide yakalandı.");
+  }
+
+  if (result.outcome === "target_missing") {
+    return "🕵️ Casusluk tamamlandı\n" +
+      (result.message || "Hedef koloni bulunamadı.");
+  }
+
+  const lines = [
+    "🕵️ Casusluk başarılı · İstihbarat Sv." +
+      Number(result.intelLevel || 0)
+  ];
+
+  if (result.resources) {
+    lines.push(
+      "",
+      "Kaynaklar",
+      "🔩 Metal: " + Number(result.resources.metal || 0),
+      "⚡ Enerji: " + Number(result.resources.energy || 0),
+      "💧 Su: " + Number(result.resources.water || 0),
+      "💎 Kristal: " + Number(result.resources.crystal || 0)
+    );
+  }
+
+  if (Array.isArray(result.buildings) && result.buildings.length) {
+    lines.push(
+      "",
+      "Binalar",
+      ...result.buildings.map(function(b) {
+        return String(b.building || "Bina") +
+          (Number(b.slot || 1) === 2 ? " II" : "") +
+          " · Sv." + Number(b.level || 0);
+      })
+    );
+  }
+
+  if (Array.isArray(result.army) && result.army.length) {
+    lines.push(
+      "",
+      "Ordu",
+      ...result.army.map(function(u) {
+        return String(u.unitType || "Birlik") +
+          ": " + Number(u.quantity || 0) +
+          " · Sv." + Number(u.level || 1);
+      })
+    );
+  }
+
+  if (result.research && typeof result.research === "object") {
+    const research = Object.entries(result.research);
+    if (research.length) {
+      lines.push(
+        "",
+        "Araştırmalar",
+        ...research.map(function(entry) {
+          return entry[0] + ": Sv." + Number(entry[1] || 0);
+        })
+      );
+    }
+  }
+
+  return lines.join("\n");
+}
+
+
+function refreshEspionageUi() {
+  const button = document.getElementById("spyButton");
+  if (!button) return;
+
+  const mission = readEspionageStorage(ESPIONAGE_MISSION_KEY);
+
+  if (mission && Number(mission.id) > 0) {
+    const arriveAt = new Date(mission.arriveAt || 0).getTime();
+    const remaining = Number.isFinite(arriveAt)
+      ? Math.max(0, Math.ceil((arriveAt - Date.now()) / 1000))
+      : 0;
+
+    button.disabled = true;
+    button.textContent = remaining > 0
+      ? "🕵️ Casus yolda... " + remaining + " sn"
+      : "🕵️ Rapor bekleniyor...";
+
+    if (Number(selectedPlayerId) === Number(mission.targetPlayerId)) {
+      setSpyStatus(
+        "🕵️ Casusluk görevi aktif\n" +
+        String(mission.targetName || "Hedef Koloni") +
+        (remaining > 0
+          ? " · " + remaining + " sn kaldı."
+          : " · Rapor hazırlanıyor...")
+      );
+    } else {
+      setSpyStatus("");
+    }
+    return;
+  }
+
+  button.disabled = false;
+  button.textContent = "🕵️ Casus Gönder";
+
+  const report = readEspionageStorage(ESPIONAGE_REPORT_KEY);
+  if (report && Number(report.targetPlayerId) === Number(selectedPlayerId)) {
+    setSpyStatus(formatEspionageReport(report.result));
+  } else {
+    setSpyStatus("");
+  }
+}
+
+
+async function pollEspionageMission() {
+  if (espionagePolling) return;
+
+  const firstMission = readEspionageStorage(ESPIONAGE_MISSION_KEY);
+  if (!firstMission || !Number(firstMission.id)) {
+    refreshEspionageUi();
+    return;
+  }
+
+  const token = localStorage.getItem("nexora_token");
+  if (!token) return;
+
+  espionagePolling = true;
+
+  try {
+    while (true) {
+      const mission = readEspionageStorage(ESPIONAGE_MISSION_KEY);
+      if (!mission || !Number(mission.id)) break;
+
+      refreshEspionageUi();
+
+      const response = await fetch(
+        "/api/auth?action=spystatus&id=" +
+          encodeURIComponent(mission.id),
+        {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token
+          }
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.status === 401) {
+        localStorage.removeItem("nexora_token");
+        location.href = "login.html";
+        return;
+      }
+
+      if (!response.ok || !data.success || !data.mission) {
+        console.error("Casusluk durumu alınamadı:", data);
+        break;
+      }
+
+      const serverMission = data.mission;
+      const serverArriveAt =
+        serverMission.arriveAt || serverMission.arrive_at;
+
+      if (serverArriveAt) {
+        localStorage.setItem(
+          ESPIONAGE_MISSION_KEY,
+          JSON.stringify({
+            ...mission,
+            arriveAt: serverArriveAt
+          })
+        );
+      }
+
+      if (String(serverMission.status || "").toLowerCase() === "completed") {
+        const result = serverMission.result || {};
+
+        localStorage.setItem(
+          ESPIONAGE_REPORT_KEY,
+          JSON.stringify({
+            targetPlayerId: Number(mission.targetPlayerId),
+            targetName: mission.targetName || "Hedef Koloni",
+            completedAt: Date.now(),
+            result
+          })
+        );
+
+        localStorage.removeItem(ESPIONAGE_MISSION_KEY);
+
+        if (Number(selectedPlayerId) === Number(mission.targetPlayerId)) {
+          setSpyStatus(formatEspionageReport(result));
+        } else {
+          alert(
+            "🕵️ Casusluk görevi tamamlandı. " +
+            "Hedef koloniyi seçerek raporu görebilirsin."
+          );
+        }
+
+        break;
+      }
+
+      await new Promise(function(resolve) {
+        setTimeout(resolve, 1000);
+      });
+    }
+  } catch (error) {
+    console.error("Casusluk hatası:", error);
+  } finally {
+    espionagePolling = false;
+    refreshEspionageUi();
+  }
+}
+
+
+async function startEspionage() {
+  if (!selectedPlayerId) return;
+
+  const token = localStorage.getItem("nexora_token");
+  if (!token) {
+    location.href = "login.html";
+    return;
+  }
+
+  const button = document.getElementById("spyButton");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "🕵️ Casus hazırlanıyor...";
+  }
+
+  try {
+    const response = await fetch(
+      "/api/auth?action=spy",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          targetPlayerId: Number(selectedPlayerId)
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+      localStorage.removeItem("nexora_token");
+      location.href = "login.html";
+      return;
+    }
+
+    if (!response.ok || !data.success || !data.mission) {
+      alert(data.message || "Casusluk görevi başlatılamadı.");
+      return;
+    }
+
+    const mission = {
+      id: Number(data.mission.id),
+      targetPlayerId: Number(selectedPlayerId),
+      targetName: selectedPlayer || "Hedef Koloni",
+      arriveAt: data.mission.arriveAt,
+      travelSeconds: Number(data.mission.travelSeconds || 0)
+    };
+
+    localStorage.setItem(
+      ESPIONAGE_MISSION_KEY,
+      JSON.stringify(mission)
+    );
+
+    refreshEspionageUi();
+    pollEspionageMission();
+  } catch (error) {
+    console.error("Casusluk başlatma hatası:", error);
+    alert("Casusluk görevi başlatılırken bir hata oluştu.");
+  } finally {
+    if (!readEspionageStorage(ESPIONAGE_MISSION_KEY)) {
+      refreshEspionageUi();
+    }
+  }
 }
 
 
@@ -4500,6 +4868,8 @@ loadMyCoordinates()
 
       loadWorldPlayers();
       startMissionPanel();
+      refreshEspionageUi();
+      pollEspionageMission();
 
     }
   );
