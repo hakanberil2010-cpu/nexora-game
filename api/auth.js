@@ -553,35 +553,35 @@ function capResource(value, cap) { return Math.max(0, Math.min(Number(value || 0
 
 async function getCity(req, res) {
   const playerId = authPlayerId(req);
-  if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamadÄ±." });
+  if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamad\u0131." });
 
   const result = await supabase("cities?select=*&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
-  if (!result.ok) return send(res, 500, { success: false, message: "Koloni veritabanÄ±ndan alÄ±namadÄ±." });
+  if (!result.ok) return send(res, 500, { success: false, message: "Koloni veritaban\u0131ndan al\u0131namad\u0131." });
 
   if (!result.data?.[0]) {
     const createResult = await supabase("cities", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({
       player_id: playerId, name: "Yeni Koloni", level: 1, metal: 1000, energy: 500, water: 500, crystal: 250
     }) });
-    if (!createResult.ok) return send(res, 500, { success: false, message: "Koloni oluÅŸturulamadÄ±." });
+    if (!createResult.ok) return send(res, 500, { success: false, message: "Koloni olu\u015fturulamad\u0131." });
     return send(res, 200, { success: true, city: createResult.data[0], buildings: [], units: [], productionQueue: [] });
   }
 
   let city = result.data[0];
   const buildingsResult = await supabase("buildings?select=*&city_id=eq." + encodeURIComponent(city.id) + "&order=building_type.asc");
-  if (!buildingsResult.ok) return send(res, 500, { success: false, message: "Bina verileri alÄ±namadÄ±." });
+  if (!buildingsResult.ok) return send(res, 500, { success: false, message: "Bina verileri al\u0131namad\u0131." });
   let buildings = [];
   for (const b of (buildingsResult.data || [])) buildings.push(await finalizeBuilding(b));
 
   const production = await syncProductionQueue(playerId, city.id);
-  if (!production.ok) return send(res, 500, { success: false, message: "Ãœretim kuyruÄŸu alÄ±namadÄ±." });
+  if (!production.ok) return send(res, 500, { success: false, message: "\u00dcretim kuyru\u011fu al\u0131namad\u0131." });
 
   const productionSync = await supabase("rpc/nexora_sync_city_production", {
     method: "POST",
     body: JSON.stringify({ p_player_id: playerId })
   });
   if (!productionSync.ok || productionSync.data?.success === false || !productionSync.data?.city) {
-    console.error("Atomik Ã¼retim senkronizasyonu hatasÄ±:", productionSync.data);
-    return send(res, 503, { success: false, message: "Koloni Ã¼retimi senkronize edilemedi." });
+    console.error("Atomik \u00fcretim senkronizasyonu hatas\u0131:", productionSync.data);
+    return send(res, 503, { success: false, message: "Koloni \u00fcretimi senkronize edilemedi." });
   }
   city = productionSync.data.city;
 
@@ -590,8 +590,8 @@ async function getCity(req, res) {
     body: JSON.stringify({ p_player_id: playerId })
   });
   if (!populationSnapshot.ok || populationSnapshot.data?.success === false || !populationSnapshot.data?.city) {
-    console.error("Atomik nÃ¼fus snapshot hatasÄ±:", populationSnapshot.data);
-    return send(res, 503, { success: false, message: "Koloni nÃ¼fusu senkronize edilemedi." });
+    console.error("Atomik n\u00fcfus snapshot hatas\u0131:", populationSnapshot.data);
+    return send(res, 503, { success: false, message: "Koloni n\u00fcfusu senkronize edilemedi." });
   }
 
   city = populationSnapshot.data.city;
@@ -607,7 +607,7 @@ async function getCity(req, res) {
   const crystalMultiplier = 1 + Number(research.crystal_level || 0) * 0.08;
   const metalRate = buildingLevel(buildings, "Metal Madeni") * 10 * prodMultiplier;
   const energyRate = buildingLevel(buildings, "Enerji Santrali") * 10 * prodMultiplier;
-  const waterRate = buildingLevel(buildings, "Su ArÄ±tma") * 10 * prodMultiplier;
+  const waterRate = buildingLevel(buildings, "Su Ar\u0131tma") * 10 * prodMultiplier;
   const crystalRate = buildingLevel(buildings, "Kristal Madeni") * 5 * crystalMultiplier;
   const resourceCap = storageCapacity(buildings);
   const crystalCap = crystalStorageCapacity(buildings);
