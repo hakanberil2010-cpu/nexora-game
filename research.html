@@ -6,5 +6,30 @@ let serverClockOffset=0;function nowMs(){return Date.now()+serverClockOffset}
 const R={production:['⚙️','Üretim Teknolojisi','Üretim hızını artırır.',500,150,25],combat:['⚔️','Muharebe','Saldırı savaş etkisini artırır.',700,200,40],defense:['🛡️','Savunma','Savunma etkisini artırır.',600,180,35],crystal:['💎','Kristal Teknolojisi','Kristal üretimini artırır.',800,250,60],general_power:['🌟','Genel Güç','Savaş gücünü artırır.',1000,300,50],unit_attack:['🔥','Birlik Saldırısı','Birlik saldırılarını artırır.',900,250,45],unit_defense:['🧱','Birlik Savunması','Birlik savunmalarını artırır.',850,250,45],unit_hp:['❤️','Birlik HP','Birlik HP değerlerini artırır.',950,275,50],travel_speed:['🚀','Seyahat Hızı','Hareket ve saldırı süresini azaltır.',1200,350,65]};
 function syncServerTime(d){if(d?.serverTime){const t=Date.parse(d.serverTime);if(Number.isFinite(t))serverClockOffset=t-Date.now()}}function remain(s){s=Math.max(0,Number(s)||0);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}function keyToId(k){return k.replace(/_/g,'-')}
 function render(d){const r=d.research||{};document.getElementById('metal').textContent=Math.floor(d.city?.metal||0).toLocaleString('tr-TR');document.getElementById('energy').textContent=Math.floor(d.city?.energy||0).toLocaleString('tr-TR');document.getElementById('crystal').textContent=Math.floor(d.city?.crystal||0).toLocaleString('tr-TR');document.getElementById('grid').innerHTML=Object.entries(R).map(([k,v])=>{const lvl=Number(r[k+'_level']||0);const pending=r.upgrade_ready_at;const left=pending?Math.max(0,Math.ceil((new Date(pending).getTime()-nowMs())/1000)):0;const busy=!!pending;const active=busy&&r.pending_column===k+'_level';return `<div class="card"><div class="icon">${v[0]}</div><h2>${v[1]}</h2><p>${v[2]}</p><div class="level">Seviye ${lvl}/15</div><div class="cost">Maliyet: ${v[3]*(lvl+1)} Metal + ${v[4]*(lvl+1)} Enerji + ${v[5]*(lvl+1)} Kristal</div><div class="timer">${active?'⏱️ '+remain(left):busy?'Başka araştırma sürüyor':'Hazır'}</div><button class="button" ${busy||lvl>=15?'disabled':''} onclick="research('${k}')">${lvl>=15?'Maksimum':active?'Araştırılıyor':busy?'Bekle':'Araştır'}</button></div>`}).join('');document.getElementById('globalTimer').textContent=r.upgrade_ready_at?remain(Math.max(0,Math.ceil((new Date(r.upgrade_ready_at).getTime()-nowMs())/1000))):'Hazır';}
-async function load(){try{const r=await fetch('/api/auth?action=research',{method:'POST',headers:{Authorization:'Bearer '+token}});const d=await r.json();syncServerTime(d);if(r.ok&&d.success)render(d)}catch(e){console.error(e)}}async function research(k){document.getElementById('status').textContent='Araştırma başlatılıyor...';try{const r=await fetch('/api/auth?action=upgradeResearch',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({researchType:k})});const d=await r.json();document.getElementById('status').textContent=d.message||'';load()}catch(e){document.getElementById('status').textContent='Bağlantı hatası.'}}load();setInterval(load,5000);
+let researchLoadPromise=null;
+
+async function load(){
+  if(researchLoadPromise)return researchLoadPromise;
+
+  researchLoadPromise=(async()=>{
+    try{
+      const r=await fetch('/api/auth?action=research',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token}
+      });
+
+      const d=await r.json();
+      syncServerTime(d);
+
+      if(r.ok&&d.success)render(d);
+    }catch(e){
+      console.error(e);
+    }
+  })().finally(()=>{
+    researchLoadPromise=null;
+  });
+
+  return researchLoadPromise;
+}
+  load();setInterval(load,5000);
 </script></body></html>
