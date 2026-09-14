@@ -317,31 +317,29 @@ async function register(req, res) {
 
   const player = playerResult.data[0];
 
-  const cityResult = await supabase("cities", {
+  const cityResult = await supabase("rpc/nexora_create_starting_city", {
     method: "POST",
-    headers: {
-      Prefer: "return=minimal"
-    },
     body: JSON.stringify({
-      player_id: player.id,
-      name: "Yeni Koloni",
-      level: 1,
-      metal: 1000,
-      energy: 500,
-      water: 500,
-      crystal: 250
+      p_player_id: Number(player.id),
+      p_name: "Yeni Koloni"
     })
   });
 
-  if (!cityResult.ok) {
+  if (!cityResult.ok || cityResult.data?.success !== true) {
     console.error(
-      "Şehir oluşturma hatası:",
+      "Başlangıç kolonisi oluşturma hatası:",
       cityResult.data
+    );
+
+    // Kayıt yarım kalmasın: şehir oluşturulamadıysa yeni oyuncuyu geri al.
+    await supabase(
+      "players?id=eq." + encodeURIComponent(player.id),
+      { method: "DELETE" }
     );
 
     return send(res, 500, {
       success: false,
-      message: "Başlangıç kolonisi oluşturulamadı."
+      message: cityResult.data?.message || "Başlangıç kolonisi oluşturulamadı."
     });
   }
 
@@ -2518,6 +2516,7 @@ if (action === "upgrade") {
     });
   }
 };
+
 
 
 
