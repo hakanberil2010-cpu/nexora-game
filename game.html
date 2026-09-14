@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>NEXORA - Koloni</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.topbar{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.player{color:#9fc0df}.logout{margin-left:12px;padding:7px 12px;border:0;border-radius:7px;background:#16344f;color:#fff;cursor:pointer}.layout{display:flex;min-height:calc(100vh - 76px)}.sidebar{width:210px;background:#07111f;border-right:1px solid #173451;padding:24px 14px}.sidebar h3{margin:0 10px 12px;color:#678cae;font-size:12px;text-transform:uppercase}.menu{list-style:none;padding:0;margin:0 0 26px}.menu li{padding:12px;border-radius:8px;margin-bottom:5px;color:#b9d4eb;cursor:pointer}.menu li:hover,.menu li.active{background:#102e49;color:#23b8ff}.main{flex:1;padding:28px;max-width:1250px;margin:auto;width:100%}.welcome{margin-bottom:22px}.welcome h1{margin:0 0 8px;font-size:32px}.welcome p{margin:0;color:#7897b6}.resources{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.resource,.panel,.action,.queue{background:#091a2c;border:1px solid #173b5d;border-radius:12px}.resource{padding:15px}.resource-title{color:#83a6c6;font-size:13px}.resource-value{font-size:24px;font-weight:bold;margin-top:6px}.layout2{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}.panel{padding:22px;margin-bottom:20px}.panel h2{margin-top:0}.city{height:190px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#153957,#071526 65%);border-radius:12px}.city-core{width:120px;height:120px;border:2px solid #18bfff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 35px #0c6689}.city-core strong{font-size:20px}.buildings{display:grid;gap:10px}.building{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#071526;border:1px solid #17344e;border-radius:9px;padding:12px}.building-info{display:flex;flex-direction:column;gap:4px}.building-info span{font-size:12px;color:#7997b5}.building-info small{color:#6d91ad}.building.locked{opacity:.68;border-color:#3b2e25}.building .lock{color:#ffb36b}.building .cost{color:#9bc8e8}.building .req{color:#ffcf7a}.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}.topBack:hover{filter:brightness(1.08)}.upgrade{padding:9px 13px;border:0;border-radius:7px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}.upgrade:disabled{opacity:.45;cursor:not-allowed}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.action{padding:18px}.action h3{margin:0 0 8px}.action p{color:#7894a9;font-size:14px;min-height:42px}.action button{width:100%;padding:10px;border:0;border-radius:7px;background:#102e49;color:#28b7ff;cursor:pointer}.status{margin-top:10px;color:#8bdcff;font-size:13px}.queue{padding:14px;margin-top:14px}.queue-item{padding:10px 0;border-bottom:1px solid #17344f}.queue-item:last-child{border-bottom:0}.time{color:#18bfff;font-weight:bold}@media(max-width:900px){.sidebar{width:180px}.resources{grid-template-columns:repeat(2,1fr)}.layout2{grid-template-columns:1fr}.actions{grid-template-columns:1fr}}@media(max-width:600px){.sidebar{display:none}.main{padding:15px}.resources{grid-template-columns:1fr 1fr}}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.topbar{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.player{color:#9fc0df}.logout{margin-left:12px;padding:7px 12px;border:0;border-radius:7px;background:#16344f;color:#fff;cursor:pointer}.layout{display:flex;min-height:calc(100vh - 76px)}.sidebar{width:210px;background:#07111f;border-right:1px solid #173451;padding:24px 14px}.sidebar h3{margin:0 10px 12px;color:#678cae;font-size:12px;text-transform:uppercase}.menu{list-style:none;padding:0;margin:0 0 26px}.menu li{padding:12px;border-radius:8px;margin-bottom:5px;color:#b9d4eb;cursor:pointer}.menu li:hover,.menu li.active{background:#102e49;color:#23b8ff}.main{flex:1;padding:28px;max-width:1250px;margin:auto;width:100%}.welcome{margin-bottom:22px}.welcome h1{margin:0 0 8px;font-size:32px}.welcome p{margin:0;color:#7897b6}.resources{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.resource,.panel,.action,.queue{background:#091a2c;border:1px solid #173b5d;border-radius:12px}.resource{padding:15px}.resource-title{color:#83a6c6;font-size:13px}.resource-value{font-size:24px;font-weight:bold;margin-top:6px}.layout2{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}.panel{padding:22px;margin-bottom:20px}.panel h2{margin-top:0}.city{height:190px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#153957,#071526 65%);border-radius:12px}.city-core{width:120px;height:120px;border:2px solid #18bfff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 35px #0c6689}.city-core strong{font-size:20px}.buildings{display:grid;gap:10px}.building{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#071526;border:1px solid #17344e;border-radius:9px;padding:12px}.building-info{display:flex;flex-direction:column;gap:4px}.building-info span{font-size:12px;color:#7997b5}.building-info small{color:#6d91ad}.building.locked{opacity:.68;border-color:#3b2e25}.building .lock{color:#ffb36b}.building .cost{color:#9bc8e8}.building .req{color:#ffcf7a}.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}.topBack:hover{filter:brightness(1.08)}.upgrade{padding:9px 13px;border:0;border-radius:7px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}.upgrade:disabled{opacity:.45;cursor:not-allowed}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.action{padding:18px}.action h3{margin:0 0 8px}.action p{color:#7894a9;font-size:14px;min-height:42px}.action button{width:100%;padding:10px;border:0;border-radius:7px;background:#102e49;color:#28b7ff;cursor:pointer}.status{margin-top:10px;color:#8bdcff;font-size:13px}.queue{padding:14px;margin-top:14px}.queue-item{padding:10px 0;border-bottom:1px solid #17344f}.queue-item:last-child{border-bottom:0}.time{color:#18bfff;font-weight:bold}@media(max-width:900px){.sidebar{width:180px}.resources{grid-template-columns:repeat(2,1fr)}.layout2{grid-template-columns:1fr}.actions{grid-template-columns:1fr}}.mobileNav{display:none;width:100%;margin:0 0 14px;padding:11px 12px;border:1px solid #285476;border-radius:8px;background:#071526;color:#eaf4ff;font-weight:bold}@media(max-width:600px){.sidebar{display:none}.mobileNav{display:block}.topbar{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:24px;letter-spacing:4px}.player{font-size:13px}.logout{margin-left:6px}.main{padding:15px}.resources{grid-template-columns:1fr 1fr}}
 </style></head><body>
 
 <header class="topbar">
@@ -37,6 +37,21 @@
 </aside>
 
 <main class="main">
+
+<select class="mobileNav" aria-label="Mobil menü" onchange="if(this.value)go(this.value)">
+  <option value="">☰ Menü</option>
+  <option value="game.html">🏙️ Kolonim</option>
+  <option value="world.html">🌍 Dünya Haritası</option>
+  <option value="reports.html">⚔️ Savaş Raporları</option>
+  <option value="army.html">🪖 Ordu</option>
+  <option value="research.html">🔬 Araştırma</option>
+  <option value="ranking.html">🏆 Sıralama</option>
+  <option value="alliance.html">🤝 İttifak</option>
+  <option value="trade.html">💱 Ticaret</option>
+  <option value="missions.html">🎯 Görevler</option>
+  <option value="statistics.html">📊 İstatistikler</option>
+  <option value="settings.html">⚙️ Ayarlar</option>
+</select>
 
 <a class="topBack" href="game.html">← Koloniye Dön</a>
 
@@ -247,8 +262,7 @@ const BUILDING_COSTS={
     crystal:25
   },
 
-  "Merkez Bina":{
-    metal:750,
+  "Merkez Bina":{    metal:750,
     energy:150,
     water:100,
     crystal:50
@@ -497,7 +511,6 @@ async function loadCity(){
         'water'
       ].forEach(
         k=>{
-
           const e=document.getElementById(
             k+'Cap'
           );
@@ -747,8 +760,7 @@ function renderBuildings(buildings){
       `;
 
     }
-  ).join('');
-}
+  ).join('');}
 
 
 async function upgrade(name){
