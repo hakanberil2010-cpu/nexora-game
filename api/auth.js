@@ -1114,13 +1114,41 @@ async function getMilitaryMission(req,res){
     return send(res,409,{success:false,message:"Sefer durumu çözümlenemiyor."});
   }
 
-  const [defUnitsResult,defResearchResult,defBuildingsResult,attResearchResult]=await Promise.all([
-    supabase("units?select=*&city_id=eq."+encodeURIComponent(mission.defender_city_id)),
-    supabase("research?select=*&player_id=eq."+encodeURIComponent(mission.defender_player_id)+"&limit=1"),
-    supabase("buildings?select=*&city_id=eq."+encodeURIComponent(mission.defender_city_id)),
-    supabase("research?select=*&player_id=eq."+encodeURIComponent(mission.attacker_player_id)+"&limit=1")
-  ]);
-  const rawDefenders=defUnitsResult.data||[],defR=defResearchResult.data?.[0]||{},defB=defBuildingsResult.data||[],attR=attResearchResult.data?.[0]||{};
+  const battleSnapshotResult=await supabase("rpc/nexora_prepare_military_battle_snapshot",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_mission_id:Number(mission.id)
+    })
+  });
+
+  if(!battleSnapshotResult.ok){
+    console.error("Atomik battle snapshot RPC hatasi:",battleSnapshotResult.data);
+    return send(res,500,{success:false,message:"Savas durumu hazirlanamadi."});
+  }
+
+  const battleSnapshot=battleSnapshotResult.data||{};
+  if(battleSnapshot.success!==true){
+    const code=String(battleSnapshot.code||"");
+    const status=code==="FORBIDDEN"?403:code==="MISSION_NOT_FOUND"?404:code==="BATTLE_NOT_READY"?409:400;
+    return send(res,status,{
+      success:false,
+      code:code||"BATTLE_SNAPSHOT_FAILED",
+      message:battleSnapshot.message||"Savas durumu hazirlanamadi."
+    });
+  }
+
+  if(battleSnapshot.alreadyResolved===true){
+    return send(res,200,{success:true,mission:battleSnapshot.mission||mission});
+  }
+
+  mission=battleSnapshot.mission||mission;
+  const rawDefenders=Array.isArray(battleSnapshot.defenderUnits)?battleSnapshot.defenderUnits:[];
+  const defR=battleSnapshot.defenderResearch&&typeof battleSnapshot.defenderResearch==="object"
+    ?battleSnapshot.defenderResearch:{};
+  const defB=Array.isArray(battleSnapshot.defenderBuildings)?battleSnapshot.defenderBuildings:[];
+  const attR=battleSnapshot.attackerResearch&&typeof battleSnapshot.attackerResearch==="object"
+    ?battleSnapshot.attackerResearch:{};
   const army=await hydrateArmyStats(Array.isArray(mission.army)?mission.army:[]);
   const defenders=await hydrateArmyStats(rawDefenders.filter(u=>Number(u.quantity||0)>0).map(u=>({id:Number(u.id),unit_type:u.unit_type,quantity:Number(u.quantity||0),level:Number(u.level||1),population_cost:Number(u.population_cost||1)})));
   const roleOf=type=>COMBAT_ROLE_V2[type]||COMBAT_ROLE_V2.piyade;
