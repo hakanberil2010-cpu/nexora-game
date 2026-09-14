@@ -8,6 +8,7 @@ body{margin:0;background:#0b1020;color:#eaf1ff;font-family:Arial,sans-serif}.wra
 <div class="card"><h2>Ticaret Geçmişi</h2><div id="history"></div></div></div>
 <script>
 const API="/api/auth.js";let token=localStorage.getItem("nexora_token")||localStorage.getItem("token")||"";
+if(!token)location.href="login.html";
 const names={metal:"Metal",energy:"Enerji",water:"Su",crystal:"Kristal"};
 let serverOffsetMs=0,currentPlayerId=null,tradeConfig={};
 let offersLoadPromise=null,historyLoadPromise=null;
