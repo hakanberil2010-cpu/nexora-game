@@ -36,7 +36,7 @@ DECLARE
   max_by_energy bigint := 0;
   max_allowed bigint := 0;
 
-  requested_quantity bigint;
+  requested_quantity bigint := 0;
   actual_quantity bigint := 0;
 
   unit_duration integer := 0;
@@ -124,78 +124,82 @@ BEGIN
   END IF;
 
 
-  SELECT
-    100 +
-    50 * GREATEST(
+  housing := (
+    SELECT
+      100 +
+      50 * GREATEST(
+        0,
+        COALESCE(
+          (
+            SELECT level
+            FROM public.buildings
+            WHERE city_id = c.id
+              AND building_type = 'Konut'
+            ORDER BY id
+            LIMIT 1
+          ),
+          0
+        )
+      )
+  );
+
+
+  barracks := (
+    SELECT GREATEST(
       0,
       COALESCE(
         (
           SELECT level
           FROM public.buildings
           WHERE city_id = c.id
-            AND building_type = 'Konut'
+            AND building_type = 'Kışla'
           ORDER BY id
           LIMIT 1
         ),
         0
       )
     )
-  INTO housing;
-
-
-  SELECT GREATEST(
-    0,
-    COALESCE(
-      (
-        SELECT level
-        FROM public.buildings
-        WHERE city_id = c.id
-          AND building_type = 'Kışla'
-        ORDER BY id
-        LIMIT 1
-      ),
-      0
-    )
-  INTO barracks;
+  );
 
 
   army := 50 + 50 * barracks;
 
 
   -- Current army + current training queue.
-  SELECT COALESCE(SUM(amount), 0)
-  INTO population
-  FROM (
+  population := (
+    SELECT COALESCE(SUM(amount), 0)::bigint
+    FROM (
 
-    SELECT
-      quantity::bigint *
-      CASE unit_type
-        WHEN 'tank' THEN 3
-        WHEN 'hava' THEN 2
-        WHEN 'piyade' THEN 1
-        WHEN 'savunma' THEN 1
-        WHEN 'saldiri' THEN 1
-        WHEN 'okcu' THEN 1
-        ELSE COALESCE(NULLIF(population_cost, 0), 1)
-      END AS amount
-    FROM public.units
-    WHERE city_id = c.id
+      SELECT
+        quantity::bigint *
+        CASE unit_type
+          WHEN 'tank' THEN 3
+          WHEN 'hava' THEN 2
+          WHEN 'piyade' THEN 1
+          WHEN 'savunma' THEN 1
+          WHEN 'saldiri' THEN 1
+          WHEN 'okcu' THEN 1
+          ELSE COALESCE(NULLIF(population_cost, 0), 1)
+        END AS amount
+      FROM public.units
+      WHERE city_id = c.id
 
-    UNION ALL
+      UNION ALL
 
-    SELECT
-      quantity::bigint *
-      CASE unit_type
-        WHEN 'tank' THEN 3
-        WHEN 'hava' THEN 2
-        ELSE 1
-      END AS amount
-    FROM public.unit_production_queue
-    WHERE city_id = c.id
-      AND player_id = p_player_id
-      AND status = 'training'
+      SELECT
+        quantity::bigint *
+        CASE unit_type
+          WHEN 'tank' THEN 3
+          WHEN 'hava' THEN 2
+          ELSE 1
+        END AS amount
+      FROM public.unit_production_queue
+      WHERE city_id = c.id
+        AND player_id = p_player_id
+        AND status = 'training'
 
-  ) pop;
+    ) pop
+  );
 
 
   -- Armies currently away on military missions still reserve capacity.
@@ -208,6 +212,7 @@ BEGIN
       0
     )
   );
+
 
   population :=
     GREATEST(0, population)
@@ -302,8 +307,8 @@ BEGIN
     );
 
 
-  -- If player asks for more than affordable/capacity allows,
-  -- admit the maximum safe amount instead of failing.
+  -- Requested amount can be higher than current resources/capacity.
+  -- In that case admit the maximum safe amount.
   actual_quantity :=
     LEAST(
       requested_quantity,
@@ -395,7 +400,9 @@ BEGIN
   RETURN spent ||
     jsonb_build_object(
       'success', true,
-      'production', to_jsonb(q),
+
+      'production',
+        to_jsonb(q),
 
       'requestedQuantity',
         p_requested_quantity,
