@@ -171,36 +171,98 @@ function verifyToken(token) {
   }
 }
 async function supabase(path, options = {}) {
-  const response = await fetch(
-    SUPABASE_URL + "/rest/v1/" + path,
-    {
-      ...options,
-      headers: {
-        apikey: SUPABASE_SECRET_KEY,
-        Authorization: "Bearer " + SUPABASE_SECRET_KEY,
-        "Content-Type": "application/json",
-        ...(options.headers || {})
+  const method = String(options.method || "GET").toUpperCase();
+
+  // Yalnızca güvenli GET/SELECT istekleri tekrar denenir.
+  // POST / RPC / PATCH / DELETE kesinlikle otomatik tekrar edilmez.
+  const canRetry = method === "GET";
+  const maxAttempts = canRetry ? 2 : 1;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch(
+        SUPABASE_URL + "/rest/v1/" + path,
+        {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            apikey: SUPABASE_SECRET_KEY,
+            Authorization: "Bearer " + SUPABASE_SECRET_KEY,
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+          }
+        }
+      );
+
+      const text = await response.text();
+
+      let data = null;
+
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = text;
       }
+
+      const retryableStatus =
+        response.status === 408 ||
+        response.status === 429 ||
+        response.status === 500 ||
+        response.status === 502 ||
+        response.status === 503 ||
+        response.status === 504;
+
+      if (
+        canRetry &&
+        retryableStatus &&
+        attempt < maxAttempts - 1
+      ) {
+        await new Promise(resolve =>
+          setTimeout(resolve, 250)
+        );
+        continue;
+      }
+
+      return {
+        ok: response.ok,
+        status: response.status,
+        data
+      };
+    } catch (error) {
+      if (canRetry && attempt < maxAttempts - 1) {
+        await new Promise(resolve =>
+          setTimeout(resolve, 250)
+        );
+        continue;
+      }
+
+      const timedOut = error?.name === "AbortError";
+
+      console.error(
+        timedOut
+          ? "Supabase istek zaman aşımı:"
+          : "Supabase bağlantı hatası:",
+        path,
+        error
+      );
+
+      return {
+        ok: false,
+        status: timedOut ? 504 : 503,
+        data: {
+          message: timedOut
+            ? "Veritabanı isteği zaman aşımına uğradı."
+            : "Veritabanına bağlanılamadı."
+        }
+      };
+    } finally {
+      clearTimeout(timeout);
     }
-  );
-
-  const text = await response.text();
-
-  let data = null;
-
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text;
   }
-
-  return {
-    ok: response.ok,
-    status: response.status,
-    data
-  };
 }
-
 async function register(req, res) {
   const body = await readBody(req);
 
