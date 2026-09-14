@@ -503,8 +503,8 @@ function defenseBonus(buildings) {
   return 1 + wall * 0.05 + tower * 0.08;
 }
 
-function totalPopulation(units, queue) {
-  let total = 0;
+function totalPopulation(units, queue, activeMissionPopulation = 0) {
+  let total = Math.max(0, Number(activeMissionPopulation) || 0);
   for (const u of (units || [])) {
     const cfg = UNIT_CONFIG[u.unit_type] || { population: Number(u.population_cost || 1) };
     total += Number(u.quantity || 0) * Number(cfg.population || 1);
@@ -579,6 +579,13 @@ async function getCity(req, res) {
   if (!unitsResult.ok) return send(res, 500, { success: false, message: "Ordu verileri alınamadı." });
   const units = unitsResult.data || [];
 
+  const activeMissionPopulationResult = await supabase("rpc/nexora_active_military_population", {
+    method: "POST",
+    body: JSON.stringify({ p_player_id: playerId })
+  });
+  if (!activeMissionPopulationResult.ok) return send(res, 500, { success: false, message: "Sefer kapasitesi alınamadı." });
+  const activeMissionPopulation = Math.max(0, Number(activeMissionPopulationResult.data) || 0);
+
   const productionSync = await supabase("rpc/nexora_sync_city_production", {
     method: "POST",
     body: JSON.stringify({ p_player_id: playerId })
@@ -600,7 +607,7 @@ async function getCity(req, res) {
   const resourceCap = storageCapacity(buildings);
   const crystalCap = crystalStorageCapacity(buildings);
 
-  const populationNow = totalPopulation(units, production.queue);
+  const populationNow = totalPopulation(units, production.queue, activeMissionPopulation);
   const populationCapNow = housingCapacity(buildings);
   const armyCapNow = armyCapacity(buildings);
   if (
@@ -620,7 +627,7 @@ async function getCity(req, res) {
     if (updated.ok && updated.data?.[0]) city = updated.data[0];
   }
 
-  const population = totalPopulation(units, production.queue);
+  const population = totalPopulation(units, production.queue, activeMissionPopulation);
   const populationCap = housingCapacity(buildings);
   const armyCap = armyCapacity(buildings);
   return send(res, 200, {
