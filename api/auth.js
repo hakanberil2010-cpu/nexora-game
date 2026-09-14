@@ -699,62 +699,74 @@ async function spendCityResources(playerId,cost={}){
 
 async function produceArmy(req, res) {
   const playerId = authPlayerId(req);
-  if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamadı." });
-  const body = await readBody(req);
-  const unitType = String(body.unitType || "").trim();
-  const cfg = UNIT_CONFIG[unitType];
-  if (!cfg) return send(res, 400, { success: false, message: "Geçersiz birlik türü." });
 
-  const cityResult = await supabase("cities?select=*&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
-  if (!cityResult.ok || !cityResult.data?.[0]) return send(res, 404, { success: false, message: "Koloni bulunamadı." });
-  const city = cityResult.data[0];
-  const production = await syncProductionQueue(playerId, city.id);
-  if (!production.ok) return send(res, 500, { success: false, message: "Üretim kuyruğu okunamadı." });
-  const result = await supabase("rpc/nexora_start_unit_training", {
-    method: "POST", body: JSON.stringify({ p_player_id: Number(playerId), p_city_id: Number(city.id), p_type: unitType })
-  });
-  if (!result.ok) return send(res, 500, { success: false, message: "Üretim başlatılamadı." });
-  if (result.data?.success !== true) return send(res, 400, result.data || { success: false, message: "Üretim başlatılamadı." });
-  return send(res, 200, { ...result.data, message: cfg.label + " üretim sırasına alındı." });
-}
-
-async function upgradeUnit(req, res) {
-  const authHeader = String(req.headers.authorization || "");
-
-  if (!authHeader.startsWith("Bearer ")) {
+  if (playerId === null) {
     return send(res, 401, {
       success: false,
       message: "Oturum bulunamadı."
     });
   }
 
-  const token = authHeader.slice(7).trim();
-  const decoded = verifyToken(token);
+  const body = await readBody(req);
 
-  if (!decoded || !decoded.id) {
-    return send(res, 401, {
+  const unitType = String(
+    body.unitType || ""
+  ).trim();
+
+  const cfg = UNIT_CONFIG[unitType];
+
+  if (!cfg) {
+    return send(res, 400, {
       success: false,
-      message: "Geçersiz oturum."
+      message: "Geçersiz birlik türü."
     });
   }
 
-  const body = await readBody(req);
-  const unitType = String(body.unitType || "").trim();
+  let requestedQuantity = 1;
 
-  if (!unitType) {
-    return send(res, 400, {
-      success: false,
-      message: "Birlik türü belirtilmedi."
-    });
+  const hasQuantity =
+    Object.prototype.hasOwnProperty.call(
+      body,
+      "quantity"
+    );
+
+  if (hasQuantity) {
+    if (
+      body.quantity === null ||
+      String(body.quantity)
+        .trim()
+        .toLowerCase() === "max"
+    ) {
+      requestedQuantity = null;
+    } else {
+      const quantity =
+        Number(body.quantity);
+
+      if (
+        !Number.isInteger(quantity) ||
+        quantity <= 0 ||
+        quantity > 1000000
+      ) {
+        return send(res, 400, {
+          success: false,
+          message: "Geçersiz üretim adedi."
+        });
+      }
+
+      requestedQuantity = quantity;
+    }
   }
 
   const cityResult = await supabase(
     "cities?select=*&player_id=eq." +
-      encodeURIComponent(decoded.id) +
+      encodeURIComponent(playerId) +
       "&limit=1"
   );
 
-  if (!cityResult.ok || !cityResult.data || !cityResult.data[0]) {
+  if (
+    !cityResult.ok ||
+    !cityResult.data?.[0]
+  ) {
     return send(res, 404, {
       success: false,
       message: "Koloni bulunamadı."
@@ -763,85 +775,80 @@ async function upgradeUnit(req, res) {
 
   const city = cityResult.data[0];
 
-  const unitResult = await supabase(
-    "units?select=*&city_id=eq." +
-      encodeURIComponent(city.id) +
-      "&unit_type=eq." +
-      encodeURIComponent(unitType) +
-      "&limit=1"
-  );
+  const production =
+    await syncProductionQueue(
+      playerId,
+      city.id
+    );
 
-  if (!unitResult.ok) {
+  if (!production.ok) {
     return send(res, 500, {
       success: false,
-      message: "Birlik verisi alınamadı."
+      message: "Üretim kuyruğu okunamadı."
     });
   }
 
-  if (!unitResult.data || !unitResult.data[0]) {
-    return send(res, 404, {
-      success: false,
-      message: "Bu türden birlik bulunamadı."
-    });
-  }
-
-  const unit = unitResult.data[0];
-  const currentLevel = Math.max(1, Number(unit.level) || 1);
-
-  if (currentLevel >= 15) {
-    return send(res, 400, {
-      success: false,
-      message: "Bu birlik zaten 15. seviyede."
-    });
-  }
-
-  const nextLevel = currentLevel + 1;
-
-  const levelResult = await supabase(
-    "unit_levels?select=*&unit_type=eq." +
-      encodeURIComponent(unitType) +
-      "&level=eq." +
-      encodeURIComponent(nextLevel) +
-      "&limit=1"
+  const result = await supabase(
+    "rpc/nexora_start_unit_training_bulk",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        p_player_id: Number(playerId),
+        p_city_id: Number(city.id),
+        p_type: unitType,
+        p_requested_quantity:
+          requestedQuantity
+      })
+    }
   );
 
-  if (!levelResult.ok || !levelResult.data || !levelResult.data[0]) {
+  if (!result.ok) {
+    console.error(
+      "Toplu birlik üretimi başlatılamadı:",
+      result.data
+    );
+
     return send(res, 500, {
       success: false,
-      message: "Bir sonraki seviye verisi bulunamadı."
+      message: "Üretim başlatılamadı."
     });
   }
 
-  const nextStats = levelResult.data[0];
-
-  const cost = {
-    metal: currentLevel * 500,
-    energy: currentLevel * 100,
-    crystal: currentLevel * 50
-  };
-
-  if (
-    Number(city.metal) < cost.metal ||
-    Number(city.energy) < cost.energy ||
-    Number(city.crystal) < cost.crystal
-  ) {
-    return send(res, 400, {
-      success: false,
-      message:
-        "Seviye yükseltmek için yeterli kaynak yok.",
-      cost: cost
-    });
+  if (result.data?.success !== true) {
+    return send(
+      res,
+      400,
+      result.data || {
+        success: false,
+        message: "Üretim başlatılamadı."
+      }
+    );
   }
 
-  const upgraded = await supabase("rpc/nexora_upgrade_unit_atomic", {
-    method: "POST",
-    body: JSON.stringify({ p_player_id: Number(decoded.id), p_city_id: Number(city.id), p_unit_id: Number(unit.id), p_level: currentLevel })
+  const acceptedQuantity =
+    Math.max(
+      0,
+      Number(
+        result.data?.acceptedQuantity ||
+        result.data?.production?.quantity ||
+        0
+      )
+    );
+
+  const message =
+    acceptedQuantity > 1
+      ? cfg.label +
+        " ×" +
+        acceptedQuantity +
+        " üretim sırasına alındı."
+      : cfg.label +
+        " üretim sırasına alındı.";
+
+  return send(res, 200, {
+    ...result.data,
+    message
   });
-  if (!upgraded.ok) return send(res, 500, { success: false, message: "Birlik seviyesi güncellenemedi." });
-  if (upgraded.data?.success !== true) return send(res, 400, upgraded.data || { success: false, message: "Birlik seviyesi güncellenemedi." });
-  return send(res, 200, { success: true, message: "Birlik seviyesi yükseltildi.", unit: upgraded.data.unit, city: upgraded.data.city, cost });
 }
-
 
 async function moveColony(req, res) {
   const playerId = authPlayerId(req);
