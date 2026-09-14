@@ -44,9 +44,9 @@ body {
 }
 
 .container {
-  max-width: 1250px;
-  margin: 35px auto;
-  padding: 0 25px;
+  max-width: 1500px;
+  margin: 28px auto;
+  padding: 0 22px;
 }
 
 h1 {
@@ -62,17 +62,35 @@ h1 {
 .world {
   position: relative;
   width: 100%;
-  height: 600px;
+  height: 720px;
   overflow: hidden;
   border: 1px solid #1d5278;
   border-radius: 18px;
+  background: #04101b;
+  box-shadow: inset 0 0 80px rgba(0,0,0,0.5);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.world.grabbing {
+  cursor: grabbing;
+}
+
+.world-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1900px;
+  height: 1150px;
+  transform: translate3d(0,0,0);
+  transform-origin: 0 0;
   background:
     radial-gradient(circle at 20% 25%, #164b38 0 12%, transparent 13%),
     radial-gradient(circle at 75% 20%, #315b39 0 14%, transparent 15%),
     radial-gradient(circle at 45% 70%, #51462c 0 15%, transparent 16%),
     radial-gradient(circle at 85% 75%, #344e6d 0 16%, transparent 17%),
     linear-gradient(135deg, #08213a, #071526 60%, #0b2635);
-  box-shadow: inset 0 0 80px rgba(0,0,0,0.5);
 }
 
 .grid {
@@ -82,6 +100,7 @@ h1 {
     linear-gradient(rgba(100,180,220,0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(100,180,220,0.08) 1px, transparent 1px);
   background-size: 50px 50px;
+  pointer-events: none;
 }
 
 .region {
@@ -131,47 +150,6 @@ h1 {
   color: #62cfff;
 }
 
-.move {
-  margin-top: 10px;
-  width: 100%;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  background: #2d7dff;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.move-menu {
-  margin-top: 12px;
-  padding: 15px;
-  border-radius: 10px;
-  background: rgba(10, 20, 40, 0.95);
-  border: 1px solid rgba(255,255,255,0.15);
-}
-
-.move-menu h3 {
-  margin-top: 0;
-  margin-bottom: 12px;
-  font-size: 17px;
-}
-
-.move-menu button {
-  width: 100%;
-  margin-top: 8px;
-  padding: 9px;
-  border: none;
-  border-radius: 7px;
-  background: #1b2945;
-  color: white;
-  cursor: pointer;
-  text-align: left;
-}
-
-.move-menu button:hover {
-  background: #2d7dff;
-}
 
 #realPlayers {
   position: absolute;
@@ -327,6 +305,97 @@ h1 {
   color: #58ff9b;
 }
 
+.own-colony-menu {
+  position: absolute;
+  z-index: 45;
+  width: 270px;
+  display: none;
+  padding: 13px;
+  border: 1px solid #2b6f91;
+  border-radius: 12px;
+  background: rgba(5,18,31,.97);
+  box-shadow: 0 18px 44px rgba(0,0,0,.55), 0 0 24px rgba(88,255,155,.10);
+  transform: translate(-50%, 58px);
+  cursor: default;
+  user-select: text;
+}
+
+.own-colony-menu.open {
+  display: block;
+}
+
+.own-colony-menu.above {
+  transform: translate(-50%, calc(-100% - 58px));
+}
+
+.own-colony-menu h3 {
+  margin: 0 0 5px;
+  color: #58ff9b;
+  font-size: 17px;
+}
+
+.own-colony-coordinate {
+  margin-bottom: 10px;
+  color: #8fc9ef;
+  font-size: 12px;
+}
+
+.own-colony-actions {
+  display: grid;
+  gap: 7px;
+}
+
+.own-colony-actions button,
+.own-move-form button {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #244c69;
+  border-radius: 8px;
+  background: #10283f;
+  color: #eaf4ff;
+  cursor: pointer;
+  text-align: left;
+  font-weight: bold;
+}
+
+.own-colony-actions button:hover,
+.own-move-form button:hover {
+  background: #16466a;
+}
+
+.own-move-form {
+  display: none;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+
+.own-move-form.open {
+  display: block;
+}
+
+.own-move-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+
+.own-move-inputs input {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #315879;
+  border-radius: 7px;
+  background: #061321;
+  color: #eaf4ff;
+}
+
+.own-move-form button {
+  text-align: center;
+  background: #138dcc;
+  border-color: #1aa9ee;
+}
+
 .c1 {
   left: 25%;
   top: 35%;
@@ -470,7 +539,7 @@ h1 {
   }
 
   .world {
-    height: 500px;
+    height: 620px;
   }
 
   .detail-box {
@@ -628,29 +697,50 @@ h1 {
     Galaksideki kolonileri keşfet, rakiplerini seç ve saldır.
   </div>
 
-  <div class="world">
+  <div class="world" id="worldViewport">
+    <div class="world-canvas" id="worldCanvas">
 
-    <div class="grid"></div>
-    <div id="worldSites"></div>
+      <div class="grid"></div>
+      <div id="worldSites"></div>
 
-    <div class="region desert">🏜️ Çöl Bölgesi</div>
-    <div class="region forest">🌲 Orman Bölgesi</div>
-    <div class="region ice">❄️ Buz Bölgesi</div>
-    <div class="region mountain">⛰️ Dağ Bölgesi</div>
-    <div class="region volcanic">🌋 Volkanik Bölge</div>
-    <div class="region ocean">🌊 Okyanus</div>
+      <div class="region desert">🏜️ Çöl Bölgesi</div>
+      <div class="region forest">🌲 Orman Bölgesi</div>
+      <div class="region ice">❄️ Buz Bölgesi</div>
+      <div class="region mountain">⛰️ Dağ Bölgesi</div>
+      <div class="region volcanic">🌋 Volkanik Bölge</div>
+      <div class="region ocean">🌊 Okyanus</div>
 
-    <div
-      class="colony you c1"
-      onclick="selectColony('Senin Kolonin', true)"
-    >
-      <div class="colony-icon">🏰</div>
-      <div class="colony-name">Senin Kolonin</div>
+      <div
+        class="colony you c1"
+        onclick="selectColony('Senin Kolonin', true)"
+      >
+        <div class="colony-icon">🏰</div>
+        <div class="colony-name">Senin Kolonin</div>
+      </div>
+
+      <div class="own-colony-menu" id="ownColonyMenu">
+        <h3>🏰 Senin Kolonin</h3>
+        <div class="own-colony-coordinate" id="ownColonyCoordinate">X:-- Y:--</div>
+
+        <div class="own-colony-actions">
+          <button type="button" onclick="openOwnMoveForm()">🚚 Koloniyi Taşı</button>
+          <button type="button" onclick="copyOwnCoordinates()">📋 Koordinatı Paylaş</button>
+          <button type="button" onclick="location.href='game.html'">🏙️ Şehire Dön</button>
+        </div>
+
+        <div class="own-move-form" id="ownMoveForm">
+          <div class="own-move-inputs">
+            <input id="ownMoveX" type="number" min="1" max="100" step="1" placeholder="X (1-100)">
+            <input id="ownMoveY" type="number" min="1" max="100" step="1" placeholder="Y (1-100)">
+          </div>
+          <button type="button" onclick="submitOwnColonyMove()">Yeni Koordinata Taşı</button>
+        </div>
+      </div>
+
+      <div id="realPlayers"></div>
+      <div id="attackFleet"></div>
+
     </div>
-
-    <div id="realPlayers"></div>
-    <div id="attackFleet"></div>
-
   </div>
 
   <div class="mission-panel" id="missionPanel">
@@ -735,47 +825,6 @@ h1 {
       ⚔️ Saldır
     </button>
 
-    <button
-      class="move"
-      id="moveButton"
-      style="display:none;"
-      onclick="openMoveMenu()"
-    >
-      🚚 Taşınma
-    </button>
-
-    <div
-      id="moveMenu"
-      class="move-menu"
-      style="display:none;"
-    >
-      <h3>🚚 Koloni İşlemleri</h3>
-
-      <button onclick="showCoordinates()">
-        📍 Koordinat Bilgisi
-      </button>
-
-      <button onclick="copyCoordinates()">
-        📋 Koordinatı Kopyala
-      </button>
-
-      <button onclick="shareCoordinates()">
-        📤 Koordinatı Paylaş
-      </button>
-
-      <button onclick="moveColony()">
-        🚚 Koloniyi Taşı
-      </button>
-
-      <button onclick="changeCoordinates()">
-        🧭 Koordinat Değiştir
-      </button>
-
-      <button onclick="closeMoveMenu()">
-        ❌ Kapat
-      </button>
-
-    </div>
   </div>
 
   <a class="back" href="game.html">
@@ -799,6 +848,217 @@ if (!pageToken) {
 
 let myCoordinateX = 25;
 let myCoordinateY = 35;
+
+let worldPanX = 0;
+let worldPanY = 0;
+let worldDragging = false;
+let worldDragStartX = 0;
+let worldDragStartY = 0;
+let worldPanStartX = 0;
+let worldPanStartY = 0;
+
+function clampWorldPan(x,y) {
+  const viewport =
+    document.getElementById("worldViewport");
+  const canvas =
+    document.getElementById("worldCanvas");
+
+  if (!viewport || !canvas) {
+    return { x: 0, y: 0 };
+  }
+
+  const minX =
+    Math.min(
+      0,
+      viewport.clientWidth -
+        canvas.offsetWidth
+    );
+
+  const minY =
+    Math.min(
+      0,
+      viewport.clientHeight -
+        canvas.offsetHeight
+    );
+
+  return {
+    x: Math.max(minX,Math.min(0,x)),
+    y: Math.max(minY,Math.min(0,y))
+  };
+}
+
+function applyWorldPan(x,y) {
+  const canvas =
+    document.getElementById("worldCanvas");
+
+  if (!canvas) {
+    return;
+  }
+
+  const clamped =
+    clampWorldPan(x,y);
+
+  worldPanX =
+    clamped.x;
+  worldPanY =
+    clamped.y;
+
+  canvas.style.transform =
+    "translate3d(" +
+    worldPanX +
+    "px," +
+    worldPanY +
+    "px,0)";
+}
+
+function centerWorldOnCoordinates(x,y) {
+  const viewport =
+    document.getElementById("worldViewport");
+  const canvas =
+    document.getElementById("worldCanvas");
+
+  if (!viewport || !canvas) {
+    return;
+  }
+
+  const targetX =
+    viewport.clientWidth / 2 -
+    canvas.offsetWidth *
+      Number(x) / 100;
+
+  const targetY =
+    viewport.clientHeight / 2 -
+    canvas.offsetHeight *
+      Number(y) / 100;
+
+  applyWorldPan(
+    targetX,
+    targetY
+  );
+}
+
+function initWorldPan() {
+  const viewport =
+    document.getElementById("worldViewport");
+
+  if (!viewport) {
+    return;
+  }
+
+  viewport.addEventListener(
+    "pointerdown",
+    function(event) {
+      if (
+        event.target.closest(
+          ".colony,.world-site,.own-colony-menu,button,input,a"
+        )
+      ) {
+        return;
+      }
+
+      worldDragging =
+        true;
+
+      worldDragStartX =
+        event.clientX;
+      worldDragStartY =
+        event.clientY;
+
+      worldPanStartX =
+        worldPanX;
+      worldPanStartY =
+        worldPanY;
+
+      viewport.classList.add(
+        "grabbing"
+      );
+
+      viewport.setPointerCapture(
+        event.pointerId
+      );
+    }
+  );
+
+  viewport.addEventListener(
+    "pointermove",
+    function(event) {
+      if (!worldDragging) {
+        return;
+      }
+
+      applyWorldPan(
+        worldPanStartX +
+          event.clientX -
+          worldDragStartX,
+        worldPanStartY +
+          event.clientY -
+          worldDragStartY
+      );
+    }
+  );
+
+  function stopWorldDrag(event) {
+    if (!worldDragging) {
+      return;
+    }
+
+    worldDragging =
+      false;
+
+    viewport.classList.remove(
+      "grabbing"
+    );
+
+    if (
+      viewport.hasPointerCapture &&
+      viewport.hasPointerCapture(
+        event.pointerId
+      )
+    ) {
+      viewport.releasePointerCapture(
+        event.pointerId
+      );
+    }
+  }
+
+  viewport.addEventListener(
+    "pointerup",
+    stopWorldDrag
+  );
+
+  viewport.addEventListener(
+    "pointercancel",
+    stopWorldDrag
+  );
+
+  viewport.addEventListener(
+    "click",
+    function(event) {
+      if (
+        event.target === viewport ||
+        event.target.classList.contains(
+          "grid"
+        ) ||
+        event.target ===
+          document.getElementById(
+            "worldCanvas"
+          )
+      ) {
+        closeOwnColonyMenu();
+      }
+    }
+  );
+
+  window.addEventListener(
+    "resize",
+    function() {
+      applyWorldPan(
+        worldPanX,
+        worldPanY
+      );
+    }
+  );
+}
 
 
 async function loadMyCoordinates() {
@@ -871,6 +1131,8 @@ async function loadMyCoordinates() {
 
         myColony.style.top =
           myCoordinateY + "%";
+
+        positionOwnColonyMenu();
 
       }
 
@@ -1055,14 +1317,6 @@ function selectColony(
       "attackButton"
     );
 
-  const moveButton =
-    document.getElementById(
-      "moveButton"
-    );
-
-  info.style.display =
-    "block";
-
   document.querySelectorAll(
     ".colony.selected"
   ).forEach(
@@ -1086,23 +1340,10 @@ function selectColony(
       );
     }
 
-    updateSelectedInfo(
-      name,
-      myCoordinateX,
-      myCoordinateY,
-      getRegionName(
-        myCoordinateX,
-        myCoordinateY
-      ),
-      "Bu senin kolonin. 📍 Koordinat: X:" +
-        myCoordinateX +
-        " Y:" +
-        myCoordinateY +
-        "."
-    );
-
-    attackButton.style.display =
-      "none";
+    if (info) {
+      info.style.display =
+        "none";
+    }
 
     const attackUnitSelector =
       document.getElementById(
@@ -1114,33 +1355,28 @@ function selectColony(
         "none";
     }
 
-    if (moveButton) {
-      moveButton.style.display =
-        "inline-block";
+    if (attackButton) {
+      attackButton.style.display =
+        "none";
     }
-
-    closeMoveMenu();
 
     selectedPlayer = null;
     selectedPlayerId = null;
     selectedPlayerX = null;
     selectedPlayerY = null;
 
+    toggleOwnColonyMenu();
+
     return;
   }
+
+  closeOwnColonyMenu();
 
   selectedPlayer =
     name;
 
   selectedPlayerId =
     playerId;
-
-  if (moveButton) {
-    moveButton.style.display =
-      "none";
-  }
-
-  closeMoveMenu();
 
   const position =
     getPlayerPosition(
@@ -1175,8 +1411,15 @@ function selectColony(
       ". Saldırı gönderebilirsin."
   );
 
-  attackButton.style.display =
-    "inline-block";
+  if (info) {
+    info.style.display =
+      "block";
+  }
+
+  if (attackButton) {
+    attackButton.style.display =
+      "inline-block";
+  }
 
   if (
     typeof renderAttackUnitSelector ===
@@ -1187,13 +1430,14 @@ function selectColony(
 
 }
 
-
 function selectPlayerColony(
   colony,
   player,
   x,
   y
 ) {
+
+  closeOwnColonyMenu();
 
   selectedWorldSite = null;
   updateWorldClaimButton();
@@ -1284,18 +1528,6 @@ function selectPlayerColony(
     renderAttackUnitSelector();
   }
 
-  const moveButton =
-    document.getElementById(
-      "moveButton"
-    );
-
-  if (moveButton) {
-    moveButton.style.display =
-      "none";
-  }
-
-  closeMoveMenu();
-
   document.getElementById(
     "info"
   ).style.display =
@@ -1318,84 +1550,136 @@ function selectPlayerColony(
 }
 
 
-/* ---------------- TAŞINMA MENÜSÜ ---------------- */
+/* ---------------- KENDİ KOLONİ MENÜSÜ ---------------- */
 
 
-function openMoveMenu() {
+function positionOwnColonyMenu() {
 
   const menu =
     document.getElementById(
-      "moveMenu"
+      "ownColonyMenu"
     );
 
-  const moveButton =
+  const coordinate =
     document.getElementById(
-      "moveButton"
+      "ownColonyCoordinate"
     );
 
-  if (
-    !menu ||
-    !moveButton
-  ) {
+  if (!menu) {
     return;
   }
 
-  if (
-    selectedPlayerId !== null &&
-    selectedPlayerId !== undefined
-  ) {
-    return;
+  menu.style.left =
+    myCoordinateX + "%";
+
+  menu.style.top =
+    myCoordinateY + "%";
+
+  menu.classList.toggle(
+    "above",
+    Number(myCoordinateY) > 68
+  );
+
+  if (coordinate) {
+    coordinate.textContent =
+      "X:" +
+      myCoordinateX +
+      " Y:" +
+      myCoordinateY;
   }
-
-  moveButton.style.display =
-    "inline-block";
-
-  menu.style.display =
-    "block";
 
 }
 
 
-function closeMoveMenu() {
+function toggleOwnColonyMenu() {
 
   const menu =
     document.getElementById(
-      "moveMenu"
+      "ownColonyMenu"
+    );
+
+  if (!menu) {
+    return;
+  }
+
+  const willOpen =
+    !menu.classList.contains(
+      "open"
+    );
+
+  closeOwnColonyMenu();
+
+  if (willOpen) {
+    positionOwnColonyMenu();
+    menu.classList.add(
+      "open"
+    );
+  }
+
+}
+
+
+function closeOwnColonyMenu() {
+
+  const menu =
+    document.getElementById(
+      "ownColonyMenu"
+    );
+
+  const form =
+    document.getElementById(
+      "ownMoveForm"
     );
 
   if (menu) {
-    menu.style.display =
-      "none";
+    menu.classList.remove(
+      "open"
+    );
+  }
+
+  if (form) {
+    form.classList.remove(
+      "open"
+    );
   }
 
 }
 
 
-function showCoordinates() {
+function openOwnMoveForm() {
 
-  const coordinates =
+  const form =
     document.getElementById(
-      "selectedCoordinates"
-    )
-      .textContent
-      .trim();
+      "ownMoveForm"
+    );
 
-  alert(
-    "📍 Koloni Koordinatı\n\n" +
-    coordinates
+  if (!form) {
+    return;
+  }
+
+  form.classList.add(
+    "open"
   );
+
+  const inputX =
+    document.getElementById(
+      "ownMoveX"
+    );
+
+  if (inputX) {
+    inputX.focus();
+  }
 
 }
 
 
-function copyCoordinates() {
+function copyOwnCoordinates() {
 
   const coordinates =
-    document.getElementById(
-      "selectedCoordinates"
-    )
-      .textContent
-      .trim();
+    "X:" +
+    myCoordinateX +
+    " Y:" +
+    myCoordinateY;
 
   if (
     !navigator.clipboard ||
@@ -1407,7 +1691,6 @@ function copyCoordinates() {
     );
 
     return;
-
   }
 
   navigator.clipboard
@@ -1437,92 +1720,45 @@ function copyCoordinates() {
 }
 
 
-function shareCoordinates() {
+function submitOwnColonyMove() {
 
-  const coordinates =
+  const inputX =
     document.getElementById(
-      "selectedCoordinates"
-    )
-      .textContent
-      .trim();
-
-  const shareText =
-    "📍 NEXORA Koloni Koordinatı: " +
-    coordinates;
-
-  if (navigator.share) {
-
-    navigator.share({
-      title:
-        "NEXORA Koloni Koordinatı",
-      text:
-        shareText
-    }).catch(
-      function() {}
+      "ownMoveX"
     );
 
-    return;
+  const inputY =
+    document.getElementById(
+      "ownMoveY"
+    );
 
-  }
-
-  if (
-    navigator.clipboard &&
-    navigator.clipboard.writeText
-  ) {
-
-    navigator.clipboard
-      .writeText(
-        shareText
-      )
-      .then(
-        function() {
-
-          alert(
-            "📋 Paylaşım desteklenmiyor.\n\n" +
-            "Koordinat panoya kopyalandı:\n" +
-            coordinates
-          );
-
-        }
-      )
-      .catch(
-        function() {
-
-          alert(
-            "📤 Bu tarayıcı paylaşımı desteklemiyor."
-          );
-
-        }
-      );
-
-    return;
-
-  }
-
-  alert(
-    "📍 NEXORA Koloni Koordinatı:\n\n" +
-    coordinates
+  changeCoordinates(
+    inputX
+      ? inputX.value
+      : null,
+    inputY
+      ? inputY.value
+      : null
   );
 
 }
 
 
-function moveColony() {
-  changeCoordinates();
-}
-
-
-async function changeCoordinates() {
+async function changeCoordinates(inputX = null, inputY = null) {
 
   const newX =
-    prompt(
-      "Yeni X koordinatını gir (1-100):"
-    );
+    inputX === null
+      ? prompt(
+          "Yeni X koordinatını gir (1-100):"
+        )
+      : inputX;
 
   const newY =
-    prompt(
-      "Yeni Y koordinatını gir (1-100):"
-    );
+    inputY === null
+      ? prompt(
+          "Yeni Y koordinatını gir (1-100):"
+        )
+      : inputY;
 
   if (
     newX === null ||
@@ -3528,6 +3764,8 @@ function selectWorldSite(
   element
 ) {
 
+  closeOwnColonyMenu();
+
   selectedWorldSite =
     site;
 
@@ -4234,9 +4472,16 @@ async function loadWorldPlayers() {
 }
 
 
+initWorldPan();
+
 loadMyCoordinates()
   .then(
     function() {
+
+      centerWorldOnCoordinates(
+        myCoordinateX,
+        myCoordinateY
+      );
 
       loadWorldPlayers();
       startMissionPanel();
