@@ -1175,11 +1175,16 @@ async function refreshMissionPanel() {
   saveMissions(updated);
   renderMissionPanel(updated);
 }
-
-async function loadServerMissions() {
+let missionLoadInFlight = false;
+  async function loadServerMissions() {
   const token = localStorage.getItem("nexora_token");
   if (!token) return;
+
+  if (missionLoadInFlight) return;
+  missionLoadInFlight = true;
+
   try {
+    
     const response = await fetch("/api/auth?action=missions", {
       method: "POST", headers: { "Authorization": "Bearer " + token }
     });
@@ -1209,7 +1214,11 @@ async function loadServerMissions() {
         result:m.result||null
       });
     });
-  } catch (error) { console.error("Seferler yüklenemedi", error); }
+    } catch (error) {
+    console.error("Seferler yüklenemedi", error);
+  } finally {
+    missionLoadInFlight = false;
+  }
 }
 
 function startMissionPanel() {
