@@ -2873,43 +2873,46 @@ async function attack() {
         statusData.mission ||
         {};
 
-      if (
-        serverMission.status ===
-        "returning"
-      ) {
+     if (
+  serverMission.status ===
+  "returning"
+) {
 
-        const returnAt =
-          new Date(
-            serverMission.arriveAt ||
-            serverMission.arrive_at
-          ).getTime();
+  const returnArriveAt =
+    serverMission.arriveAt ||
+    serverMission.arrive_at;
 
-        upsertSavedMission({
+  const returnAt =
+    new Date(
+      returnArriveAt
+    ).getTime();
 
-          id:
-            missionId,
+  const localReturnRemaining =
+    Number.isFinite(returnAt)
+      ? Math.max(
+          0,
+          Math.ceil(
+            (
+              returnAt -
+              Date.now()
+            ) / 1000
+          )
+        )
+      : 0;
 
-          status:
-            "returning",
+  upsertSavedMission({
 
-          remainingSeconds:
-            Number(
-              serverMission.remainingSeconds ||
-              Math.max(
-                0,
-                Math.ceil(
-                  (
-                    returnAt -
-                    Date.now()
-                  ) / 1000
-                )
-              )
-            ),
+    id:
+      missionId,
 
-          arriveAt:
-            serverMission.arriveAt ||
-            serverMission.arrive_at,
+    status:
+      "returning",
 
+    remainingSeconds:
+      localReturnRemaining,
+
+    arriveAt:
+      returnArriveAt,
           targetName:
             targetName,
 
