@@ -961,9 +961,11 @@ async function createMilitaryMission(req, res) {
 
   const fleetSpeed = Math.max(25, Math.min(...army.map(u => Number(u.speed || 100))));
   const speedResearch = Math.max(0.25, 1 - Number(research.travel_speed_level || 0) * 0.05);
+  // Base military travel speed: 2 map-km per second.
+  // Travel-speed research can reduce the time further, but never below 1 second.
   const travelSeconds = Math.max(
-    10,
-    Math.round(Math.max(1, distance) * 120 / fleetSpeed * speedResearch)
+    1,
+    Math.ceil((Math.max(0, distance) / 2) * speedResearch)
   );
   const attackResearch =
     (1 + Number(research.general_power_level || 0) * 0.05) *
@@ -1127,7 +1129,7 @@ async function getMilitaryMission(req,res){
   const attackerLosses={},survivorArmy=[],defenderLosses={};
   for(const u of army){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*attackerLossBase*mod*(1-0.12*ratio))));attackerLosses[u.unit_type]=(attackerLosses[u.unit_type]||0)+loss;survivorArmy.push({...u,quantity:q-loss});}
   for(const u of defenders){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*defenderLossBase*mod*(1-0.12*ratio))));defenderLosses[u.unit_type]=(defenderLosses[u.unit_type]||0)+loss;}
-  const outbound=Math.max(10,Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000));
+  const outbound=Math.max(1,Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000));
   const attackerX=Number(mission.depart_x),attackerY=Number(mission.depart_y),defenderX=Number(mission.target_x),defenderY=Number(mission.target_y);
   const battlePoints=calculateBattlePoints(result,attackPower,defensePower);
   const winnerPlayerId=result==="Zafer"?Number(mission.attacker_player_id):result==="Yenilgi"?Number(mission.defender_player_id):null;
@@ -2516,6 +2518,7 @@ if (action === "upgrade") {
     });
   }
 };
+
 
 
 
