@@ -2403,15 +2403,33 @@ async function getRankings(req,res){
   for(const u of unitsR.data||[]){const pid=cityPlayer[u.city_id];if(score[pid])score[pid].army_power+=Number(u.quantity||0)*(Number(u.attack||0)+Number(u.defense||0)+Number(u.hp||0)*0.5);}
   for(const r of researchR.data||[]){if(score[r.player_id])score[r.player_id].research_level+=Object.keys(r).filter(k=>k.endsWith('_level')).reduce((s,k)=>s+Number(r[k]||0),0);}
   for(const r of reportsR.data||[]){
-    const raw=r.result&&typeof r.result==='object'?r.result:safeBattleResult(r.result);
-    const result=typeof raw==='object'?String(raw.result||''):String(raw||'');
-    const points=Number(r.battle_points ?? (typeof raw==='object'?raw.battlePoints:0))||0;
-    const winner=Number(r.winner_player_id ?? (typeof raw==='object'?raw.winnerPlayerId:0))||0;
-    if(winner && score[winner])score[winner].battle_points+=points;
-    else if(result==='Zafer' && score[r.attacker_player_id])score[r.attacker_player_id].battle_points+=points;
-    if(result==='Zafer'&&winner&&score[winner])score[winner].wins+=1;
-    else if(result==='Yenilgi'){const loser=winner===Number(r.attacker_player_id)?Number(r.defender_player_id):Number(r.attacker_player_id);if(score[loser])score[loser].losses+=1;}
-    else if(result==='Beraberlik'){if(score[r.attacker_player_id])score[r.attacker_player_id].draws+=1;if(score[r.defender_player_id])score[r.defender_player_id].draws+=1;}
+    let raw=r.result;
+    if(typeof raw==='string'){
+      try{
+        const parsed=JSON.parse(raw);
+        if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))raw=parsed;
+      }catch{}
+    }
+    const result=raw&&typeof raw==='object'?String(raw.result||''):String(raw||'');
+    const attackerId=Number(r.attacker_player_id);
+    const defenderId=Number(r.defender_player_id);
+    const points=Number(r.battle_points ?? (raw&&typeof raw==='object'?raw.battlePoints:0))||0;
+    let winner=Number(r.winner_player_id ?? (raw&&typeof raw==='object'?raw.winnerPlayerId:0))||0;
+    if(!winner){
+      if(result==='Zafer')winner=attackerId;
+      else if(result==='Yenilgi')winner=defenderId;
+    }
+    if(winner&&score[winner])score[winner].battle_points+=points;
+    if(result==='Beraberlik'){
+      if(score[attackerId])score[attackerId].draws+=1;
+      if(score[defenderId])score[defenderId].draws+=1;
+      continue;
+    }
+    if(winner){
+      if(score[winner])score[winner].wins+=1;
+      const loser=winner===attackerId?defenderId:winner===defenderId?attackerId:0;
+      if(loser&&score[loser])score[loser].losses+=1;
+    }
   }
   for(const x of Object.values(score))x.score=Math.round(x.colony_level*100+x.army_power+x.battle_points+x.research_level*30+x.buildings_level*20+x.wins*25);
   const rankings=Object.values(score).sort((a,b)=>b.score-a.score||b.battle_points-a.battle_points||b.army_power-a.army_power||b.wins-a.wins||a.username.localeCompare(b.username,'tr')).map((x,i)=>({...x,rank:i+1,is_me:x.player_id===playerId}));
