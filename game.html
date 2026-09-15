@@ -815,21 +815,41 @@ function closeBuildingPopup(){
 
 function positionBuildingPopup(name,slot=1){
   const popup=document.getElementById('buildingPopup');
-  if(!popup)return;
+  const scene=document.getElementById('colonyScene');
+  if(!popup||!scene)return;
 
   const site=BUILDING_SITES.find(
     s=>s.name===name&&s.slot===slot
   );
   if(!site)return;
 
-  const x=Math.min(82,Math.max(18,site.x));
-  const y=site.y<46
+  const desiredX=Math.min(82,Math.max(18,site.x));
+  const desiredY=site.y<46
     ?Math.min(72,site.y+23)
     :Math.max(27,site.y-23);
 
-  popup.style.left=x+'%';
-  popup.style.top=y+'%';
   popup.classList.add('open');
+
+  const margin=12;
+  const halfWidth=popup.offsetWidth/2;
+  const halfHeight=popup.offsetHeight/2;
+  const minX=halfWidth+margin;
+  const maxX=scene.clientWidth-halfWidth-margin;
+  const minY=halfHeight+margin;
+  const maxY=scene.clientHeight-halfHeight-margin;
+  const targetX=scene.clientWidth*desiredX/100;
+  const targetY=scene.clientHeight*desiredY/100;
+
+  const clampedX=maxX>=minX
+    ?Math.max(minX,Math.min(maxX,targetX))
+    :scene.clientWidth/2;
+
+  const clampedY=maxY>=minY
+    ?Math.max(minY,Math.min(maxY,targetY))
+    :scene.clientHeight/2;
+
+  popup.style.left=clampedX+'px';
+  popup.style.top=clampedY+'px';
 }
 
 
