@@ -4,6 +4,11 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
+const LOGIN_RATE_WINDOW_SECONDS = 10 * 60;
+const LOGIN_IDENTITY_LIMIT = 5;
+const LOGIN_IP_LIMIT = 30;
+const REGISTER_RATE_WINDOW_SECONDS = 60 * 60;
+const REGISTER_IP_LIMIT = 5;
 
 function send(res, status, data) {
   res.statusCode = status;
@@ -28,6 +33,41 @@ function readBody(req) {
     });
 
     req.on("error", reject);
+  });
+}
+
+function clientIp(req) {
+  const forwarded = String(
+    req.headers["x-vercel-forwarded-for"] ||
+    req.headers["x-forwarded-for"] ||
+    req.headers["x-real-ip"] ||
+    req.socket?.remoteAddress ||
+    ""
+  );
+
+  const ip = forwarded.split(",")[0].trim();
+  return ip || "unknown";
+}
+
+function rateLimitKeyHash(value) {
+  return crypto
+    .createHash("sha256")
+    .update(String(value))
+    .digest("hex");
+}
+
+function sendRateLimited(res, message, retryAfterSeconds) {
+  const retryAfter = Math.max(
+    1,
+    Math.ceil(Number(retryAfterSeconds) || 1)
+  );
+
+  res.setHeader("Retry-After", String(retryAfter));
+
+  return send(res, 429, {
+    success: false,
+    message,
+    retryAfterSeconds: retryAfter
   });
 }
 
@@ -276,6 +316,76 @@ async function supabase(path, options = {}) {
     }
   }
 }
+
+async function consumeAuthRateLimit(
+  scope,
+  keyHash,
+  limit,
+  windowSeconds
+) {
+  const result = await supabase(
+    "rpc/nexora_auth_rate_limit_consume",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        p_scope: scope,
+        p_key_hash: keyHash,
+        p_limit: limit,
+        p_window_seconds: windowSeconds
+      })
+    }
+  );
+
+  if (
+    !result.ok ||
+    !result.data ||
+    result.data.success !== true ||
+    typeof result.data.allowed !== "boolean"
+  ) {
+    console.error(
+      "Auth rate limit kontrol hatası:",
+      scope,
+      result.data
+    );
+
+    return {
+      ok: false,
+      allowed: false,
+      retryAfterSeconds: 0
+    };
+  }
+
+  return {
+    ok: true,
+    allowed: result.data.allowed,
+    retryAfterSeconds: Math.max(
+      0,
+      Number(result.data.retryAfterSeconds) || 0
+    )
+  };
+}
+
+async function clearAuthRateLimit(scope, keyHash) {
+  const result = await supabase(
+    "rpc/nexora_auth_rate_limit_clear",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        p_scope: scope,
+        p_key_hash: keyHash
+      })
+    }
+  );
+
+  if (!result.ok || result.data?.success !== true) {
+    console.error(
+      "Auth rate limit temizleme hatası:",
+      scope,
+      result.data
+    );
+  }
+}
+
 async function register(req, res) {
   const body = await readBody(req);
 
@@ -315,6 +425,30 @@ async function register(req, res) {
       success: false,
       message: "Şifre en az 6 karakter olmalı."
     });
+  }
+
+  const ip = clientIp(req);
+  const registerIpKey = rateLimitKeyHash(ip);
+  const registerLimit = await consumeAuthRateLimit(
+    "register_ip",
+    registerIpKey,
+    REGISTER_IP_LIMIT,
+    REGISTER_RATE_WINDOW_SECONDS
+  );
+
+  if (!registerLimit.ok) {
+    return send(res, 503, {
+      success: false,
+      message: "Kayıt güvenlik kontrolü şu anda kullanılamıyor."
+    });
+  }
+
+  if (!registerLimit.allowed) {
+    return sendRateLimited(
+      res,
+      "Çok fazla kayıt denemesi. Lütfen daha sonra tekrar deneyin.",
+      registerLimit.retryAfterSeconds
+    );
   }
 
   const existingEmail = await supabase(
@@ -445,6 +579,56 @@ async function login(req, res) {
     });
   }
 
+  const ip = clientIp(req);
+  const loginIpKey = rateLimitKeyHash(ip);
+  const loginIdentityKey = rateLimitKeyHash(
+    ip + "\n" + email
+  );
+
+  const ipLimit = await consumeAuthRateLimit(
+    "login_ip",
+    loginIpKey,
+    LOGIN_IP_LIMIT,
+    LOGIN_RATE_WINDOW_SECONDS
+  );
+
+  if (!ipLimit.ok) {
+    return send(res, 503, {
+      success: false,
+      message: "Giriş güvenlik kontrolü şu anda kullanılamıyor."
+    });
+  }
+
+  if (!ipLimit.allowed) {
+    return sendRateLimited(
+      res,
+      "Çok fazla giriş denemesi. Lütfen daha sonra tekrar deneyin.",
+      ipLimit.retryAfterSeconds
+    );
+  }
+
+  const identityLimit = await consumeAuthRateLimit(
+    "login_identity",
+    loginIdentityKey,
+    LOGIN_IDENTITY_LIMIT,
+    LOGIN_RATE_WINDOW_SECONDS
+  );
+
+  if (!identityLimit.ok) {
+    return send(res, 503, {
+      success: false,
+      message: "Giriş güvenlik kontrolü şu anda kullanılamıyor."
+    });
+  }
+
+  if (!identityLimit.allowed) {
+    return sendRateLimited(
+      res,
+      "Çok fazla giriş denemesi. Lütfen daha sonra tekrar deneyin.",
+      identityLimit.retryAfterSeconds
+    );
+  }
+
   const result = await supabase(
     "players?select=id,username,email,password_hash&email=eq." +
       encodeURIComponent(email) +
@@ -480,6 +664,11 @@ async function login(req, res) {
       message: "E-posta veya şifre hatalı."
     });
   }
+
+  await clearAuthRateLimit(
+    "login_identity",
+    loginIdentityKey
+  );
 
   const token = createToken(player);
 
