@@ -41,6 +41,13 @@ function updateCountdowns(){
 async function post(action,body={}){
   const r=await fetch(API+"?action="+action,{method:"POST",headers:headers(),body:JSON.stringify(body)});
   let d={};try{d=await r.json()}catch{}
+  if(r.status===401){
+    localStorage.removeItem("nexora_token");
+    localStorage.removeItem("token");
+    localStorage.removeItem("nexora_player");
+    location.href="login.html";
+    throw new Error(d.message||"Oturum süresi doldu.");
+  }
   if(!r.ok||d.success===false)throw new Error(d.message||"İşlem başarısız.");
   if(d.serverTime)setServerTime(d.serverTime);
   if(d.config){tradeConfig=d.config;updateTradeInfo()}
