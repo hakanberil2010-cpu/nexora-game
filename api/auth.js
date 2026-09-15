@@ -9,6 +9,7 @@ const LOGIN_IDENTITY_LIMIT = 5;
 const LOGIN_IP_LIMIT = 30;
 const REGISTER_RATE_WINDOW_SECONDS = 60 * 60;
 const REGISTER_IP_LIMIT = 5;
+const DUMMY_PASSWORD_HASH = "d4d659f0c1a54df197775ab138bca4f0:16381014c02186930fa8d27db48b464b2c34504b3ef345d378ba37321a7edf6ef995209b24c1c6cee6dc8db732f82a2a0de2053c96f6544eb35e18a92df184e7";
 
 function send(res, status, data) {
   res.statusCode = status;
@@ -644,21 +645,14 @@ async function login(req, res) {
     });
   }
 
-  if (!result.data || result.data.length === 0) {
-    return send(res, 401, {
-      success: false,
-      message: "E-posta veya şifre hatalı."
-    });
-  }
-
-  const player = result.data[0];
+  const player = result.data?.[0] || null;
 
   const valid = await verifyPassword(
     password,
-    player.password_hash
+    player?.password_hash || DUMMY_PASSWORD_HASH
   );
 
-  if (!valid) {
+  if (!player || !valid) {
     return send(res, 401, {
       success: false,
       message: "E-posta veya şifre hatalı."
