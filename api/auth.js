@@ -10,6 +10,7 @@ const LOGIN_IP_LIMIT = 30;
 const REGISTER_RATE_WINDOW_SECONDS = 60 * 60;
 const REGISTER_IP_LIMIT = 5;
 const DUMMY_PASSWORD_HASH = "d4d659f0c1a54df197775ab138bca4f0:16381014c02186930fa8d27db48b464b2c34504b3ef345d378ba37321a7edf6ef995209b24c1c6cee6dc8db732f82a2a0de2053c96f6544eb35e18a92df184e7";
+const REQUEST_BODY_LIMIT_BYTES = 64 * 1024;
 
 function send(res, status, data) {
   res.statusCode = status;
@@ -17,23 +18,110 @@ function send(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+class RequestBodyError extends Error {
+  constructor(statusCode, message) {
+    super(message);
+    this.name = "RequestBodyError";
+    this.statusCode = statusCode;
+  }
+}
+
+function sendBodyError(res, error) {
+  const statusCode =
+    error instanceof RequestBodyError &&
+    Number.isInteger(error.statusCode)
+      ? error.statusCode
+      : 400;
+
+  return send(res, statusCode, {
+    success: false,
+    message:
+      statusCode === 413
+        ? "İstek gövdesi çok büyük."
+        : "Geçersiz istek."
+  });
+}
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
-    let body = "";
+    let settled = false;
+    let totalBytes = 0;
+    let chunks = [];
+
+    const fail = (statusCode, message) => {
+      if (settled) return;
+
+      settled = true;
+      chunks = [];
+
+      reject(
+        new RequestBodyError(statusCode, message)
+      );
+    };
+
+    req.on("error", () => {
+      fail(400, "Geçersiz istek.");
+    });
+
+    const contentLength = Number(
+      req.headers["content-length"]
+    );
+
+    if (
+      Number.isFinite(contentLength) &&
+      contentLength > REQUEST_BODY_LIMIT_BYTES
+    ) {
+      req.resume();
+
+      return fail(
+        413,
+        "İstek gövdesi çok büyük."
+      );
+    }
 
     req.on("data", chunk => {
-      body += chunk;
+      if (settled) return;
+
+      const buffer = Buffer.isBuffer(chunk)
+        ? chunk
+        : Buffer.from(chunk);
+
+      totalBytes += buffer.length;
+
+      if (totalBytes > REQUEST_BODY_LIMIT_BYTES) {
+        chunks = [];
+        req.resume();
+
+        return fail(
+          413,
+          "İstek gövdesi çok büyük."
+        );
+      }
+
+      chunks.push(buffer);
     });
 
     req.on("end", () => {
+      if (settled) return;
+
+      const body = Buffer
+        .concat(chunks, totalBytes)
+        .toString("utf8");
+
+      chunks = [];
+      settled = true;
+
       try {
         resolve(body ? JSON.parse(body) : {});
       } catch {
-        reject(new Error("Geçersiz JSON"));
+        reject(
+          new RequestBodyError(
+            400,
+            "Geçersiz istek."
+          )
+        );
       }
     });
-
-    req.on("error", reject);
   });
 }
 
@@ -2137,7 +2225,7 @@ async function getMyAlliance(req,res){
 }
 async function setAllianceMemberRole(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
-  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  let body; try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
   const targetPlayerId=Number(body?.playerId);
   const role=String(body?.role||"").trim().toLowerCase();
   if(!Number.isInteger(targetPlayerId)||targetPlayerId<=0)return send(res,400,{success:false,message:"Geçersiz oyuncu."});
@@ -2152,7 +2240,7 @@ async function setAllianceMemberRole(req,res){
 
 async function postAllianceAnnouncement(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
-  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  let body; try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
   const message=String(body?.message||"").trim();
   if(!message||message.length>500)return send(res,400,{success:false,message:"Duyuru 1-500 karakter arasında olmalı."});
   const result=await supabase("rpc/nexora_alliance_post_announcement",{method:"POST",body:JSON.stringify({p_actor_player_id:playerId,p_message:message})});
@@ -2165,7 +2253,7 @@ async function postAllianceAnnouncement(req,res){
 
 async function deleteAllianceAnnouncement(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum bulunamadı."});
-  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  let body; try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
   const announcementId=Number(body?.announcementId);
   if(!Number.isInteger(announcementId)||announcementId<=0)return send(res,400,{success:false,message:"Geçersiz duyuru."});
   const result=await supabase("rpc/nexora_alliance_delete_announcement",{method:"POST",body:JSON.stringify({p_actor_player_id:playerId,p_announcement_id:announcementId})});
@@ -2199,7 +2287,7 @@ async function declareAllianceWar(req,res){
 
   let body;
   try{body=await readBody(req);}
-  catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  catch(error){return sendBodyError(res,error);}
 
   const targetAllianceId=Number(body?.targetAllianceId);
   if(!Number.isInteger(targetAllianceId)||targetAllianceId<=0){
@@ -2228,7 +2316,7 @@ async function respondAllianceWar(req,res){
 
   let body;
   try{body=await readBody(req);}
-  catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  catch(error){return sendBodyError(res,error);}
 
   const warId=Number(body?.warId);
   const accept=body?.accept;
@@ -2627,7 +2715,7 @@ async function getWorldPlayers(req,res){
 
 async function claimWorldSite(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  let body; try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
   const siteId=body?.siteId;
   if(typeof siteId!=="number"||!Number.isSafeInteger(siteId)||siteId<=0)return send(res,400,{success:false,message:"Geçersiz dünya noktası."});
   const result=await supabase("rpc/nexora_claim_world_site",{method:"POST",body:JSON.stringify({p_player_id:playerId,p_site_id:siteId})});
@@ -2657,7 +2745,7 @@ async function claimGameMission(req,res){
 
   let body;
   try{body=await readBody(req);}
-  catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  catch(error){return sendBodyError(res,error);}
 
   const missionId=String(body?.missionId||"").trim();
   if(!missionId||missionId.length>100||!/^[a-z0-9_-]+$/i.test(missionId)){
@@ -2742,7 +2830,7 @@ async function getWorldExploration(req,res){
 
 async function startEspionage(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  let body; try{body=await readBody(req);}catch{return send(res,400,{success:false,message:"Geçersiz istek."});}
+  let body; try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
   const targetPlayerId=Number(body?.targetPlayerId);
   if(!Number.isSafeInteger(targetPlayerId)||targetPlayerId<=0)return send(res,400,{success:false,message:"Geçersiz casusluk hedefi."});
   if(targetPlayerId===Number(playerId))return send(res,400,{success:false,message:"Kendi kolonine casus gönderemezsin."});
@@ -3337,6 +3425,10 @@ if (action === "upgrade") {
     });
 
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return sendBodyError(res, error);
+    }
+
     console.error("NEXORA AUTH ERROR:", error);
 
     return send(res, 500, {
