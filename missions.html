@@ -83,6 +83,12 @@ h1{margin:0 0 8px}
 const token=localStorage.getItem('nexora_token');
 const user=JSON.parse(localStorage.getItem('nexora_player')||'null');
 if(!token)location.href='login.html';
+
+function clearInvalidSession(){
+  localStorage.removeItem('nexora_token');
+  localStorage.removeItem('nexora_player');
+  location.href='login.html';
+}
 if(user?.username)document.getElementById('playerName').textContent=user.username;
 
 let snapshot=null;
@@ -207,8 +213,7 @@ async function loadObjectives(silent=false){
       });
       const data=await response.json();
       if(response.status===401){
-        localStorage.removeItem('nexora_token');
-        location.href='login.html';
+        clearInvalidSession();
         return;
       }
       if(!response.ok||!data.success){
@@ -244,8 +249,7 @@ async function claimMission(missionId){
     });
     const data=await response.json();
     if(response.status===401){
-      localStorage.removeItem('nexora_token');
-      location.href='login.html';
+      clearInvalidSession();
       return;
     }
     if(!response.ok||!data.success){
