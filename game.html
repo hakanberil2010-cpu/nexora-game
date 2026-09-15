@@ -23,6 +23,29 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .welcome h1{margin:0 0 4px;font-size:30px}
 .welcome p{margin:0;color:#7897b6}
 
+.beginner-guide{
+  margin:0 0 14px;
+  padding:15px 16px;
+  border:1px solid #24577a;
+  border-radius:13px;
+  background:linear-gradient(135deg,#0a2035,#0b1a2b);
+  box-shadow:0 10px 28px rgba(0,0,0,.20),inset 0 0 24px rgba(24,191,255,.035)
+}
+.beginner-guide[hidden]{display:none}
+.guide-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
+.guide-kicker{font-size:13px;font-weight:bold;color:#8bdcff;letter-spacing:.3px}
+.guide-step{padding:5px 9px;border-radius:999px;background:#102e49;color:#9fd8f6;font-size:11px;font-weight:bold;white-space:nowrap}
+.guide-body{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:13px}
+.guide-icon{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:12px;background:#102d48;border:1px solid #285f83;font-size:25px}
+.guide-title{font-size:17px;font-weight:bold;color:#eaf4ff;margin-bottom:4px}
+.guide-description{font-size:12px;line-height:1.45;color:#8fb3cf}
+.guide-progress-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;color:#789bb7;font-size:11px}
+.guide-progress{height:8px;margin-top:5px;border:1px solid #1b4563;border-radius:999px;background:#061321;overflow:hidden}
+.guide-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#138dcc,#20c6ff);transition:width .25s ease}
+.guide-action{min-width:165px;padding:10px 13px;border:1px solid #1aa9ee;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
+.guide-action:hover:not(:disabled){filter:brightness(1.08)}
+.guide-action:disabled{opacity:.5;cursor:not-allowed}
+
 .colony-layout{display:block}
 .colony-panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:12px;min-width:0}
 .colony-scene{
@@ -149,6 +172,8 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   .main{padding:12px}
   .welcome{align-items:flex-start;flex-direction:column;gap:8px}
   .welcome h1{font-size:25px}
+  .guide-body{grid-template-columns:auto minmax(0,1fr)}
+  .guide-action{grid-column:1/-1;width:100%}
   .colony-panel{padding:8px;overflow-x:auto}
   .colony-scene{min-width:720px;min-height:560px}
   .scene-hint{display:none}
@@ -216,6 +241,30 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   </div>
 </section>
 
+<section class="beginner-guide" id="beginnerGuide" hidden aria-live="polite">
+  <div class="guide-top">
+    <div class="guide-kicker">🚀 Başlangıç Rehberi</div>
+    <div class="guide-step" id="beginnerGuideStep">Adım 1 / 6</div>
+  </div>
+  <div class="guide-body">
+    <div class="guide-icon" id="beginnerGuideIcon">🚀</div>
+    <div>
+      <div class="guide-title" id="beginnerGuideTitle">İlk hedef</div>
+      <div class="guide-description" id="beginnerGuideDescription"></div>
+      <div class="guide-progress-row">
+        <span>İlerleme</span>
+        <strong id="beginnerGuideProgressText">0 / 1</strong>
+      </div>
+      <div class="guide-progress" aria-hidden="true">
+        <div class="guide-progress-bar" id="beginnerGuideProgressBar"></div>
+      </div>
+    </div>
+    <button class="guide-action" id="beginnerGuideAction" type="button" onclick="runBeginnerGuideAction()">
+      Devam Et
+    </button>
+  </div>
+</section>
+
 <section class="colony-layout">
   <div class="colony-panel">
     <div class="colony-scene" id="colonyScene">
@@ -271,6 +320,16 @@ function clearInvalidSession(){
 if(savedUser?.username){
   document.getElementById('playerName').textContent=savedUser.username;
 }
+
+let beginnerGuideSnapshot=null;
+let beginnerGuideLoadPromise=null;
+
+const BEGINNER_GUIDE_ALLOWED_ACTIONS=new Set([
+  'game.html',
+  'army.html',
+  'research.html',
+  'world.html'
+]);
 
 const BUILDING_INFO={
   "Merkez Bina":"Koloni merkezinin gelişimini sağlar.",
@@ -507,6 +566,309 @@ function esc(s){
     }[m])
   );
 }
+
+function renderBeginnerGuide(guide){
+  beginnerGuideSnapshot=
+    guide&&typeof guide==='object'
+      ?guide
+      :null;
+
+  const card=document.getElementById(
+    'beginnerGuide'
+  );
+
+  if(!card)return;
+
+  const step=
+    beginnerGuideSnapshot?.currentStep;
+
+  if(
+    !beginnerGuideSnapshot||
+    beginnerGuideSnapshot.success!==true||
+    beginnerGuideSnapshot.completed===true||
+    !step||
+    typeof step!=='object'
+  ){
+    card.hidden=true;
+    return;
+  }
+
+  const totalSteps=Math.max(
+    1,
+    Number(
+      beginnerGuideSnapshot.totalSteps||
+      6
+    )||6
+  );
+
+  const order=Math.max(
+    1,
+    Math.min(
+      totalSteps,
+      Number(step.order)||1
+    )
+  );
+
+  const target=Math.max(
+    1,
+    Math.floor(
+      Number(step.target)||1
+    )
+  );
+
+  const progress=Math.max(
+    0,
+    Math.floor(
+      Number(step.progress)||0
+    )
+  );
+
+  const shownProgress=Math.min(
+    progress,
+    target
+  );
+
+  const percent=Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        shownProgress/
+        target*
+        100
+      )
+    )
+  );
+
+  document.getElementById(
+    'beginnerGuideStep'
+  ).textContent=
+    'Adım '+
+    order+
+    ' / '+
+    totalSteps;
+
+  document.getElementById(
+    'beginnerGuideIcon'
+  ).textContent=
+    String(step.icon||'🚀');
+
+  document.getElementById(
+    'beginnerGuideTitle'
+  ).textContent=
+    String(step.title||'Başlangıç Hedefi');
+
+  document.getElementById(
+    'beginnerGuideDescription'
+  ).textContent=
+    String(step.description||'');
+
+  document.getElementById(
+    'beginnerGuideProgressText'
+  ).textContent=
+    shownProgress.toLocaleString('tr-TR')+
+    ' / '+
+    target.toLocaleString('tr-TR');
+
+  document.getElementById(
+    'beginnerGuideProgressBar'
+  ).style.width=
+    percent+'%';
+
+  const action=String(
+    step.action||''
+  );
+
+  const button=document.getElementById(
+    'beginnerGuideAction'
+  );
+
+  button.textContent=String(
+    step.actionLabel||
+    'Devam Et'
+  );
+
+  button.disabled=
+    !BEGINNER_GUIDE_ALLOWED_ACTIONS.has(
+      action
+    );
+
+  card.hidden=false;
+}
+
+
+async function loadBeginnerGuide(){
+
+  if(beginnerGuideLoadPromise){
+    return beginnerGuideLoadPromise;
+  }
+
+  beginnerGuideLoadPromise=(
+    async function(){
+
+      try{
+
+        const response=await fetch(
+          '/api/auth?action=gameobjectives',
+          {
+            method:'POST',
+            headers:{
+              Authorization:'Bearer '+token
+            }
+          }
+        );
+
+        const data=await response.json();
+
+        if(response.status===401){
+          clearInvalidSession();
+          return;
+        }
+
+        if(
+          !response.ok||
+          !data.success
+        ){
+          console.error(
+            'Başlangıç rehberi alınamadı:',
+            data.message||
+            response.status
+          );
+          return;
+        }
+
+        renderBeginnerGuide(
+          data.guide
+        );
+
+      }catch(error){
+
+        console.error(
+          'Başlangıç rehberi bağlantı hatası:',
+          error
+        );
+
+      }
+
+    }
+  )();
+
+  try{
+
+    return await beginnerGuideLoadPromise;
+
+  }finally{
+
+    beginnerGuideLoadPromise=null;
+
+  }
+}
+
+
+function focusGuideBuilding(
+  name,
+  slot=1
+){
+
+  if(!BUILDING_INFO[name])return;
+
+  selectedBuildingName=name;
+  selectedBuildingSlot=slot;
+
+  renderBuildings(
+    latestBuildings
+  );
+
+  const scene=document.getElementById(
+    'colonyScene'
+  );
+
+  if(scene){
+    scene.scrollIntoView({
+      behavior:'smooth',
+      block:'start'
+    });
+  }
+}
+
+
+function runBeginnerGuideAction(){
+
+  const step=
+    beginnerGuideSnapshot?.currentStep;
+
+  if(!step||typeof step!=='object'){
+    return;
+  }
+
+  const key=String(
+    step.key||''
+  );
+
+  if(key==='hq_level_2'){
+    focusGuideBuilding(
+      'Merkez Bina',
+      1
+    );
+    return;
+  }
+
+  if(key==='production_level_2'){
+
+    const levels=getBuildingLevels(
+      latestBuildings
+    );
+
+    const target=[
+      'Metal Madeni',
+      'Enerji Santrali',
+      'Su Arıtma',
+      'Kristal Madeni'
+    ].find(
+      name=>
+        Number(levels[name]||0)<2
+    )||'Metal Madeni';
+
+    focusGuideBuilding(
+      target,
+      1
+    );
+
+    return;
+  }
+
+  if(key==='army_infrastructure'){
+
+    const levels=getBuildingLevels(
+      latestBuildings
+    );
+
+    const target=
+      Number(levels['Kışla']||0)<1
+        ?'Kışla'
+        :'Konut';
+
+    focusGuideBuilding(
+      target,
+      1
+    );
+
+    return;
+  }
+
+  const action=String(
+    step.action||''
+  );
+
+  if(
+    BEGINNER_GUIDE_ALLOWED_ACTIONS.has(
+      action
+    )
+  ){
+    go(action);
+  }
+}
+
 
 function getBuildingLevels(buildings){
   const map={};
@@ -1318,11 +1680,18 @@ function logout(){
 
 /* İlk yükleme */
 loadCity();
+loadBeginnerGuide();
 
-/* Tek polling döngüsü */
+/* Koloni polling döngüsü */
 setInterval(
   loadCity,
   5000
+);
+
+/* Başlangıç rehberi bağımsız olarak güncellenir. */
+setInterval(
+  loadBeginnerGuide,
+  10000
 );
 
 </script>
