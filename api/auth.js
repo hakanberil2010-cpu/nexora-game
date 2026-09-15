@@ -1137,6 +1137,20 @@ function regionForCoordinates(x,y){
   return best;
 }
 
+async function getPlayerAllianceRegionBonus(playerId){
+  const result=await supabase("rpc/nexora_player_alliance_region_bonus",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:Number(playerId)})
+  });
+  if(!result.ok||result.data?.success!==true){
+    return {ok:false,data:result.data||null,status:Number(result.status||503)};
+  }
+  return {ok:true,data:result.data};
+}
+function hasActiveAllianceRegionBonus(bonus,key){
+  return bonus?.active===true&&String(bonus?.bonusKey||"")===String(key||"");
+}
+
 async function createMilitaryMission(req, res) {
   const playerId = authPlayerId(req);
   if (playerId === null) return send(res,401,{success:false,message:"Oturum bulunamadı."});
@@ -1235,21 +1249,34 @@ async function createMilitaryMission(req, res) {
     Math.pow(Number(targetCity.coordinate_y || 0) - Number(attackerCity.coordinate_y || 0), 2)
   );
 
-  const researchResult = await supabase(
-    "research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level&player_id=eq."+
-    encodeURIComponent(playerId)+"&limit=1"
-  );
+  const [researchResult,regionBonusResult] = await Promise.all([
+    supabase(
+      "research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level&player_id=eq."+
+      encodeURIComponent(playerId)+"&limit=1"
+    ),
+    getPlayerAllianceRegionBonus(playerId)
+  ]);
   const research = researchResult.ok && researchResult.data?.[0]
     ? researchResult.data[0]
     : {};
 
+  if(!regionBonusResult.ok){
+    console.error("İttifak bölge bonusu alınamadı:",regionBonusResult.data);
+    return send(res,503,{success:false,message:"Bölge bonusu hesaplanamadı."});
+  }
+
+  const allianceRegionBonus=regionBonusResult.data||{};
+  const oceanTravelBonus=hasActiveAllianceRegionBonus(allianceRegionBonus,"travel_speed");
+  const travelMultiplier=oceanTravelBonus?0.95:1;
+
   const fleetSpeed = Math.max(25, Math.min(...army.map(u => Number(u.speed || 100))));
   const speedResearch = Math.max(0.25, 1 - Number(research.travel_speed_level || 0) * 0.05);
   // Base military travel speed: 2 map-km per second.
-  // Travel-speed research can reduce the time further, but never below 1 second.
+  // Travel-speed research and an active Ocean alliance bonus can reduce the
+  // time further, but never below 1 second.
   const travelSeconds = Math.max(
     1,
-    Math.ceil((Math.max(0, distance) / 2) * speedResearch)
+    Math.ceil((Math.max(0, distance) / 2) * speedResearch * travelMultiplier)
   );
   const attackResearch =
     (1 + Number(research.general_power_level || 0) * 0.05) *
@@ -1320,7 +1347,9 @@ async function createMilitaryMission(req, res) {
       travelSeconds:Number(mission.travel_seconds || travelSeconds),
       distance:Math.round(distance),
       battleTactic:String(mission.battle_tactic || battleTactic),
-      battleTacticLabel:tactic.label
+      battleTacticLabel:tactic.label,
+      allianceRegionTravelBonusActive:oceanTravelBonus,
+      allianceRegionTravelBonusPercent:oceanTravelBonus?5:0
     }
   });
 }
@@ -1405,6 +1434,14 @@ async function getMilitaryMission(req,res){
   mission=battleSnapshot.mission||mission;
   const battleTactic=String(mission.battle_tactic||"balanced").trim().toLowerCase();
   const tactic=battleTacticConfig(battleTactic)||BATTLE_TACTICS.balanced;
+  const defenderRegionBonusResult=await getPlayerAllianceRegionBonus(Number(mission.defender_player_id));
+  if(!defenderRegionBonusResult.ok){
+    console.error("Savunma bölge bonusu alınamadı:",defenderRegionBonusResult.data);
+    return send(res,503,{success:false,message:"Savunma bölge bonusu hesaplanamadı."});
+  }
+  const defenderRegionBonus=defenderRegionBonusResult.data||{};
+  const mountainDefenseBonus=hasActiveAllianceRegionBonus(defenderRegionBonus,"defense");
+  const allianceRegionDefenseMultiplier=mountainDefenseBonus?1.05:1;
   const rawDefenders=Array.isArray(battleSnapshot.defenderUnits)?battleSnapshot.defenderUnits:[];
   const defR=battleSnapshot.defenderResearch&&typeof battleSnapshot.defenderResearch==="object"
     ?battleSnapshot.defenderResearch:{};
@@ -1439,7 +1476,7 @@ async function getMilitaryMission(req,res){
   const wallBonus=defenseBonus(defB);
   const rawDefensePower=defenderBreakdown.reduce((s,u)=>s+u.power,0);
   const attackPower=Math.max(0,Math.round(rawAttackPower*tactic.attackMultiplier));
-  const defensePower=Math.max(0,Math.round(rawDefensePower*wallBonus));
+  const defensePower=Math.max(0,Math.round(rawDefensePower*wallBonus*allianceRegionDefenseMultiplier));
   const result=attackPower>defensePower?"Zafer":attackPower===defensePower?"Beraberlik":"Yenilgi";
   const ratio=attackPower+defensePower>0?Math.abs(attackPower-defensePower)/(attackPower+defensePower):0;
   const attackerLossBase=result==="Zafer"?0.18:result==="Beraberlik"?0.38:0.68;
@@ -1463,6 +1500,9 @@ async function getMilitaryMission(req,res){
     tacticAttackMultiplier:tactic.attackMultiplier,
     tacticLossMultiplier:tactic.lossMultiplier,
     defenseBonus:wallBonus,
+    allianceRegionDefenseBonusActive:mountainDefenseBonus,
+    allianceRegionDefenseBonusPercent:mountainDefenseBonus?5:0,
+    allianceRegionDefenseMultiplier,
     advantageRatio:Number(ratio.toFixed(4)),
     attackerLosses,
     defenderLosses,
@@ -2436,21 +2476,28 @@ async function exploreWorld(req,res){
   const siteId=Number(body.siteId);
   if(!Number.isInteger(siteId)||siteId<=0)return send(res,400,{success:false,message:"Geçersiz keşif noktası."});
 
-  const [cityR,siteR,researchR]=await Promise.all([
+  const [cityR,siteR,researchR,regionBonusResult]=await Promise.all([
     supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
     supabase("world_sites?select=id,site_type,name,coordinate_x,coordinate_y,active&id=eq."+encodeURIComponent(siteId)+"&limit=1"),
-    supabase("research?select=travel_speed_level&player_id=eq."+encodeURIComponent(playerId)+"&limit=1")
+    supabase("research?select=travel_speed_level&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
+    getPlayerAllianceRegionBonus(playerId)
   ]);
   if(!cityR.ok||!cityR.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
   if(!siteR.ok||!siteR.data?.[0]||siteR.data[0].active===false)return send(res,404,{success:false,message:"Keşif noktası bulunamadı veya aktif değil."});
+  if(!regionBonusResult.ok){
+    console.error("Keşif bölge bonusu alınamadı:",regionBonusResult.data);
+    return send(res,503,{success:false,message:"Bölge bonusu hesaplanamadı."});
+  }
 
   const city=cityR.data[0], site=siteR.data[0];
 
   const distance=Math.sqrt(Math.pow(Number(site.coordinate_x||0)-Number(city.coordinate_x||0),2)+Math.pow(Number(site.coordinate_y||0)-Number(city.coordinate_y||0),2));
   const research=researchR.ok&&researchR.data?.[0]?researchR.data[0]:{};
   const speedResearch=Math.max(0.25,1-Number(research.travel_speed_level||0)*0.05);
+  const oceanTravelBonus=hasActiveAllianceRegionBonus(regionBonusResult.data,"travel_speed");
+  const travelMultiplier=oceanTravelBonus?0.95:1;
   const scoutSpeed=100;
-  const travelSeconds=Math.max(10,Math.round(Math.max(1,distance)*120/scoutSpeed*speedResearch));
+  const travelSeconds=Math.max(10,Math.round(Math.max(1,distance)*120/scoutSpeed*speedResearch*travelMultiplier));
 
   const started=await supabase("rpc/nexora_start_world_exploration",{
     method:"POST",
@@ -2494,16 +2541,21 @@ async function startEspionage(req,res){
   if(!Number.isSafeInteger(targetPlayerId)||targetPlayerId<=0)return send(res,400,{success:false,message:"Geçersiz casusluk hedefi."});
   if(targetPlayerId===Number(playerId))return send(res,400,{success:false,message:"Kendi kolonine casus gönderemezsin."});
 
-  const [attackerCityR,targetCityR,researchR]=await Promise.all([
+  const [attackerCityR,targetCityR,researchR,regionBonusResult]=await Promise.all([
     supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
     supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(targetPlayerId)+"&limit=1"),
-    supabase("research?select=travel_speed_level&player_id=eq."+encodeURIComponent(playerId)+"&limit=1")
+    supabase("research?select=travel_speed_level&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
+    getPlayerAllianceRegionBonus(playerId)
   ]);
 
   if(!attackerCityR.ok)return send(res,503,{success:false,message:"Koloni bilgisi alınamadı."});
   if(!targetCityR.ok)return send(res,503,{success:false,message:"Hedef koloni bilgisi alınamadı."});
   if(!attackerCityR.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
   if(!targetCityR.data?.[0])return send(res,404,{success:false,message:"Hedef koloni bulunamadı."});
+  if(!regionBonusResult.ok){
+    console.error("Casusluk bölge bonusu alınamadı:",regionBonusResult.data);
+    return send(res,503,{success:false,message:"Bölge bonusu hesaplanamadı."});
+  }
 
   const attackerCity=attackerCityR.data[0];
   const targetCity=targetCityR.data[0];
@@ -2513,7 +2565,9 @@ async function startEspionage(req,res){
   );
   const research=researchR.ok&&researchR.data?.[0]?researchR.data[0]:{};
   const speedResearch=Math.max(0.25,1-Number(research.travel_speed_level||0)*0.05);
-  const travelSeconds=Math.max(5,Math.ceil((Math.max(1,distance)/2)*speedResearch));
+  const oceanTravelBonus=hasActiveAllianceRegionBonus(regionBonusResult.data,"travel_speed");
+  const travelMultiplier=oceanTravelBonus?0.95:1;
+  const travelSeconds=Math.max(5,Math.ceil((Math.max(1,distance)/2)*speedResearch*travelMultiplier));
 
   const started=await supabase("rpc/nexora_start_espionage",{
     method:"POST",
