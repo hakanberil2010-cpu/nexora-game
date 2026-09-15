@@ -262,6 +262,12 @@ const savedUser=JSON.parse(localStorage.getItem('nexora_player')||'null');
 
 if(!token)location.href='login.html';
 
+function clearInvalidSession(){
+  localStorage.removeItem('nexora_token');
+  localStorage.removeItem('nexora_player');
+  location.href='login.html';
+}
+
 if(savedUser?.username){
   document.getElementById('playerName').textContent=savedUser.username;
 }
@@ -652,13 +658,7 @@ async function loadCity(){
       const d=await r.json();
 
     if(r.status===401){
-
-      localStorage.removeItem(
-        'nexora_token'
-      );
-
-      location.href='login.html';
-
+      clearInvalidSession();
       return;
     }
 
@@ -1266,13 +1266,7 @@ async function upgrade(name,slot=1){
     const d=await r.json();
 
     if(r.status===401){
-
-      localStorage.removeItem(
-        'nexora_token'
-      );
-
-      location.href='login.html';
-
+      clearInvalidSession();
       return;
     }
 
