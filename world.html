@@ -88,13 +88,43 @@ body {
 
 .region {
   position: absolute;
+  min-width: 190px;
   padding: 10px 16px;
   border-radius: 20px;
   font-size: 13px;
   font-weight: bold;
+  line-height: 1.25;
   background: rgba(0,0,0,0.35);
   border: 1px solid rgba(255,255,255,0.15);
   z-index: 2;
+}
+
+.region-bonus,
+.region-control {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: normal;
+  color: #dcecff;
+  white-space: nowrap;
+}
+
+.region-bonus {
+  opacity: .78;
+}
+
+.region-control.mine {
+  color: #78f0c0;
+  font-weight: bold;
+}
+
+.region-control.contested {
+  color: #ffd35a;
+  font-weight: bold;
+}
+
+.region-control.uncontrolled {
+  color: #9cb0c2;
 }
 
 .desert {
@@ -758,12 +788,36 @@ body {
             <div class="grid"></div>
             <div id="worldSites"></div>
 
-            <div class="region desert">🏜️ Çöl Bölgesi</div>
-            <div class="region forest">🌲 Orman Bölgesi</div>
-            <div class="region ice">❄️ Buz Bölgesi</div>
-            <div class="region mountain">⛰️ Dağ Bölgesi</div>
-            <div class="region volcanic">🌋 Volkanik Bölge</div>
-            <div class="region ocean">🌊 Okyanus</div>
+            <div class="region desert" data-region-key="desert">
+              🏜️ Çöl Bölgesi
+              <span class="region-bonus">Bonus: Metal üretimi +5%</span>
+              <span class="region-control" id="regionControl-desert">Kontrol bilgisi yükleniyor...</span>
+            </div>
+            <div class="region forest" data-region-key="forest">
+              🌲 Orman Bölgesi
+              <span class="region-bonus">Bonus: Su üretimi +5%</span>
+              <span class="region-control" id="regionControl-forest">Kontrol bilgisi yükleniyor...</span>
+            </div>
+            <div class="region ice" data-region-key="ice">
+              ❄️ Buz Bölgesi
+              <span class="region-bonus">Bonus: Enerji üretimi +5%</span>
+              <span class="region-control" id="regionControl-ice">Kontrol bilgisi yükleniyor...</span>
+            </div>
+            <div class="region mountain" data-region-key="mountain">
+              ⛰️ Dağ Bölgesi
+              <span class="region-bonus">Bonus: Savunma +5%</span>
+              <span class="region-control" id="regionControl-mountain">Kontrol bilgisi yükleniyor...</span>
+            </div>
+            <div class="region volcanic" data-region-key="volcanic">
+              🌋 Volkanik Bölge
+              <span class="region-bonus">Bonus: Kristal üretimi +5%</span>
+              <span class="region-control" id="regionControl-volcanic">Kontrol bilgisi yükleniyor...</span>
+            </div>
+            <div class="region ocean" data-region-key="ocean">
+              🌊 Okyanus
+              <span class="region-bonus">Bonus: Seyahat süresi -5%</span>
+              <span class="region-control" id="regionControl-ocean">Kontrol bilgisi yükleniyor...</span>
+            </div>
 
             <div
               class="colony you c1"
@@ -4809,6 +4863,177 @@ async function pollWorldExploration(id) {
 }
 
 
+function renderAllianceRegionControl(regionControl) {
+
+  const regions =
+    Array.isArray(
+      regionControl &&
+      regionControl.regions
+    )
+      ? regionControl.regions
+      : [];
+
+  const byKey =
+    new Map(
+      regions.map(
+        function(region) {
+          return [
+            String(
+              region.regionKey ||
+              ""
+            ),
+            region
+          ];
+        }
+      )
+    );
+
+  document.querySelectorAll(
+    ".region[data-region-key]"
+  ).forEach(
+    function(regionElement) {
+
+      const key =
+        String(
+          regionElement.dataset.regionKey ||
+          ""
+        );
+
+      const control =
+        byKey.get(key);
+
+      const statusElement =
+        regionElement.querySelector(
+          ".region-control"
+        );
+
+      const bonusElement =
+        regionElement.querySelector(
+          ".region-bonus"
+        );
+
+      if (!statusElement) {
+        return;
+      }
+
+      statusElement.classList.remove(
+        "mine",
+        "contested",
+        "uncontrolled"
+      );
+
+      if (
+        control &&
+        bonusElement &&
+        control.bonusText
+      ) {
+        bonusElement.textContent =
+          "Bonus: " +
+          control.bonusText;
+      }
+
+      if (!control) {
+
+        statusElement.textContent =
+          "Kontrol bilgisi alınamadı.";
+
+        statusElement.classList.add(
+          "uncontrolled"
+        );
+
+        return;
+      }
+
+      if (
+        control.contested ===
+        true
+      ) {
+
+        statusElement.textContent =
+          "⚔️ Çekişmeli · bonus pasif";
+
+        statusElement.classList.add(
+          "contested"
+        );
+
+        return;
+      }
+
+      const controllerId =
+        Number(
+          control.controllerAllianceId
+        );
+
+      if (
+        !Number.isInteger(
+          controllerId
+        ) ||
+        controllerId <= 0
+      ) {
+
+        statusElement.textContent =
+          "— Kontrol eden ittifak yok · bonus pasif";
+
+        statusElement.classList.add(
+          "uncontrolled"
+        );
+
+        return;
+      }
+
+      const tag =
+        String(
+          control.controllerAllianceTag ||
+          ""
+        ).trim();
+
+      const name =
+        String(
+          control.controllerAllianceName ||
+          "İttifak"
+        ).trim();
+
+      const colonyCount =
+        Math.max(
+          0,
+          Number(
+            control.controllerColonyCount ||
+            0
+          )
+        );
+
+      const mine =
+        control.controlledByPlayerAlliance ===
+        true;
+
+      statusElement.textContent =
+        (
+          mine
+            ? "✅ "
+            : "🛡️ "
+        ) +
+        (
+          tag
+            ? "[" + tag + "] "
+            : ""
+        ) +
+        name +
+        " · " +
+        colonyCount +
+        " koloni";
+
+      if (mine) {
+        statusElement.classList.add(
+          "mine"
+        );
+      }
+
+    }
+  );
+
+}
+
+
 async function loadWorldPlayers() {
 
   const token =
@@ -4853,6 +5078,10 @@ async function loadWorldPlayers() {
       return;
 
     }
+
+    renderAllianceRegionControl(
+      data.regionControl
+    );
 
     const playersContainer =
       document.getElementById(
