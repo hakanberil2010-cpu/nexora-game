@@ -69,6 +69,12 @@ async function request(action){
   const response=await fetch('/api/auth?action='+action,{method:'POST',headers:{Authorization:'Bearer '+token}});
   let data=null;
   try{data=await response.json()}catch(e){throw new Error('Sunucudan geçersiz yanıt alındı.')}
+  if(response.status===401){
+    localStorage.removeItem('nexora_token');
+    localStorage.removeItem('nexora_player');
+    location.replace('login.html');
+    throw new Error(data&&typeof data.message==='string'?data.message:'Oturum süresi doldu.');
+  }
   if(!response.ok||!data||data.success!==true)throw new Error(data&&typeof data.message==='string'?data.message:'İstatistik verileri alınamadı.');
   return data;
 }
