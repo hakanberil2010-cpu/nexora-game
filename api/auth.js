@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
+const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 function send(res, status, data) {
   res.statusCode = status;
@@ -94,6 +95,8 @@ function base64url(value) {
 }
 
 function createToken(player) {
+  const now = Math.floor(Date.now() / 1000);
+
   const header = base64url(
     JSON.stringify({
       alg: "HS256",
@@ -106,7 +109,8 @@ function createToken(player) {
       id: player.id,
       username: player.username,
       email: player.email,
-      iat: Math.floor(Date.now() / 1000)
+      iat: now,
+      exp: now + TOKEN_TTL_SECONDS
     })
   );
 
@@ -164,6 +168,15 @@ function verifyToken(token) {
         "base64"
       ).toString("utf8")
     );
+
+    const now = Math.floor(Date.now() / 1000);
+
+    if (
+      !Number.isInteger(decoded.exp) ||
+      decoded.exp <= now
+    ) {
+      return null;
+    }
 
     return decoded;
   } catch (error) {
