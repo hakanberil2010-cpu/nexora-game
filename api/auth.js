@@ -568,7 +568,6 @@ function buildingMaxLevel(name) {
     "Kristal Deposu": 25,
     "Konut": 30,
     "Sur": 25,
-    "Savunma Kulesi": 20,
     "Gözcü Kulesi": 20
   };
   return max[name] || 30;
@@ -2355,7 +2354,7 @@ async function upgradeBuilding(req,res){
   const body=await readBody(req);
   const buildingType=String(body.building||"").trim();
   const slot=body.slot==null?1:Number(body.slot);
-  const costs={"Metal Madeni":{metal:500,energy:100,water:50,crystal:25},"Enerji Santrali":{metal:400,energy:50,water:50,crystal:20},"Su Arıtma":{metal:350,energy:75,water:50,crystal:20},"Kristal Madeni":{metal:600,energy:120,water:40,crystal:30},"Kışla":{metal:450,energy:100,water:50,crystal:25},"Merkez Bina":{metal:750,energy:150,water:100,crystal:50},"Depo":{metal:700,energy:120,water:60,crystal:40},"Kristal Deposu":{metal:800,energy:140,water:70,crystal:45},"Konut":{metal:500,energy:80,water:100,crystal:25},"Sur":{metal:900,energy:150,water:80,crystal:80},"Savunma Kulesi":{metal:1200,energy:220,water:100,crystal:100},"Gözcü Kulesi":{metal:1200,energy:220,water:100,crystal:100}};
+  const costs={"Metal Madeni":{metal:500,energy:100,water:50,crystal:25},"Enerji Santrali":{metal:400,energy:50,water:50,crystal:20},"Su Arıtma":{metal:350,energy:75,water:50,crystal:20},"Kristal Madeni":{metal:600,energy:120,water:40,crystal:30},"Kışla":{metal:450,energy:100,water:50,crystal:25},"Merkez Bina":{metal:750,energy:150,water:100,crystal:50},"Depo":{metal:700,energy:120,water:60,crystal:40},"Kristal Deposu":{metal:800,energy:140,water:70,crystal:45},"Konut":{metal:500,energy:80,water:100,crystal:25},"Sur":{metal:900,energy:150,water:80,crystal:80},"Gözcü Kulesi":{metal:1200,energy:220,water:100,crystal:100}};
   const slotTwoTypes=new Set(["Metal Madeni","Enerji Santrali","Su Arıtma","Kristal Madeni","Depo"]);
   if(!costs[buildingType])return send(res,400,{success:false,message:"Geçersiz bina."});
   if(!Number.isInteger(slot)||slot<1||slot>2)return send(res,400,{success:false,message:"Geçersiz bina yuvası."});
@@ -2386,7 +2385,6 @@ async function upgradeBuilding(req,res){
     "Kışla":{"Merkez Bina":2},
     "Konut":{"Merkez Bina":2},
     "Sur":{"Merkez Bina":3},
-    "Savunma Kulesi":{"Merkez Bina":5,"Sur":2},
     "Gözcü Kulesi":{"Merkez Bina":5,"Sur":2}
   };
   const reqs=prerequisites[buildingType]||{};
