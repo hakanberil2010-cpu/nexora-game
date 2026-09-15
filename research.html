@@ -188,6 +188,12 @@
       document.getElementById('playerName').textContent = u.username;
     }
 
+    function clearInvalidSession() {
+      localStorage.removeItem('nexora_token');
+      localStorage.removeItem('nexora_player');
+      location.href = 'login.html';
+    }
+
     let serverClockOffset = 0;
     let latestResearchData = null;
     let researchLoadPromise = null;
@@ -433,6 +439,12 @@
           });
 
           const d = await r.json();
+
+          if (r.status === 401) {
+            clearInvalidSession();
+            return;
+          }
+
           syncServerTime(d);
 
           if (r.ok && d.success) {
@@ -465,6 +477,11 @@
         });
 
         const d = await r.json();
+
+        if (r.status === 401) {
+          clearInvalidSession();
+          return;
+        }
 
         document.getElementById('status').textContent =
           d.message || '';
