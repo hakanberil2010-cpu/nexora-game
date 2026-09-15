@@ -1092,6 +1092,15 @@ const COMBAT_ROLE_V2 = {
   tank:{attack:1.03,defense:1.25,hp:1.15,loss:0.68},
   hava:{attack:1.10,defense:0.96,hp:1.02,loss:0.90}
 };
+const BATTLE_TACTICS = {
+  assault:{label:"Hücum Düzeni",attackMultiplier:1.12,lossMultiplier:1.10},
+  balanced:{label:"Dengeli Düzen",attackMultiplier:1.00,lossMultiplier:1.00},
+  cautious:{label:"Temkinli Düzen",attackMultiplier:0.90,lossMultiplier:0.75}
+};
+function battleTacticConfig(value){
+  const key=String(value||"").trim().toLowerCase();
+  return BATTLE_TACTICS[key]||null;
+}
 const MATCHUP_V2 = {
   piyade:{tank:0.88,hava:0.94,okcu:1.04,saldiri:0.98,savunma:1.02},
   savunma:{piyade:1.05,saldiri:1.08,okcu:0.96,tank:0.90,hava:0.94},
@@ -1136,6 +1145,12 @@ async function createMilitaryMission(req, res) {
   const targetPlayerId = Number(body.targetPlayerId);
   if (!Number.isInteger(targetPlayerId) || targetPlayerId === playerId) {
     return send(res,400,{success:false,message:"Geçersiz hedef oyuncu."});
+  }
+
+  const battleTactic = String(body.battleTactic || "balanced").trim().toLowerCase();
+  const tactic = battleTacticConfig(battleTactic);
+  if (!tactic) {
+    return send(res,400,{success:false,message:"Geçersiz savaş taktiği."});
   }
 
   const requestedUnits = body.units && typeof body.units === "object" && !Array.isArray(body.units)
@@ -1240,12 +1255,13 @@ async function createMilitaryMission(req, res) {
     (1 + Number(research.general_power_level || 0) * 0.05) *
     (1 + Number(research.unit_attack_level || 0) * 0.05);
   const hpResearch = 1 + Number(research.unit_hp_level || 0) * 0.05;
-  const attackPower = Math.round(
+  const baseAttackPower = Math.round(
     army.reduce(
       (sum, u) => sum + u.quantity * u.attack * attackResearch + u.quantity * u.hp * 0.15 * hpResearch,
       0
     )
   );
+  const attackPower = Math.max(0,Math.round(baseAttackPower*tactic.attackMultiplier));
 
   const startedResult = await supabase("rpc/nexora_start_military_mission", {
     method:"POST",
@@ -1261,7 +1277,8 @@ async function createMilitaryMission(req, res) {
       p_target_x:Number(targetCity.coordinate_x || 0),
       p_target_y:Number(targetCity.coordinate_y || 0),
       p_travel_seconds:travelSeconds,
-      p_fleet_speed:fleetSpeed
+      p_fleet_speed:fleetSpeed,
+      p_battle_tactic:battleTactic
     })
   });
 
@@ -1301,7 +1318,9 @@ async function createMilitaryMission(req, res) {
       status:String(mission.status || "traveling"),
       arriveAt,
       travelSeconds:Number(mission.travel_seconds || travelSeconds),
-      distance:Math.round(distance)
+      distance:Math.round(distance),
+      battleTactic:String(mission.battle_tactic || battleTactic),
+      battleTacticLabel:tactic.label
     }
   });
 }
@@ -1342,7 +1361,7 @@ async function getMilitaryMission(req,res){
   if(mission.status==="completed")return send(res,200,{success:true,mission});
   let remaining=Math.ceil((new Date(mission.arrive_at).getTime()-Date.now())/1000);
   if(mission.status==="returning"&&remaining<=0)return completeMissionReturn(mission,res,playerId);
-  if(mission.status==="returning"||remaining>0)return send(res,200,{success:true,mission:{id:mission.id,status:mission.status,arriveAt:mission.arrive_at,remainingSeconds:Math.max(0,remaining),result:mission.result||null,attack_power:mission.attack_power||0}});
+  if(mission.status==="returning"||remaining>0)return send(res,200,{success:true,mission:{id:mission.id,status:mission.status,arriveAt:mission.arrive_at,remainingSeconds:Math.max(0,remaining),result:mission.result||null,attack_power:mission.attack_power||0,battleTactic:String(mission.battle_tactic||"balanced")}});
 
   if(mission.status==="traveling"){
     const claim=await supabase("military_missions?id=eq."+encodeURIComponent(mission.id)+"&status=eq.traveling",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({status:"resolving"})});
@@ -1384,6 +1403,8 @@ async function getMilitaryMission(req,res){
   }
 
   mission=battleSnapshot.mission||mission;
+  const battleTactic=String(mission.battle_tactic||"balanced").trim().toLowerCase();
+  const tactic=battleTacticConfig(battleTactic)||BATTLE_TACTICS.balanced;
   const rawDefenders=Array.isArray(battleSnapshot.defenderUnits)?battleSnapshot.defenderUnits:[];
   const defR=battleSnapshot.defenderResearch&&typeof battleSnapshot.defenderResearch==="object"
     ?battleSnapshot.defenderResearch:{};
@@ -1417,14 +1438,14 @@ async function getMilitaryMission(req,res){
   const rawAttackPower=attackerBreakdown.reduce((s,u)=>s+u.power,0);
   const wallBonus=defenseBonus(defB);
   const rawDefensePower=defenderBreakdown.reduce((s,u)=>s+u.power,0);
-  const attackPower=Math.max(0,Math.round(rawAttackPower));
+  const attackPower=Math.max(0,Math.round(rawAttackPower*tactic.attackMultiplier));
   const defensePower=Math.max(0,Math.round(rawDefensePower*wallBonus));
   const result=attackPower>defensePower?"Zafer":attackPower===defensePower?"Beraberlik":"Yenilgi";
   const ratio=attackPower+defensePower>0?Math.abs(attackPower-defensePower)/(attackPower+defensePower):0;
   const attackerLossBase=result==="Zafer"?0.18:result==="Beraberlik"?0.38:0.68;
   const defenderLossBase=result==="Zafer"?0.62:result==="Beraberlik"?0.38:0.18;
   const attackerLosses={},survivorArmy=[],defenderLosses={};
-  for(const u of army){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*attackerLossBase*mod*(1-0.12*ratio))));attackerLosses[u.unit_type]=(attackerLosses[u.unit_type]||0)+loss;survivorArmy.push({...u,quantity:q-loss});}
+  for(const u of army){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*attackerLossBase*tactic.lossMultiplier*mod*(1-0.12*ratio))));attackerLosses[u.unit_type]=(attackerLosses[u.unit_type]||0)+loss;survivorArmy.push({...u,quantity:q-loss});}
   for(const u of defenders){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*defenderLossBase*mod*(1-0.12*ratio))));defenderLosses[u.unit_type]=(defenderLosses[u.unit_type]||0)+loss;}
   const outbound=Math.max(1,Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000));
   const attackerX=Number(mission.depart_x),attackerY=Number(mission.depart_y),defenderX=Number(mission.target_x),defenderY=Number(mission.target_y);
@@ -1437,6 +1458,10 @@ async function getMilitaryMission(req,res){
     defensePower,
     rawAttackPower:Math.round(rawAttackPower),
     rawDefensePower:Math.round(rawDefensePower),
+    battleTactic,
+    battleTacticLabel:tactic.label,
+    tacticAttackMultiplier:tactic.attackMultiplier,
+    tacticLossMultiplier:tactic.lossMultiplier,
     defenseBonus:wallBonus,
     advantageRatio:Number(ratio.toFixed(4)),
     attackerLosses,
