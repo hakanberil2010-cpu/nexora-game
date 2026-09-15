@@ -1846,6 +1846,635 @@ async function getMilitaryMission(req,res){
   return send(res,200,{success:true,mission:{...resolvedMission,remainingSeconds}});
 }
 
+
+// -----------------------------------------------------------------------------
+// PvE / NPC CAMPS V1 BACKEND
+// -----------------------------------------------------------------------------
+
+async function getNpcCamps(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const snapshot=await supabase("rpc/nexora_npc_camps_snapshot",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:Number(playerId)})
+  });
+
+  if(!snapshot.ok||snapshot.data?.success!==true){
+    console.error("NPC kamp snapshot RPC hatası:",snapshot.data);
+    return send(res,503,{success:false,message:"NPC kampları şu anda kullanılamıyor."});
+  }
+
+  return send(res,200,snapshot.data);
+}
+
+async function createNpcMission(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const body=await readBody(req);
+  const campId=Number(body.campId);
+  if(!Number.isSafeInteger(campId)||campId<=0){
+    return send(res,400,{success:false,message:"Geçersiz NPC kampı."});
+  }
+
+  const battleTactic=String(body.battleTactic||"balanced").trim().toLowerCase();
+  const tactic=battleTacticConfig(battleTactic);
+  if(!tactic){
+    return send(res,400,{success:false,message:"Geçersiz savaş taktiği."});
+  }
+
+  const requestedUnits=body.units&&typeof body.units==="object"&&!Array.isArray(body.units)
+    ?body.units
+    :null;
+  if(!requestedUnits){
+    return send(res,400,{success:false,message:"Geçersiz birlik seçimi."});
+  }
+
+  let hasRequestedUnit=false;
+  for(const [type,rawQuantity] of Object.entries(requestedUnits)){
+    if(!Object.prototype.hasOwnProperty.call(UNIT_CONFIG,type)){
+      return send(res,400,{success:false,message:"Geçersiz birlik türü: "+type});
+    }
+    const quantity=Number(rawQuantity);
+    if(!Number.isSafeInteger(quantity)||quantity<0||quantity>2147483647){
+      return send(res,400,{success:false,message:type+" için birlik miktarı 0 veya pozitif tam sayı olmalı."});
+    }
+    if(quantity>0)hasRequestedUnit=true;
+  }
+  if(!hasRequestedUnit){
+    return send(res,400,{success:false,message:"En az bir birlik miktarı seçmelisin."});
+  }
+
+  const [campSnapshotResult,attackerCityResult]=await Promise.all([
+    supabase("rpc/nexora_npc_camps_snapshot",{
+      method:"POST",
+      body:JSON.stringify({p_player_id:Number(playerId)})
+    }),
+    supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1")
+  ]);
+
+  if(!campSnapshotResult.ok||campSnapshotResult.data?.success!==true){
+    console.error("NPC kamp snapshot RPC hatası:",campSnapshotResult.data);
+    return send(res,503,{success:false,message:"NPC kamp bilgisi alınamadı."});
+  }
+  if(!attackerCityResult.ok||!attackerCityResult.data?.[0]){
+    return send(res,404,{success:false,message:"Koloni bulunamadı."});
+  }
+
+  const camps=Array.isArray(campSnapshotResult.data.camps)?campSnapshotResult.data.camps:[];
+  const camp=camps.find(x=>Number(x.id)===campId);
+  if(!camp){
+    return send(res,404,{success:false,message:"NPC kampı bulunamadı veya aktif değil."});
+  }
+
+  const attackerCity=attackerCityResult.data[0];
+  const departX=Number(attackerCity.coordinate_x);
+  const departY=Number(attackerCity.coordinate_y);
+  const targetX=Number(camp.coordinateX);
+  const targetY=Number(camp.coordinateY);
+  if(
+    !Number.isInteger(departX)||!Number.isInteger(departY)||
+    departX<1||departX>100||departY<1||departY>100||
+    !Number.isInteger(targetX)||!Number.isInteger(targetY)||
+    targetX<1||targetX>100||targetY<1||targetY>100
+  ){
+    console.error("NPC sefer koordinatı geçersiz:",{playerId,campId,departX,departY,targetX,targetY});
+    return send(res,503,{success:false,message:"NPC sefer koordinatları hazırlanamadı."});
+  }
+
+  const unitsResult=await supabase(
+    "units?select=*&city_id=eq."+encodeURIComponent(attackerCity.id)+"&order=id.asc"
+  );
+  if(!unitsResult.ok){
+    return send(res,500,{success:false,message:"Ordu verisi alınamadı."});
+  }
+
+  const unitRows=new Map();
+  for(const unit of (unitsResult.data||[])){
+    const type=String(unit.unit_type);
+    if(!unitRows.has(type))unitRows.set(type,unit);
+  }
+
+  let army=[];
+  for(const [type,rawQuantity] of Object.entries(requestedUnits)){
+    const quantity=Number(rawQuantity);
+    if(quantity===0)continue;
+
+    const row=unitRows.get(type);
+    if(!row||Number(row.quantity||0)<quantity){
+      return send(res,400,{success:false,message:type+" için gönderilecek miktar mevcut ordudan fazla."});
+    }
+
+    army.push({
+      unit_type:type,
+      quantity,
+      level:Number(row.level||1),
+      attack:Number(row.attack||0),
+      defense:Number(row.defense||0),
+      hp:Number(row.hp||0),
+      speed:Number(row.speed||100),
+      population_cost:Number(row.population_cost||1)
+    });
+  }
+
+  const requestedArmyCount=army.length;
+  army=await hydrateArmyStats(army);
+  if(!army.length||army.length!==requestedArmyCount){
+    return send(res,500,{success:false,message:"Birlik seviye verisi alınamadı."});
+  }
+
+  const distance=Math.sqrt(
+    Math.pow(targetX-departX,2)+
+    Math.pow(targetY-departY,2)
+  );
+
+  const [researchResult,regionBonusResult]=await Promise.all([
+    supabase(
+      "research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level&player_id=eq."+
+      encodeURIComponent(playerId)+"&limit=1"
+    ),
+    getPlayerAllianceRegionBonus(playerId)
+  ]);
+  const research=researchResult.ok&&researchResult.data?.[0]
+    ?researchResult.data[0]
+    :{};
+
+  if(!regionBonusResult.ok){
+    console.error("NPC sefer bölge bonusu alınamadı:",regionBonusResult.data);
+    return send(res,503,{success:false,message:"Bölge bonusu hesaplanamadı."});
+  }
+
+  const oceanTravelBonus=hasActiveAllianceRegionBonus(regionBonusResult.data||{},"travel_speed");
+  const travelMultiplier=oceanTravelBonus?0.95:1;
+  const fleetSpeed=Math.max(25,Math.min(...army.map(u=>Number(u.speed||100))));
+  const speedResearch=Math.max(0.25,1-Number(research.travel_speed_level||0)*0.05);
+  const travelSeconds=Math.max(
+    1,
+    Math.ceil((Math.max(0,distance)/2)*speedResearch*travelMultiplier)
+  );
+  const attackResearch=
+    (1+Number(research.general_power_level||0)*0.05)*
+    (1+Number(research.unit_attack_level||0)*0.05);
+  const hpResearch=1+Number(research.unit_hp_level||0)*0.05;
+  const baseAttackPower=Math.round(
+    army.reduce(
+      (sum,u)=>sum+u.quantity*u.attack*attackResearch+u.quantity*u.hp*0.15*hpResearch,
+      0
+    )
+  );
+  const attackPower=Math.max(0,Math.round(baseAttackPower*tactic.attackMultiplier));
+
+  const startedResult=await supabase("rpc/nexora_start_npc_mission",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_city_id:Number(attackerCity.id),
+      p_camp_id:campId,
+      p_army:army,
+      p_attack_power:attackPower,
+      p_depart_x:departX,
+      p_depart_y:departY,
+      p_travel_seconds:travelSeconds,
+      p_fleet_speed:fleetSpeed,
+      p_battle_tactic:battleTactic
+    })
+  });
+
+  if(!startedResult.ok){
+    console.error("Atomik NPC sefer başlatma RPC hatası:",startedResult.data);
+    return send(res,500,{success:false,message:"NPC seferi oluşturulamadı."});
+  }
+
+  const started=startedResult.data||{};
+  if(started.success!==true){
+    const code=String(started.code||"");
+    const status=
+      code==="ACTIVE_NPC_MISSION"||code==="NPC_CAMP_COOLDOWN"||code==="UNIT_CHANGED"
+        ?409
+        :(code==="CITY_NOT_FOUND"||code==="NPC_CAMP_NOT_FOUND"||code==="NPC_CAMP_DISABLED")
+          ?404
+          :code==="NPC_CONFIG_INVALID"
+            ?503
+            :400;
+    return send(res,status,{
+      ...started,
+      success:false,
+      code:code||"NPC_MISSION_START_FAILED",
+      message:started.message||"NPC seferi başlatılamadı."
+    });
+  }
+
+  const mission=started.mission||{};
+  const missionId=Number(mission.id);
+  if(!Number.isSafeInteger(missionId)||missionId<=0){
+    console.error("NPC sefer RPC geçersiz mission döndürdü:",started);
+    return send(res,500,{success:false,message:"NPC seferi oluşturulamadı."});
+  }
+
+  const arriveAt=mission.arrive_at||new Date(Date.now()+travelSeconds*1000).toISOString();
+  return send(res,200,{
+    success:true,
+    message:started.message||"⚔️ Ordu NPC kampına sefere çıktı.",
+    mission:{
+      id:missionId,
+      status:String(mission.status||"traveling"),
+      arriveAt,
+      travelSeconds:Number(mission.travel_seconds||travelSeconds),
+      distance:Math.round(distance),
+      campId:Number(mission.npc_camp_id||campId),
+      campName:String(mission.camp_name||camp.name||"NPC Kampı"),
+      campTier:Number(mission.camp_tier||camp.tier||1),
+      battleTactic:String(mission.battle_tactic||battleTactic),
+      battleTacticLabel:tactic.label,
+      allianceRegionTravelBonusActive:oceanTravelBonus,
+      allianceRegionTravelBonusPercent:oceanTravelBonus?5:0
+    },
+    camp:started.camp||camp
+  });
+}
+
+async function completeNpcMissionReturn(mission,res,playerId){
+  const returnedResult=await supabase("rpc/nexora_complete_npc_return",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_mission_id:Number(mission.id)
+    })
+  });
+
+  if(!returnedResult.ok){
+    console.error("Atomik NPC sefer dönüş RPC hatası:",returnedResult.data);
+    return send(res,500,{success:false,message:"NPC sefer dönüşü tamamlanamadı."});
+  }
+
+  const returned=returnedResult.data||{};
+  if(returned.success!==true){
+    const code=String(returned.code||"");
+    const status=code==="FORBIDDEN"?403:code==="MISSION_NOT_FOUND"?404:code==="MISSION_STATE"?409:400;
+    return send(res,status,{
+      ...returned,
+      success:false,
+      code:code||"NPC_MISSION_RETURN_FAILED",
+      message:returned.message||"NPC sefer dönüşü tamamlanamadı."
+    });
+  }
+
+  return send(res,200,{
+    success:true,
+    mission:returned.mission||mission,
+    completed:returned.completed===true||returned.mission?.status==="completed",
+    remainingSeconds:Number(returned.remainingSeconds||0)
+  });
+}
+
+async function getNpcMissionStatus(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const missionId=Number(req.query.id);
+  if(!Number.isSafeInteger(missionId)||missionId<=0){
+    return send(res,400,{success:false,message:"Geçersiz PvE seferi."});
+  }
+
+  const missionResult=await supabase(
+    "npc_missions?select=*&id=eq."+encodeURIComponent(missionId)+"&limit=1"
+  );
+  if(!missionResult.ok){
+    return send(res,500,{success:false,message:"PvE seferi alınamadı."});
+  }
+  if(!missionResult.data?.[0]){
+    return send(res,404,{success:false,message:"PvE seferi bulunamadı."});
+  }
+
+  let mission=missionResult.data[0];
+  if(Number(mission.player_id)!==Number(playerId)){
+    return send(res,403,{success:false,message:"Bu PvE seferine erişemezsin."});
+  }
+
+  if(mission.status==="completed"){
+    return send(res,200,{success:true,mission:{...mission,remainingSeconds:0}});
+  }
+
+  const arriveMs=new Date(mission.arrive_at).getTime();
+  const remaining=Number.isFinite(arriveMs)
+    ?Math.ceil((arriveMs-Date.now())/1000)
+    :0;
+
+  if(mission.status==="returning"&&remaining<=0){
+    return completeNpcMissionReturn(mission,res,playerId);
+  }
+
+  if(mission.status==="returning"||remaining>0){
+    return send(res,200,{
+      success:true,
+      mission:{
+        ...mission,
+        remainingSeconds:Math.max(0,remaining)
+      }
+    });
+  }
+
+  if(mission.status!=="traveling"&&mission.status!=="resolving"){
+    return send(res,409,{success:false,message:"PvE sefer durumu çözümlenemiyor."});
+  }
+
+  const battleSnapshotResult=await supabase("rpc/nexora_prepare_npc_battle_snapshot",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_mission_id:Number(mission.id)
+    })
+  });
+
+  if(!battleSnapshotResult.ok){
+    console.error("Atomik NPC battle snapshot RPC hatası:",battleSnapshotResult.data);
+    return send(res,500,{success:false,message:"PvE savaş durumu hazırlanamadı."});
+  }
+
+  const battleSnapshot=battleSnapshotResult.data||{};
+  if(battleSnapshot.success!==true){
+    const code=String(battleSnapshot.code||"");
+    if(code==="BATTLE_NOT_READY"){
+      return send(res,200,{
+        success:true,
+        mission:{
+          ...mission,
+          remainingSeconds:Math.max(1,remaining)
+        }
+      });
+    }
+    const status=code==="FORBIDDEN"?403:code==="MISSION_NOT_FOUND"?404:code==="MISSION_STATE"?409:code==="NPC_CONFIG_INVALID"?503:400;
+    return send(res,status,{
+      success:false,
+      code:code||"NPC_BATTLE_SNAPSHOT_FAILED",
+      message:battleSnapshot.message||"PvE savaş durumu hazırlanamadı."
+    });
+  }
+
+  if(battleSnapshot.alreadyResolved===true){
+    const resolvedMission=battleSnapshot.mission||mission;
+    const resolvedArriveMs=new Date(resolvedMission.arrive_at).getTime();
+    const resolvedRemaining=Number.isFinite(resolvedArriveMs)
+      ?Math.ceil((resolvedArriveMs-Date.now())/1000)
+      :0;
+    if(resolvedMission.status==="returning"&&resolvedRemaining<=0){
+      return completeNpcMissionReturn(resolvedMission,res,playerId);
+    }
+    return send(res,200,{
+      success:true,
+      mission:{
+        ...resolvedMission,
+        remainingSeconds:Math.max(0,resolvedRemaining)
+      }
+    });
+  }
+
+  mission=battleSnapshot.mission||mission;
+  const battleTactic=String(mission.battle_tactic||"balanced").trim().toLowerCase();
+  const tactic=battleTacticConfig(battleTactic)||BATTLE_TACTICS.balanced;
+  const attR=battleSnapshot.attackerResearch&&typeof battleSnapshot.attackerResearch==="object"
+    ?battleSnapshot.attackerResearch
+    :{};
+
+  const sentArmy=Array.isArray(mission.army)?mission.army:[];
+  const army=await hydrateArmyStats(sentArmy);
+  if(!army.length||army.length!==sentArmy.length){
+    console.error("PvE saldıran birlik seviye verisi eksik:",mission.id);
+    return send(res,500,{success:false,message:"PvE saldıran birlik verisi hazırlanamadı."});
+  }
+
+  const rawNpcArmy=Array.isArray(battleSnapshot.npcArmy)?battleSnapshot.npcArmy:[];
+  const npcArmy=[];
+  for(const u of rawNpcArmy){
+    const type=String(u?.unit_type||"");
+    const quantity=Number(u?.quantity);
+    const level=Number(u?.level);
+    const attack=Number(u?.attack);
+    const defense=Number(u?.defense);
+    const hp=Number(u?.hp);
+    const speed=Number(u?.speed);
+    if(
+      !Object.prototype.hasOwnProperty.call(UNIT_CONFIG,type)||
+      !Number.isSafeInteger(quantity)||quantity<=0||
+      !Number.isSafeInteger(level)||level<1||level>15||
+      !Number.isFinite(attack)||attack<0||
+      !Number.isFinite(defense)||defense<0||
+      !Number.isFinite(hp)||hp<0||
+      !Number.isFinite(speed)||speed<=0
+    ){
+      console.error("NPC battle snapshot birlik verisi geçersiz:",u);
+      return send(res,503,{success:false,message:"NPC kamp ordusu hazırlanamadı."});
+    }
+    npcArmy.push({
+      unit_type:type,
+      quantity,
+      level,
+      attack,
+      defense,
+      hp,
+      speed,
+      population_cost:Number(u.population_cost||UNIT_CONFIG[type].population||1)
+    });
+  }
+  if(!npcArmy.length||npcArmy.length!==rawNpcArmy.length){
+    return send(res,503,{success:false,message:"NPC kamp ordusu hazırlanamadı."});
+  }
+
+  const roleOf=type=>COMBAT_ROLE_V2[type]||COMBAT_ROLE_V2.piyade;
+  const researchMul=r=>({
+    general:1+Number(r.general_power_level||0)*0.05,
+    combat:1+Number(r.combat_level||0)*0.05,
+    attack:1+Number(r.unit_attack_level||0)*0.05,
+    defense:1+Number(r.unit_defense_level||0)*0.05,
+    hp:1+Number(r.unit_hp_level||0)*0.05
+  });
+  const am=researchMul(attR);
+  const defenderTotal=Math.max(1,npcArmy.reduce((sum,u)=>sum+Number(u.quantity||0),0));
+  const attackerTotal=Math.max(1,army.reduce((sum,u)=>sum+Number(u.quantity||0),0));
+
+  const attackerBreakdown=army.map(u=>{
+    const r=roleOf(u.unit_type),q=Number(u.quantity||0),level=Math.max(1,Number(u.level||1));
+    const levelMul=1+(level-1)*0.04;
+    const base=(q*Number(u.attack||0)*r.attack*am.general*am.combat*am.attack+q*Number(u.hp||0)*0.15*r.hp*am.hp)*levelMul;
+    const matchup=npcArmy.length
+      ?npcArmy.reduce((sum,d)=>sum+Number(d.quantity||0)*matchupMultiplier(u.unit_type,d.unit_type),0)/defenderTotal
+      :1;
+    const power=base*matchup;
+    return {
+      unit_type:u.unit_type,
+      quantity:q,
+      level,
+      basePower:Math.round(base),
+      matchupMultiplier:Number(matchup.toFixed(3)),
+      power:Math.round(power)
+    };
+  });
+
+  const npcBreakdown=npcArmy.map(u=>{
+    const r=roleOf(u.unit_type),q=Number(u.quantity||0),level=Math.max(1,Number(u.level||1));
+    const levelMul=1+(level-1)*0.04;
+    const base=(q*Number(u.defense||0)*r.defense+q*Number(u.hp||0)*0.15*r.hp)*levelMul;
+    const matchup=army.length
+      ?army.reduce((sum,a)=>sum+Number(a.quantity||0)*(2-matchupMultiplier(a.unit_type,u.unit_type)),0)/attackerTotal
+      :1;
+    const power=base*Math.max(0.75,matchup);
+    return {
+      unit_type:u.unit_type,
+      quantity:q,
+      level,
+      basePower:Math.round(base),
+      matchupMultiplier:Number(Math.max(0.75,matchup).toFixed(3)),
+      power:Math.round(power)
+    };
+  });
+
+  const rawAttackPower=attackerBreakdown.reduce((sum,u)=>sum+u.power,0);
+  const rawDefensePower=npcBreakdown.reduce((sum,u)=>sum+u.power,0);
+  const attackPower=Math.max(0,Math.round(rawAttackPower*tactic.attackMultiplier));
+  const defensePower=Math.max(0,Math.round(rawDefensePower));
+  const result=attackPower>defensePower?"Zafer":attackPower===defensePower?"Beraberlik":"Yenilgi";
+  const ratio=attackPower+defensePower>0
+    ?Math.abs(attackPower-defensePower)/(attackPower+defensePower)
+    :0;
+  const attackerLossBase=result==="Zafer"?0.18:result==="Beraberlik"?0.38:0.68;
+  const npcLossBase=result==="Zafer"?0.62:result==="Beraberlik"?0.38:0.18;
+  const attackerLosses={};
+  const survivorArmy=[];
+  const npcLosses={};
+
+  for(const u of army){
+    const r=roleOf(u.unit_type),q=Number(u.quantity||0);
+    const mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7));
+    const loss=Math.min(q,Math.max(0,Math.ceil(q*attackerLossBase*tactic.lossMultiplier*mod*(1-0.12*ratio))));
+    attackerLosses[u.unit_type]=(attackerLosses[u.unit_type]||0)+loss;
+    survivorArmy.push({...u,quantity:q-loss});
+  }
+  for(const u of npcArmy){
+    const r=roleOf(u.unit_type),q=Number(u.quantity||0);
+    const mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7));
+    const loss=Math.min(q,Math.max(0,Math.ceil(q*npcLossBase*mod*(1-0.12*ratio))));
+    npcLosses[u.unit_type]=(npcLosses[u.unit_type]||0)+loss;
+  }
+
+  const outbound=Math.max(
+    1,
+    Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000)
+  );
+  const attackerX=Number(mission.depart_x);
+  const attackerY=Number(mission.depart_y);
+  const defenderX=Number(mission.target_x);
+  const defenderY=Number(mission.target_y);
+  const camp=battleSnapshot.camp&&typeof battleSnapshot.camp==="object"
+    ?battleSnapshot.camp
+    :{};
+
+  const reportBase={
+    version:4,
+    battleType:"pve",
+    result,
+    attackPower,
+    defensePower,
+    rawAttackPower:Math.round(rawAttackPower),
+    rawDefensePower:Math.round(rawDefensePower),
+    battleTactic,
+    battleTacticLabel:tactic.label,
+    tacticAttackMultiplier:tactic.attackMultiplier,
+    tacticLossMultiplier:tactic.lossMultiplier,
+    defenseBonus:1,
+    allianceRegionDefenseBonusActive:false,
+    allianceRegionDefenseBonusPercent:0,
+    allianceRegionDefenseMultiplier:1,
+    advantageRatio:Number(ratio.toFixed(4)),
+    attackerLosses,
+    npcLosses,
+    survivorArmy,
+    campId:Number(mission.npc_camp_id||camp.id||0),
+    campName:String(mission.camp_name||camp.name||"NPC Kampı"),
+    campTier:Number(mission.camp_tier||camp.tier||1),
+    attackerX:Number.isFinite(attackerX)?attackerX:null,
+    attackerY:Number.isFinite(attackerY)?attackerY:null,
+    defenderX:Number.isFinite(defenderX)?defenderX:null,
+    defenderY:Number.isFinite(defenderY)?defenderY:null,
+    attackerBreakdown,
+    npcBreakdown
+  };
+
+  const resolvedResult=await supabase("rpc/nexora_resolve_npc_mission",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_mission_id:Number(mission.id),
+      p_npc_losses:npcLosses,
+      p_report_base:reportBase,
+      p_attack_power:attackPower,
+      p_defense_power:defensePower,
+      p_return_seconds:outbound
+    })
+  });
+
+  if(!resolvedResult.ok){
+    console.error("Atomik NPC savaş çözümleme RPC hatası:",resolvedResult.data);
+    return send(res,500,{success:false,message:"PvE savaş sonucu işlenemedi."});
+  }
+
+  const resolved=resolvedResult.data||{};
+  if(resolved.success!==true){
+    const code=String(resolved.code||"");
+    const status=code==="FORBIDDEN"?403:code==="MISSION_NOT_FOUND"?404:code==="MISSION_STATE"?409:code==="NPC_REWARD_INVALID"?503:400;
+    return send(res,status,{
+      success:false,
+      code:code||"NPC_MISSION_RESOLVE_FAILED",
+      message:resolved.message||"PvE savaş sonucu işlenemedi."
+    });
+  }
+
+  const resolvedMission=resolved.mission||mission;
+  const resolvedArriveMs=new Date(resolvedMission.arrive_at).getTime();
+  const remainingSeconds=resolvedMission.status==="returning"&&Number.isFinite(resolvedArriveMs)
+    ?Math.max(0,Math.ceil((resolvedArriveMs-Date.now())/1000))
+    :0;
+
+  return send(res,200,{
+    success:true,
+    mission:{...resolvedMission,remainingSeconds},
+    reward:resolved.reward||resolvedMission.settled_reward||{},
+    npcBattleReportId:resolved.npcBattleReportId||null,
+    campAvailableAt:resolved.campAvailableAt||null
+  });
+}
+
+async function getNpcMissions(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase(
+    "npc_missions?select=*&player_id=eq."+encodeURIComponent(playerId)+"&order=depart_at.desc,id.desc&limit=20"
+  );
+  if(!result.ok){
+    return send(res,500,{success:false,message:"PvE seferleri alınamadı."});
+  }
+
+  return send(res,200,{success:true,missions:result.data||[]});
+}
+
+async function getNpcReports(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase(
+    "npc_battle_reports?select=id,npc_mission_id,player_id,npc_camp_id,camp_name,camp_tier,result,attack_power,defense_power,attacker_losses,npc_losses,reward,battle_tactic,report,created_at"+
+    "&player_id=eq."+encodeURIComponent(playerId)+
+    "&order=created_at.desc,id.desc&limit=100"
+  );
+  if(!result.ok){
+    console.error("NPC savaş raporları alınamadı:",result.data);
+    return send(res,500,{success:false,message:"PvE savaş raporları alınamadı."});
+  }
+
+  return send(res,200,{success:true,npcReports:result.data||[]});
+}
+
 async function syncResearchCityResources(playerId, city, buildings, research){
   // Research must use the same row-locked production sync as the city screen.
   // Never write resource balances from an older city snapshot.
@@ -2695,7 +3324,7 @@ async function getWorldPlayers(req,res){
   const map={}; for(const p of playersResult.data||[])map[p.id]=p.username;
   const players=(citiesResult.data||[]).map(c=>{const region=regionForCoordinates(Number(c.coordinate_x||0),Number(c.coordinate_y||0));return {id:c.id,player_id:c.player_id,username:map[c.player_id]||"Oyuncu",name:c.name,level:c.level,coordinate_x:c.coordinate_x,coordinate_y:c.coordinate_y,region:region.name,region_bonus:region.bonus};});
   let sitesResult=await supabase("rpc/nexora_world_control_sites",{method:"POST",body:JSON.stringify({p_player_id:playerId})});
-  if(!sitesResult.ok)sitesResult=await supabase("world_sites?select=id,site_type,name,coordinate_x,coordinate_y,reward&active=eq.true");
+  if(!sitesResult.ok)sitesResult=await supabase("world_sites?select=id,site_type,name,coordinate_x,coordinate_y,reward&active=eq.true&site_type=neq.npc_camp");
 
   const regionControlResult=await supabase("rpc/nexora_alliance_region_control",{
     method:"POST",
@@ -3350,6 +3979,21 @@ if (action === "upgrade") {
 }
     if (action === "missionstatus") {
   return await getMilitaryMission(req, res);
+}
+    if (action === "npccamps") {
+  return await getNpcCamps(req, res);
+}
+    if (action === "npcmission") {
+  return await createNpcMission(req, res);
+}
+    if (action === "npcmissionstatus") {
+  return await getNpcMissionStatus(req, res);
+}
+    if (action === "npcmissions") {
+  return await getNpcMissions(req, res);
+}
+    if (action === "npcreports") {
+  return await getNpcReports(req, res);
 }
 
     if (action === "reports") {
