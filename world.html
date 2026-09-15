@@ -535,6 +535,47 @@ body {
   text-align:right
 }
 
+.battle-tactic-selector {
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid #173b5d;
+}
+
+.battle-tactic-selector h3 {
+  margin:0 0 10px;
+}
+
+.battle-tactic-option {
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  padding:10px;
+  margin-top:7px;
+  border:1px solid #244c69;
+  border-radius:9px;
+  background:#071526;
+  cursor:pointer;
+}
+
+.battle-tactic-option:hover {
+  background:#0d2740;
+}
+
+.battle-tactic-option input {
+  margin-top:3px;
+}
+
+.battle-tactic-option span {
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.battle-tactic-option small {
+  color:#8db0cf;
+  line-height:1.35;
+}
+
 @media (max-width:700px) {
   .attack-unit-row {
     grid-template-columns:1fr 80px 60px
@@ -823,6 +864,34 @@ body {
         >
           <h3>⚔️ Gönderilecek Birlikler</h3>
           <div id="attackUnitList"></div>
+
+          <div class="battle-tactic-selector">
+            <h3>🎯 Savaş Taktiği</h3>
+
+            <label class="battle-tactic-option">
+              <input type="radio" name="battleTactic" value="assault">
+              <span>
+                <b>⚔️ Hücum Düzeni</b>
+                <small>+%12 saldırı gücü · +%10 saldıran kaybı</small>
+              </span>
+            </label>
+
+            <label class="battle-tactic-option">
+              <input type="radio" name="battleTactic" value="balanced" checked>
+              <span>
+                <b>⚖️ Dengeli Düzen</b>
+                <small>Mevcut savaş dengesi · bonus veya ceza yok</small>
+              </span>
+            </label>
+
+            <label class="battle-tactic-option">
+              <input type="radio" name="battleTactic" value="cautious">
+              <span>
+                <b>🛡️ Temkinli Düzen</b>
+                <small>-%10 saldırı gücü · -%25 saldıran kaybı</small>
+              </span>
+            </label>
+          </div>
         </div>
 
         <button
@@ -2186,6 +2255,16 @@ function renderMissionPanel(missions) {
             "-"
           );
 
+        const tacticLabel =
+          escapeHtml(
+            mission.battleTacticLabel ||
+            ({
+              assault: "Hücum Düzeni",
+              balanced: "Dengeli Düzen",
+              cautious: "Temkinli Düzen"
+            }[mission.battleTactic] || "Dengeli Düzen")
+          );
+
         if (
           mission.status ===
           "returning"
@@ -2198,6 +2277,8 @@ function renderMissionPanel(missions) {
             '</strong>' +
             '<div class="mission-meta">' +
             coords +
+            ' · 🎯 ' +
+            tacticLabel +
             '</div>' +
             '<div class="mission-time">' +
             formatMissionTime(
@@ -2224,6 +2305,8 @@ function renderMissionPanel(missions) {
             '</strong>' +
             '<div class="mission-meta">' +
             coords +
+            ' · 🎯 ' +
+            tacticLabel +
             '</div>' +
             '<div class="mission-time">00:00</div>' +
             '<div class="mission-meta">' +
@@ -2241,6 +2324,8 @@ function renderMissionPanel(missions) {
           '</strong>' +
           '<div class="mission-meta">' +
           coords +
+          ' · 🎯 ' +
+          tacticLabel +
           '</div>' +
           '<div class="mission-time">' +
           formatMissionTime(
@@ -3174,6 +3259,17 @@ async function startEspionage() {
 /* ---------------- SALDIRI ---------------- */
 
 
+function getSelectedBattleTactic() {
+  const selected = document.querySelector(
+    'input[name="battleTactic"]:checked'
+  );
+
+  return selected
+    ? String(selected.value || "balanced")
+    : "balanced";
+}
+
+
 async function attack() {
 
   if (!selectedPlayerId) {
@@ -3231,6 +3327,9 @@ async function attack() {
         0
       );
 
+    const battleTactic =
+      getSelectedBattleTactic();
+
     if (
       totalSelected <= 0
     ) {
@@ -3271,7 +3370,9 @@ async function attack() {
               targetPlayerId:
                 selectedPlayerId,
               units:
-                selectedUnits
+                selectedUnits,
+              battleTactic:
+                battleTactic
             })
         }
       );
@@ -3359,7 +3460,19 @@ async function attack() {
         targetX,
 
       targetY:
-        targetY
+        targetY,
+
+      battleTactic:
+        data.mission.battleTactic ||
+        battleTactic,
+
+      battleTacticLabel:
+        data.mission.battleTacticLabel ||
+        ({
+          assault: "Hücum Düzeni",
+          balanced: "Dengeli Düzen",
+          cautious: "Temkinli Düzen"
+        }[battleTactic] || "Dengeli Düzen")
 
     });
 
