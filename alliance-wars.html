@@ -111,6 +111,21 @@ function msg(t){
   document.getElementById('msg').textContent=t||'';
 }
 
+function clearInvalidSession(){
+  localStorage.removeItem('nexora_token');
+  localStorage.removeItem('nexora_player');
+  location.href='login.html';
+}
+
+async function readResponse(response){
+  const data=await response.json();
+  if(response.status===401){
+    clearInvalidSession();
+    throw new Error(data&&typeof data.message==='string'?data.message:'Oturum süresi doldu.');
+  }
+  return data;
+}
+
 function formatDate(value){
   if(!value)return '-';
   const d=new Date(value);
@@ -263,7 +278,7 @@ async function loadWars(){
       method:'POST',
       headers:{Authorization:'Bearer '+token}
     });
-    const d=await r.json();
+    const d=await readResponse(r);
 
     if(!r.ok||!d.success){
       msg(d.message||'İttifak savaşları alınamadı.');
@@ -317,7 +332,7 @@ async function declareWar(){
     headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
     body:JSON.stringify({targetAllianceId})
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   msg(d.message||'');
 
   if(r.ok&&d.success)await loadWars();
@@ -332,7 +347,7 @@ async function respondWar(warId,accept){
     headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
     body:JSON.stringify({warId:Number(warId),accept:!!accept})
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   msg(d.message||'');
 
   if(r.ok&&d.success)await loadWars();
