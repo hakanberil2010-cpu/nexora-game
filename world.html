@@ -990,6 +990,12 @@ if (!pageToken) {
   location.href = "login.html";
 }
 
+function clearInvalidSession() {
+  localStorage.removeItem("nexora_token");
+  localStorage.removeItem("nexora_player");
+  location.href = "login.html";
+}
+
 let myCoordinateX = 25;
 let myCoordinateY = 35;
 
@@ -1244,6 +1250,11 @@ async function loadMyCoordinates() {
 
     const data =
       await response.json();
+
+    if (response.status === 401) {
+      clearInvalidSession();
+      return;
+    }
 
     if (
       response.ok &&
@@ -2073,6 +2084,11 @@ async function changeCoordinates(inputX = null, inputY = null) {
     const data =
       await response.json();
 
+    if (response.status === 401) {
+      clearInvalidSession();
+      return;
+    }
+
     if (
       !response.ok ||
       !data.success
@@ -2534,6 +2550,11 @@ async function loadServerMissions() {
     const data =
       await response.json();
 
+    if (response.status === 401) {
+      clearInvalidSession();
+      return;
+    }
+
     if (
       !response.ok ||
       !data.success
@@ -2846,6 +2867,11 @@ function renderAttackUnitSelector() {
   )
     .then(
       function(r) {
+
+        if (r.status === 401) {
+          clearInvalidSession();
+          throw new Error("Oturum süresi doldu.");
+        }
 
         return r.json()
           .then(
@@ -3177,8 +3203,7 @@ async function pollEspionageMission() {
       const data = await response.json();
 
       if (response.status === 401) {
-        localStorage.removeItem("nexora_token");
-        location.href = "login.html";
+        clearInvalidSession();
         return;
       }
 
@@ -3274,8 +3299,7 @@ async function startEspionage() {
     const data = await response.json();
 
     if (response.status === 401) {
-      localStorage.removeItem("nexora_token");
-      location.href = "login.html";
+      clearInvalidSession();
       return;
     }
 
@@ -3433,6 +3457,11 @@ async function attack() {
 
     const data =
       await response.json();
+
+    if (response.status === 401) {
+      clearInvalidSession();
+      return;
+    }
 
     if (
       !response.ok ||
@@ -3634,6 +3663,11 @@ async function attack() {
 
       const statusData =
         await statusResponse.json();
+
+      if (statusResponse.status === 401) {
+        clearInvalidSession();
+        return;
+      }
 
       if (
         !statusResponse.ok ||
@@ -4097,6 +4131,11 @@ async function claimSelectedWorldSite() {
 
     const d =
       await r.json();
+
+    if (r.status === 401) {
+      clearInvalidSession();
+      return;
+    }
 
     if (
       !r.ok ||
@@ -4672,6 +4711,11 @@ async function startWorldExploration() {
     const d =
       await r.json();
 
+    if (r.status === 401) {
+      clearInvalidSession();
+      return;
+    }
+
     if (
       !r.ok ||
       !d.success
@@ -4763,6 +4807,11 @@ async function pollWorldExploration(id) {
 
       const d =
         await r.json();
+
+      if (r.status === 401) {
+        clearInvalidSession();
+        return;
+      }
 
       if (
         r.ok &&
@@ -5064,6 +5113,11 @@ async function loadWorldPlayers() {
 
     const data =
       await response.json();
+
+    if (response.status === 401) {
+      clearInvalidSession();
+      return;
+    }
 
     if (
       !response.ok ||
