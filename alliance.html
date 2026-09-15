@@ -118,6 +118,21 @@ function msg(t){
   document.getElementById('msg').textContent=t||'';
 }
 
+function clearInvalidSession(){
+  localStorage.removeItem('nexora_token');
+  localStorage.removeItem('nexora_player');
+  location.href='login.html';
+}
+
+async function readResponse(response){
+  const data=await response.json();
+  if(response.status===401){
+    clearInvalidSession();
+    throw new Error(data&&typeof data.message==='string'?data.message:'Oturum süresi doldu.');
+  }
+  return data;
+}
+
 function roleOf(x){
   return x?.effective_role||(x?.role==='leader'?'leader':x?.role_v2==='officer'?'officer':'member');
 }
@@ -160,7 +175,7 @@ async function kickMember(playerId){
     headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
     body:JSON.stringify({playerId:Number(playerId)})
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   msg(d.message||'');
   if(r.ok&&d.success){
     await loadMine();
@@ -176,7 +191,7 @@ async function setRole(playerId,role){
     headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
     body:JSON.stringify({playerId:Number(playerId),role})
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   msg(d.message||'');
   if(r.ok&&d.success)await loadMine();
 }
@@ -190,7 +205,7 @@ async function postAnnouncement(){
     headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
     body:JSON.stringify({message})
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   msg(d.message||'');
   if(r.ok&&d.success){
     box.value='';
@@ -205,7 +220,7 @@ async function deleteAnnouncement(id){
     headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
     body:JSON.stringify({announcementId:Number(id)})
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   msg(d.message||'');
   if(r.ok&&d.success)await loadMine();
 }
@@ -271,7 +286,7 @@ async function loadTerritories(allianceId){
       method:'POST',
       headers:{Authorization:'Bearer '+token}
     });
-    const d=await r.json();
+    const d=await readResponse(r);
     if(!r.ok||!d.success){
       el.innerHTML='<div class="empty">İttifak bölgeleri alınamadı.</div>';
       return;
@@ -356,7 +371,7 @@ async function loadMine(){
       method:'POST',
       headers:{Authorization:'Bearer '+token}
     });
-    const d=await r.json();
+    const d=await readResponse(r);
     if(!r.ok||!d.success){
       msg(d.message||'İttifak bilgisi alınamadı.');
       return;
@@ -381,7 +396,7 @@ async function createAlliance(){
     headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
     body:JSON.stringify({name,tag})
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   msg(d.message||'');
   if(r.ok&&d.success){
     await loadMine();
@@ -394,7 +409,7 @@ async function loadAll(){
     method:'POST',
     headers:{Authorization:'Bearer '+token}
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   const list=document.getElementById('list');
   if(!d.success){
     list.textContent=d.message||'İttifaklar alınamadı';
@@ -415,7 +430,7 @@ async function joinAlliance(id){
     headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
     body:JSON.stringify({allianceId:id})
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   msg(d.message||'');
   if(r.ok&&d.success){
     await loadMine();
@@ -429,7 +444,7 @@ async function leaveAlliance(){
     method:'POST',
     headers:{Authorization:'Bearer '+token}
   });
-  const d=await r.json();
+  const d=await readResponse(r);
   msg(d.message||'');
   if(r.ok&&d.success){
     showNoAlliance();
