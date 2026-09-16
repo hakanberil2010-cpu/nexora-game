@@ -205,6 +205,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
     <li onclick="go('world.html')">🌍 Dünya Haritası</li>
     <li onclick="go('reports.html')">⚔️ Savaş Raporları</li>
     <li class="menuItemWithBadge" onclick="go('activity.html')"><span>🔔 Aktivite Merkezi</span><span class="activityBadge" id="activityUnreadBadge" hidden>0</span></li>
+    <li class="menuItemWithBadge" onclick="go('messages.html')"><span>✉️ Özel Mesajlar</span><span class="activityBadge" id="messageUnreadBadge" hidden>0</span></li>
     <li onclick="go('army.html')">🪖 Ordu</li>
     <li onclick="go('research.html')">🔬 Araştırma</li>
     <li onclick="go('ranking.html')">🏆 Sıralama</li>
@@ -228,6 +229,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   <option value="world.html">🌍 Dünya Haritası</option>
   <option value="reports.html">⚔️ Savaş Raporları</option>
   <option id="activityMobileOption" value="activity.html">🔔 Aktivite Merkezi</option>
+  <option id="messageMobileOption" value="messages.html">✉️ Özel Mesajlar</option>
   <option value="army.html">🪖 Ordu</option>
   <option value="research.html">🔬 Araştırma</option>
   <option value="ranking.html">🏆 Sıralama</option>
@@ -1703,6 +1705,79 @@ function setActivityUnread(count){
   }
 }
 
+function setMessageUnread(count){
+
+  const value=Math.max(
+    0,
+    Math.floor(
+      Number(count)||0
+    )
+  );
+
+  const badge=document.getElementById(
+    'messageUnreadBadge'
+  );
+
+  if(badge){
+    badge.hidden=value<=0;
+    badge.textContent=
+      value>99
+        ?'99+'
+        :String(value);
+  }
+
+  const mobile=document.getElementById(
+    'messageMobileOption'
+  );
+
+  if(mobile){
+    mobile.textContent=
+      value>0
+        ?'✉️ Özel Mesajlar ('+
+          (value>99?'99+':value)+
+          ')'
+        :'✉️ Özel Mesajlar';
+  }
+}
+
+async function loadMessageUnread(){
+
+  try{
+
+    const r=await fetch(
+      '/api/auth?action=privatemessages',
+      {
+        method:'POST',
+        headers:{
+          Authorization:'Bearer '+token
+        }
+      }
+    );
+
+    if(r.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!r.ok)return;
+
+    const d=await r.json();
+
+    if(d&&d.success===true){
+      setMessageUnread(
+        d.unreadCount
+      );
+    }
+
+  }catch(e){
+    console.error(
+      'Mesaj rozeti güncellenemedi.',
+      e
+    );
+  }
+}
+
+
 async function loadActivityUnread(){
 
   try{
@@ -1759,6 +1834,7 @@ function logout(){
 loadCity();
 loadBeginnerGuide();
 loadActivityUnread();
+loadMessageUnread();
 
 /* Koloni polling döngüsü */
 setInterval(
@@ -1775,6 +1851,12 @@ setInterval(
 /* Aktivite rozeti hafif tempoda güncellenir. */
 setInterval(
   loadActivityUnread,
+  30000
+);
+
+/* Özel mesaj rozeti de hafif tempoda güncellenir. */
+setInterval(
+  loadMessageUnread,
   30000
 );
 
