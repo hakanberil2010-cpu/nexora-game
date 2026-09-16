@@ -38,6 +38,15 @@ h1{margin:0 0 8px}
 .button:hover:not(:disabled){filter:brightness(1.08)}
 .button:disabled{opacity:.5;cursor:not-allowed}
 .status{margin:14px 0 4px;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff;display:none}
+.dailyPanel{margin:28px 0 8px;padding:17px 18px;background:#081827;border:1px solid #1b4668;border-radius:14px}
+.dailyPanel .sectionTitle{margin:0 0 10px}
+.dailyMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
+.dailyMeta strong{color:#8bdcff}
+.dailyNotice{display:none;margin:12px 0 0;padding:10px 12px;border-radius:9px;background:#151d2a;border:1px solid #3b4d63;color:#c6d7e6}
+.dailyNotice.locked{display:block;background:#241d12;border-color:#695027;color:#ffd98a}
+.card.dailyLocked{opacity:.66;border-color:#4a4438}
+.badge.locked{background:#3b3020;color:#ffd98a}
+.creditedReward{margin-top:6px;font-size:12px;color:#73e7af;line-height:1.45}
 .empty{padding:18px;background:#091a2c;border:1px solid #173b5d;border-radius:12px;color:#8db0cf}
 .icon{font-size:34px;margin-bottom:8px}
 .back{display:inline-block;margin-top:28px;color:#18bfff;text-decoration:none}
@@ -70,6 +79,17 @@ h1{margin:0 0 8px}
 
   <div id="status" class="status"></div>
 
+  <div class="dailyPanel">
+    <div class="sectionTitle">☀️ Günlük Görevler</div>
+    <div class="dailyMeta">
+      <span>Gün: <strong id="dailyDayKey">--</strong></span>
+      <span>Yenilenmeye kalan: <strong id="dailyCountdown">--:--:--</strong></span>
+      <span>Reset: <strong>00:00 Türkiye saati</strong></span>
+    </div>
+    <div id="dailyNotice" class="dailyNotice"></div>
+  </div>
+  <div id="dailyGrid" class="grid"></div>
+
   <div class="sectionTitle">📋 Görevler</div>
   <div id="missionGrid" class="grid"></div>
 
@@ -94,6 +114,8 @@ if(user?.username)document.getElementById('playerName').textContent=user.usernam
 let snapshot=null;
 let claimPending=false;
 let objectivesLoadPromise=null;
+let dailyServerOffsetMs=0;
+let dailyNextResetMs=null;
 
 function escapeHtml(value){
   return String(value??'')
@@ -131,6 +153,31 @@ function rewardText(reward){
   return parts.length?parts.join(' · '):'Ödül yok';
 }
 
+function formatDayKey(dayKey){
+  const parts=String(dayKey||'').split('-');
+  return parts.length===3
+    ?parts[2]+'.'+parts[1]+'.'+parts[0]
+    :'--';
+}
+
+function updateDailyCountdown(){
+  const el=document.getElementById('dailyCountdown');
+  if(!el)return;
+  if(!Number.isFinite(dailyNextResetMs)){
+    el.textContent='--:--:--';
+    return;
+  }
+
+  const serverNow=Date.now()+dailyServerOffsetMs;
+  const remaining=Math.max(0,dailyNextResetMs-serverNow);
+  const totalSeconds=Math.floor(remaining/1000);
+  const hours=Math.floor(totalSeconds/3600);
+  const minutes=Math.floor((totalSeconds%3600)/60);
+  const seconds=totalSeconds%60;
+  const pad=value=>String(value).padStart(2,'0');
+  el.textContent=pad(hours)+':'+pad(minutes)+':'+pad(seconds);
+}
+
 function showStatus(message){
   const el=document.getElementById('status');
   el.textContent=message||'';
@@ -142,6 +189,84 @@ function render(data){
   const missions=Array.isArray(snapshot.missions)?snapshot.missions:[];
   const achievements=Array.isArray(snapshot.achievements)?snapshot.achievements:[];
   const metrics=snapshot.metrics&&typeof snapshot.metrics==='object'?snapshot.metrics:{};
+  const daily=snapshot.daily&&typeof snapshot.daily==='object'?snapshot.daily:null;
+
+  const dailyDayKey=document.getElementById('dailyDayKey');
+  const dailyNotice=document.getElementById('dailyNotice');
+  const dailyGrid=document.getElementById('dailyGrid');
+
+  if(!daily||daily.success!==true){
+    dailyDayKey.textContent='--';
+    dailyServerOffsetMs=0;
+    dailyNextResetMs=null;
+    updateDailyCountdown();
+    dailyNotice.className='dailyNotice';
+    dailyNotice.style.display='block';
+    dailyNotice.textContent=daily?.message||'Günlük görev sistemi şu anda kullanılamıyor.';
+    dailyGrid.innerHTML='';
+  }else{
+    dailyDayKey.textContent=formatDayKey(daily.dayKey);
+
+    const serverTimeMs=new Date(daily.serverTime).getTime();
+    dailyServerOffsetMs=Number.isFinite(serverTimeMs)
+      ?serverTimeMs-Date.now()
+      :0;
+
+    const nextResetMs=new Date(daily.nextResetAt).getTime();
+    dailyNextResetMs=Number.isFinite(nextResetMs)?nextResetMs:null;
+    updateDailyCountdown();
+
+    const dailyUnlocked=daily.unlocked===true;
+    if(dailyUnlocked){
+      dailyNotice.className='dailyNotice';
+      dailyNotice.style.display='none';
+      dailyNotice.textContent='';
+    }else{
+      dailyNotice.className='dailyNotice locked';
+      dailyNotice.style.display='block';
+      dailyNotice.textContent='🔒 Günlük görevler Başlangıç Rehberi tamamlandığında açılır.';
+    }
+
+    const dailyMissions=Array.isArray(daily.missions)?daily.missions:[];
+    if(!dailyMissions.length){
+      dailyGrid.innerHTML='<div class="empty">Bugün için aktif günlük görev bulunmuyor.</div>';
+    }else{
+      dailyGrid.innerHTML=dailyMissions.map(m=>{
+        const progress=numberValue(m.progress);
+        const target=Math.max(1,numberValue(m.target));
+        const completed=m.completed===true;
+        const claimed=m.claimed===true;
+        const claimable=m.claimable===true;
+        const pct=progressPercent(progress,target);
+        const badge=!dailyUnlocked?'Kilitli':claimed?'Ödül Alındı':completed?'Tamamlandı':'Devam Ediyor';
+        const badgeClass=!dailyUnlocked?'locked':claimed?'claimed':completed?'done':'';
+        const cardClass=!dailyUnlocked?'dailyLocked':claimed?'claimed':completed?'done':'';
+        const buttonText=!dailyUnlocked
+          ?'🔒 Başlangıç Rehberi Gerekli'
+          :claimed
+            ?'Ödül Alındı'
+            :completed
+              ?'🎁 Günlük Ödülü Al'
+              :'Henüz Tamamlanmadı';
+        const credited=claimed
+          ?'<div class="creditedReward">✅ Depoya eklenen: '+escapeHtml(rewardText(m.creditedReward))+'</div>'
+          :'';
+
+        return '<div class="card '+cardClass+'">'+
+          '<span class="badge '+badgeClass+'">'+badge+'</span>'+
+          '<h2>'+escapeHtml(m.title||'Günlük Görev')+'</h2>'+
+          '<p>'+escapeHtml(m.description||'')+'</p>'+
+          '<div class="progressText"><span>Bugünkü ilerleme</span><strong>'+
+            progress.toLocaleString('tr-TR')+' / '+target.toLocaleString('tr-TR')+'</strong></div>'+
+          '<div class="progress"><div class="progressBar" style="width:'+pct+'%"></div></div>'+
+          '<div class="reward">🎁 '+escapeHtml(rewardText(m.reward))+'</div>'+
+          credited+
+          '<button class="button" '+(!claimable||claimPending?'disabled':'')+
+            ' onclick="claimDailyMission(\''+escapeHtml(m.id||'')+'\')">'+buttonText+'</button>'+
+        '</div>';
+      }).join('');
+    }
+  }
 
   document.getElementById('completedMissionCount').textContent=
     missions.filter(m=>m?.completed===true).length;
@@ -256,10 +381,46 @@ async function claimMission(missionId){
       showStatus(data.message||'Görev ödülü alınamadı.');
       return;
     }
-    const next=data.snapshot&&typeof data.snapshot==='object'?data.snapshot:null;
-    if(next)render(next);
-    else await loadObjectives(true);
+    await loadObjectives(true);
     showStatus(data.message||'Görev ödülü alındı.');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    claimPending=false;
+    if(snapshot)render(snapshot);
+  }
+}
+
+async function claimDailyMission(missionId){
+  if(claimPending||!missionId)return;
+  claimPending=true;
+  showStatus('Günlük görev ödülü alınıyor...');
+  if(snapshot)render(snapshot);
+
+  try{
+    const response=await fetch('/api/auth?action=claimdailymission',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        Authorization:'Bearer '+token
+      },
+      body:JSON.stringify({missionId})
+    });
+
+    const data=await response.json();
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      showStatus(data.message||'Günlük görev ödülü alınamadı.');
+      return;
+    }
+
+    await loadObjectives(true);
+    showStatus(data.message||'Günlük görev ödülü alındı.');
   }catch(error){
     console.error(error);
     showStatus('Bağlantı hatası.');
@@ -271,6 +432,7 @@ async function claimMission(missionId){
 
 loadObjectives();
 setInterval(()=>loadObjectives(true),10000);
+setInterval(updateDailyCountdown,1000);
 </script>
 </body>
 </html>
