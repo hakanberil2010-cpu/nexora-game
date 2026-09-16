@@ -66,6 +66,7 @@ h1{margin:5px 0 8px;font-size:31px}
     <a class="button" href="game.html">← Koloniye Dön</a>
     <a class="buttonAlt" href="ranking.html">🏆 Sıralama</a>
     <a class="buttonAlt hidden" id="messageButton" href="messages.html">✉️ Özel Mesaj Gönder</a>
+    <button class="buttonAlt hidden" id="friendButton" type="button">🤝 Arkadaşlık İsteği Gönder</button>
   </div>
 
   <div id="loading" class="loading">Profil yükleniyor...</div>
@@ -130,6 +131,7 @@ const requestedUsername=(params.get('username')||'').trim();
 
 let currentProfile=null;
 let saving=false;
+let friendRequestPending=false;
 
 function clearInvalidSession(){
   localStorage.removeItem('nexora_token');
@@ -162,6 +164,124 @@ function showStatus(message){
 function updateBioCount(){
   document.getElementById('bioCount').textContent=
     document.getElementById('bioInput').value.length;
+}
+
+function setFriendButtonState(state){
+  const button=document.getElementById('friendButton');
+
+  if(state==='accepted'){
+    button.textContent='✓ Arkadaşsınız';
+    button.disabled=true;
+    return;
+  }
+
+  if(state==='outgoing'){
+    button.textContent='⏳ İstek Gönderildi';
+    button.disabled=true;
+    return;
+  }
+
+  if(state==='incoming'){
+    button.textContent='📥 Gelen İstek Var';
+    button.disabled=true;
+    return;
+  }
+
+  button.textContent='🤝 Arkadaşlık İsteği Gönder';
+  button.disabled=friendRequestPending;
+}
+
+async function loadFriendState(username){
+  if(!username)return;
+
+  try{
+    const response=await fetch('/api/auth?action=friends',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+
+    const data=await response.json();
+
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success)return;
+
+    const exact=value=>String(value?.username||'')===username;
+
+    if(Array.isArray(data.friends)&&data.friends.some(exact)){
+      setFriendButtonState('accepted');
+    }else if(Array.isArray(data.outgoing)&&data.outgoing.some(exact)){
+      setFriendButtonState('outgoing');
+    }else if(Array.isArray(data.incoming)&&data.incoming.some(exact)){
+      setFriendButtonState('incoming');
+    }else{
+      setFriendButtonState('none');
+    }
+  }catch(error){
+    console.error(error);
+  }
+}
+
+async function sendFriendRequest(){
+  if(
+    friendRequestPending||
+    currentProfile?.isSelf===true||
+    !currentProfile?.username
+  )return;
+
+  friendRequestPending=true;
+  setFriendButtonState('none');
+  showStatus('Arkadaşlık isteği gönderiliyor...');
+
+  try{
+    const response=await fetch(
+      '/api/auth?action=sendfriendrequest',
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          Authorization:'Bearer '+token
+        },
+        body:JSON.stringify({username:currentProfile.username})
+      }
+    );
+
+    const data=await response.json();
+
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      const code=String(data.code||'');
+
+      if(code==='ALREADY_FRIENDS'){
+        setFriendButtonState('accepted');
+      }else if(code==='REQUEST_ALREADY_SENT'){
+        setFriendButtonState('outgoing');
+      }else if(code==='INCOMING_REQUEST_EXISTS'){
+        setFriendButtonState('incoming');
+      }
+
+      showStatus(data.message||'Arkadaşlık isteği gönderilemedi.');
+      return;
+    }
+
+    setFriendButtonState('outgoing');
+    showStatus(data.message||'Arkadaşlık isteği gönderildi.');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    friendRequestPending=false;
+
+    const button=document.getElementById('friendButton');
+    if(!button.disabled)setFriendButtonState('none');
+  }
 }
 
 function render(data){
@@ -224,14 +344,20 @@ function render(data){
   }
 
   const messageButton=document.getElementById('messageButton');
+  const friendButton=document.getElementById('friendButton');
 
   if(!isSelf&&profile.username){
     messageButton.classList.remove('hidden');
     messageButton.href=
       'messages.html?to='+
       encodeURIComponent(profile.username);
+
+    friendButton.classList.remove('hidden');
+    setFriendButtonState('none');
+    loadFriendState(profile.username);
   }else{
     messageButton.classList.add('hidden');
+    friendButton.classList.add('hidden');
   }
 
   document.getElementById('loading').classList.add('hidden');
@@ -336,6 +462,7 @@ async function saveBio(){
 
 document.getElementById('bioInput').addEventListener('input',updateBioCount);
 document.getElementById('saveBioButton').addEventListener('click',saveBio);
+document.getElementById('friendButton').addEventListener('click',sendFriendRequest);
 
 loadProfile();
 </script>
