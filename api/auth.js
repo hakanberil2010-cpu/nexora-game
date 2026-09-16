@@ -3591,6 +3591,279 @@ async function markPrivateMessagesRead(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getPlayerProfile(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let targetUsername=String(req.query.username||"").trim();
+
+  if(!targetUsername){
+    const self=await supabase(
+      "players?select=username&id=eq."+
+      encodeURIComponent(playerId)+
+      "&limit=1"
+    );
+
+    if(!self.ok||!self.data?.[0]){
+      return send(res,404,{success:false,message:"Oyuncu bulunamadı."});
+    }
+
+    targetUsername=String(self.data[0].username||"").trim();
+  }
+
+  if(!targetUsername||targetUsername.length>100){
+    return send(res,400,{success:false,message:"Geçerli bir oyuncu adı gerekli."});
+  }
+
+  const meta=await supabase("rpc/nexora_player_profile_meta",{
+    method:"POST",
+    body:JSON.stringify({
+      p_requester_player_id:playerId,
+      p_target_username:targetUsername
+    })
+  });
+
+  if(!meta.ok||typeof meta.data?.success!=="boolean"){
+    console.error("Oyuncu profil metadata RPC hatası:",meta.data);
+    return send(res,503,{success:false,message:"Oyuncu profili şu anda kullanılamıyor."});
+  }
+
+  if(meta.data.success!==true){
+    const status=String(meta.data.code||"")==="TARGET_NOT_FOUND"?404:400;
+    return send(res,status,meta.data);
+  }
+
+  const profile=meta.data.profile||{};
+  const targetPlayerId=Number(profile.playerId);
+
+  if(!Number.isSafeInteger(targetPlayerId)||targetPlayerId<=0){
+    return send(res,503,{success:false,message:"Oyuncu profili doğrulanamadı."});
+  }
+
+  const [citiesR,researchR,reportsR]=await Promise.all([
+    supabase(
+      "cities?select=id,level&player_id=eq."+
+      encodeURIComponent(targetPlayerId)
+    ),
+    supabase(
+      "research?select=player_id,production_level,combat_level,defense_level,crystal_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level,travel_speed_level&player_id=eq."+
+      encodeURIComponent(targetPlayerId)+
+      "&limit=1"
+    ),
+    supabase(
+      "battle_reports?select=attacker_player_id,defender_player_id,result,battle_points,winner_player_id&or=(attacker_player_id.eq."+
+      encodeURIComponent(targetPlayerId)+
+      ",defender_player_id.eq."+
+      encodeURIComponent(targetPlayerId)+
+      ")"
+    )
+  ]);
+
+  if(!citiesR.ok||!researchR.ok||!reportsR.ok){
+    console.error("Oyuncu profil istatistik sorgu hatası:",{
+      cities:citiesR.data,
+      research:researchR.data,
+      reports:reportsR.data
+    });
+    return send(res,503,{success:false,message:"Oyuncu istatistikleri şu anda alınamıyor."});
+  }
+
+  const cities=Array.isArray(citiesR.data)?citiesR.data:[];
+  const cityIds=cities
+    .map(city=>Number(city.id))
+    .filter(id=>Number.isSafeInteger(id)&&id>0);
+
+  let buildings=[];
+  let units=[];
+
+  if(cityIds.length){
+    const cityFilter=cityIds.join(",");
+    const [buildingsR,unitsR]=await Promise.all([
+      supabase(
+        "buildings?select=city_id,level&city_id=in.("+
+        cityFilter+
+        ")"
+      ),
+      supabase(
+        "units?select=city_id,quantity,attack,defense,hp&city_id=in.("+
+        cityFilter+
+        ")"
+      )
+    ]);
+
+    if(!buildingsR.ok||!unitsR.ok){
+      console.error("Oyuncu profil güç sorgu hatası:",{
+        buildings:buildingsR.data,
+        units:unitsR.data
+      });
+      return send(res,503,{success:false,message:"Oyuncu gücü şu anda hesaplanamıyor."});
+    }
+
+    buildings=Array.isArray(buildingsR.data)?buildingsR.data:[];
+    units=Array.isArray(unitsR.data)?unitsR.data:[];
+  }
+
+  const colonyLevel=Math.max(
+    1,
+    ...cities.map(city=>Number(city.level)||0)
+  );
+
+  const buildingsLevel=buildings.reduce(
+    (sum,building)=>sum+Math.max(0,Number(building.level)||0),
+    0
+  );
+
+  const armyPower=units.reduce(
+    (sum,unit)=>
+      sum+
+      Math.max(0,Number(unit.quantity)||0)*
+      (
+        Math.max(0,Number(unit.attack)||0)+
+        Math.max(0,Number(unit.defense)||0)+
+        Math.max(0,Number(unit.hp)||0)*0.5
+      ),
+    0
+  );
+
+  const research=researchR.data?.[0]||{};
+  const researchLevel=Object.keys(research)
+    .filter(key=>key.endsWith("_level"))
+    .reduce(
+      (sum,key)=>sum+Math.max(0,Number(research[key])||0),
+      0
+    );
+
+  let battlePoints=0;
+  let wins=0;
+  let losses=0;
+  let draws=0;
+
+  for(const report of (reportsR.data||[])){
+    let raw=report.result;
+
+    if(typeof raw==="string"){
+      try{
+        const parsed=JSON.parse(raw);
+        if(parsed&&typeof parsed==="object"&&!Array.isArray(parsed)){
+          raw=parsed;
+        }
+      }catch{}
+    }
+
+    const result=
+      raw&&typeof raw==="object"
+        ?String(raw.result||"")
+        :String(raw||"");
+
+    const attackerId=Number(report.attacker_player_id);
+    const defenderId=Number(report.defender_player_id);
+
+    const points=
+      Number(
+        report.battle_points ??
+        (
+          raw&&typeof raw==="object"
+            ?raw.battlePoints
+            :0
+        )
+      )||0;
+
+    let winner=
+      Number(
+        report.winner_player_id ??
+        (
+          raw&&typeof raw==="object"
+            ?raw.winnerPlayerId
+            :0
+        )
+      )||0;
+
+    if(!winner){
+      if(result==="Zafer")winner=attackerId;
+      else if(result==="Yenilgi")winner=defenderId;
+    }
+
+    if(result==="Beraberlik"){
+      if(attackerId===targetPlayerId||defenderId===targetPlayerId){
+        draws+=1;
+      }
+      continue;
+    }
+
+    if(winner===targetPlayerId){
+      wins+=1;
+      battlePoints+=points;
+    }else if(
+      winner&&
+      (
+        attackerId===targetPlayerId||
+        defenderId===targetPlayerId
+      )
+    ){
+      losses+=1;
+    }
+  }
+
+  const score=Math.round(
+    colonyLevel*100+
+    armyPower+
+    battlePoints+
+    researchLevel*30+
+    buildingsLevel*20+
+    wins*25
+  );
+
+  return send(res,200,{
+    success:true,
+    serverTime:meta.data.serverTime||null,
+    profile,
+    stats:{
+      colonyLevel,
+      armyPower:Math.round(armyPower),
+      battlePoints:Math.round(battlePoints),
+      wins,
+      losses,
+      draws,
+      researchLevel:Math.round(researchLevel),
+      buildingsLevel:Math.round(buildingsLevel),
+      score
+    }
+  });
+}
+
+async function updatePlayerProfile(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch(error){return sendBodyError(res,error);}
+
+  const bio=String(body?.bio??"").trim();
+
+  if(bio.length>300){
+    return send(res,400,{
+      success:false,
+      message:"Profil açıklaması en fazla 300 karakter olabilir."
+    });
+  }
+
+  const result=await supabase("rpc/nexora_update_player_profile",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:playerId,
+      p_bio:bio
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Oyuncu profil güncelleme RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Profil şu anda güncellenemiyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function exploreWorld(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const body=await readBody(req);
@@ -4168,6 +4441,12 @@ if (action === "sendprivatemessage") {
 }
 if (action === "markprivatemessagesread") {
   return await markPrivateMessagesRead(req, res);
+}
+if (action === "playerprofile") {
+  return await getPlayerProfile(req, res);
+}
+if (action === "updateplayerprofile") {
+  return await updatePlayerProfile(req, res);
 }
 if (action === "explorestatus") {
   return await getWorldExploration(req, res);
