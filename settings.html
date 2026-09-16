@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>NEXORA - Ayarlar</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.player{color:#9fc0df}.container{max-width:900px;margin:30px auto;padding:0 20px 40px}.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}.topBack:hover{filter:brightness(1.08)}h1{margin:0 0 8px}.sub{margin:0 0 22px;color:#7897b6}.section{margin-top:16px;padding:20px;background:#091a2c;border:1px solid #173b5d;border-radius:12px}.section h2{margin:0 0 15px;font-size:20px}.row{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 0;border-bottom:1px solid #17344f}.row:last-child{border-bottom:0}.label{color:#83a6c6;font-size:13px}.value{margin-top:5px;font-weight:bold;overflow-wrap:anywhere}.description{margin-top:5px;color:#7897b6;font-size:13px;line-height:1.4}.toggle{display:flex;align-items:center;gap:10px;cursor:pointer}.toggle input{width:20px;height:20px;accent-color:#18bfff;cursor:pointer}.button{padding:10px 14px;border:1px solid #1aa9ee;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}.button:hover{filter:brightness(1.08)}.button.secondary{background:#102e49;color:#bde7ff}.button.danger{border-color:#a84454;background:#792d3a}.feedback{min-height:20px;margin-top:12px;color:#82d9ff;font-size:13px}.status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.status{padding:14px;background:#071526;border:1px solid #17344f;border-radius:9px}.status strong{display:block;margin-top:6px;color:#eaf4ff}.safe-note{margin-top:12px;color:#7897b6;font-size:13px}@media(max-width:650px){.top{height:auto;min-height:68px;padding:14px 16px;gap:14px}.logo{font-size:23px;letter-spacing:4px}.player{font-size:13px;text-align:right}.container{margin:20px auto;padding:0 14px 28px}.section{padding:16px}.row{align-items:flex-start;flex-direction:column;gap:10px}.toggle{width:100%;justify-content:space-between}.button{width:100%}.status-grid{grid-template-columns:1fr}}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.player{color:#9fc0df}.container{max-width:900px;margin:30px auto;padding:0 20px 40px}.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}.topBack:hover{filter:brightness(1.08)}h1{margin:0 0 8px}.sub{margin:0 0 22px;color:#7897b6}.section{margin-top:16px;padding:20px;background:#091a2c;border:1px solid #173b5d;border-radius:12px}.section h2{margin:0 0 15px;font-size:20px}.row{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 0;border-bottom:1px solid #17344f}.row:last-child{border-bottom:0}.label{color:#83a6c6;font-size:13px}.value{margin-top:5px;font-weight:bold;overflow-wrap:anywhere}.description{margin-top:5px;color:#7897b6;font-size:13px;line-height:1.4}.toggle{display:flex;align-items:center;gap:10px;cursor:pointer}.toggle input{width:20px;height:20px;accent-color:#18bfff;cursor:pointer}.button{padding:10px 14px;border:1px solid #1aa9ee;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}.button:hover{filter:brightness(1.08)}.button.secondary{background:#102e49;color:#bde7ff}.button.danger{border-color:#a84454;background:#792d3a}.feedback{min-height:20px;margin-top:12px;color:#82d9ff;font-size:13px}.status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.status{padding:14px;background:#071526;border:1px solid #17344f;border-radius:9px}.status strong{display:block;margin-top:6px;color:#eaf4ff}.safe-note{margin-top:12px;color:#7897b6;font-size:13px}.field{display:grid;gap:6px;margin:0 0 12px}.field label{color:#83a6c6;font-size:13px}.field input{width:100%;padding:11px 12px;border:1px solid #285476;border-radius:8px;background:#071526;color:#eaf4ff;outline:none}.field input:focus{border-color:#18bfff}.button:disabled{opacity:.55;cursor:not-allowed}@media(max-width:650px){.top{height:auto;min-height:68px;padding:14px 16px;gap:14px}.logo{font-size:23px;letter-spacing:4px}.player{font-size:13px;text-align:right}.container{margin:20px auto;padding:0 14px 28px}.section{padding:16px}.row{align-items:flex-start;flex-direction:column;gap:10px}.toggle{width:100%;justify-content:space-between}.button{width:100%}.status-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -19,6 +19,19 @@
     <h2>Kullanıcı Bilgileri</h2>
     <div class="row"><div><div class="label">Kullanıcı adı</div><div class="value" id="username">Oyuncu</div></div></div>
     <div class="row"><div><div class="label">E-posta</div><div class="value" id="email">Belirtilmemiş</div></div></div>
+    <div id="accountFeedback" class="feedback" role="status"></div>
+  </section>
+
+  <section class="section">
+    <h2>Şifre Güvenliği</h2>
+    <p class="description">Mevcut şifreni doğrulayarak bu hesap için yeni bir şifre belirle.</p>
+    <form id="passwordForm">
+      <div class="field"><label for="currentPassword">Mevcut şifre</label><input id="currentPassword" type="password" autocomplete="current-password" required></div>
+      <div class="field"><label for="newPassword">Yeni şifre</label><input id="newPassword" type="password" autocomplete="new-password" minlength="6" required></div>
+      <div class="field"><label for="confirmPassword">Yeni şifre tekrar</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="6" required></div>
+      <button id="changePasswordButton" class="button" type="submit">Şifreyi Değiştir</button>
+    </form>
+    <div id="passwordFeedback" class="feedback" role="status"></div>
   </section>
 
   <section class="section">
@@ -73,11 +86,44 @@ function updateLocalStatus(){
   document.getElementById('missionStatus').textContent=missionCount().toLocaleString('tr-TR')+' kayıt';
 }
 
+function clearSession(){
+  localStorage.removeItem('nexora_token');
+  localStorage.removeItem('nexora_player');
+  localStorage.removeItem('nexora_missions');
+  location.replace('login.html');
+}
+function renderAccount(account){
+  const username=safeText(account&&account.username,'Oyuncu');
+  document.getElementById('headerUsername').textContent=username;
+  document.getElementById('username').textContent=username;
+  document.getElementById('email').textContent=safeText(account&&account.email,'Belirtilmemiş');
+}
+async function loadAccountSettings(){
+  const feedback=document.getElementById('accountFeedback');
+  try{
+    const response=await fetch('/api/auth?action=accountsettings',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const data=await response.json();
+    if(response.status===401){clearSession();return}
+    if(!response.ok||data.success!==true||!data.account){
+      feedback.textContent=data.message||'Hesap bilgileri alınamadı.';
+      return;
+    }
+    renderAccount(data.account);
+    const localProfile=readProfile()||{};
+    localStorage.setItem('nexora_player',JSON.stringify({...localProfile,...data.account}));
+    updateLocalStatus();
+    feedback.textContent='';
+  }catch(error){
+    console.error(error);
+    feedback.textContent='Hesap bilgileri alınırken bağlantı hatası oluştu.';
+  }
+}
+
 const profile=readProfile();
-const username=safeText(profile&&profile.username,'Oyuncu');
-document.getElementById('headerUsername').textContent=username;
-document.getElementById('username').textContent=username;
-document.getElementById('email').textContent=safeText(profile&&profile.email,'Belirtilmemiş');
+renderAccount(profile);
 
 const preferences=[
   {id:'reduceMotion',key:'nexora_reduce_motion'},
@@ -99,14 +145,58 @@ document.getElementById('clearMissions').addEventListener('click',function(){
   document.getElementById('cacheFeedback').textContent='Yerel sefer önbelleği temizlendi.';
 });
 
-document.getElementById('logoutButton').addEventListener('click',function(){
-  localStorage.removeItem('nexora_token');
-  localStorage.removeItem('nexora_player');
-  localStorage.removeItem('nexora_missions');
-  location.replace('login.html');
+document.getElementById('passwordForm').addEventListener('submit',async function(event){
+  event.preventDefault();
+  const feedback=document.getElementById('passwordFeedback');
+  const button=document.getElementById('changePasswordButton');
+  const currentPassword=document.getElementById('currentPassword').value;
+  const newPassword=document.getElementById('newPassword').value;
+  const confirmPassword=document.getElementById('confirmPassword').value;
+
+  if(newPassword.length<6){
+    feedback.textContent='Yeni şifre en az 6 karakter olmalı.';
+    return;
+  }
+  if(newPassword!==confirmPassword){
+    feedback.textContent='Yeni şifreler eşleşmiyor.';
+    return;
+  }
+  if(currentPassword===newPassword){
+    feedback.textContent='Yeni şifre mevcut şifreden farklı olmalı.';
+    return;
+  }
+
+  button.disabled=true;
+  feedback.textContent='Şifre değiştiriliyor...';
+  try{
+    const response=await fetch('/api/auth?action=changepassword',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        Authorization:'Bearer '+token
+      },
+      body:JSON.stringify({currentPassword,newPassword})
+    });
+    const data=await response.json();
+    if(response.status===401){clearSession();return}
+    if(!response.ok||data.success!==true){
+      feedback.textContent=data.message||'Şifre değiştirilemedi.';
+      return;
+    }
+    alert(data.message||'Şifren değiştirildi. Yeniden giriş yapmalısın.');
+    clearSession();
+  }catch(error){
+    console.error(error);
+    feedback.textContent='Şifre değiştirilirken bağlantı hatası oluştu.';
+  }finally{
+    button.disabled=false;
+  }
 });
 
+document.getElementById('logoutButton').addEventListener('click',clearSession);
+
 updateLocalStatus();
+loadAccountSettings();
 </script>
 </body>
 </html>
