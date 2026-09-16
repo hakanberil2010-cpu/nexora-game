@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NEXORA - Aktivite Merkezi</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
+.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
+.container{max-width:1050px;margin:30px auto;padding:0 20px}
+.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
+.topBack:hover{filter:brightness(1.08)}
+h1{margin:0 0 8px}
+.sub{color:#7196b8;line-height:1.45}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:22px 0 16px}
+.counter{display:inline-flex;align-items:center;gap:9px;padding:10px 13px;border-radius:10px;background:#091a2c;border:1px solid #173b5d;color:#9cc6e2}
+.counter b{color:#18bfff;font-size:20px}
+.button{padding:10px 14px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
+.button:hover:not(:disabled){filter:brightness(1.08)}
+.button:disabled{opacity:.5;cursor:not-allowed}
+.status{display:none;margin:12px 0;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff}
+.list{display:grid;gap:12px}
+.item{display:block;background:#091a2c;border:1px solid #173b5d;border-radius:13px;padding:16px;text-decoration:none;color:inherit;position:relative}
+.item:hover{filter:brightness(1.05)}
+.item.unread{border-color:#1aa9ee;box-shadow:0 0 0 1px rgba(26,169,238,.14)}
+.item.success{border-left:4px solid #2b8f66}
+.item.danger{border-left:4px solid #a84242}
+.item.neutral{border-left:4px solid #6c7787}
+.itemTop{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.itemTitle{font-size:18px;font-weight:bold}
+.time{font-size:12px;color:#7196b8;white-space:nowrap}
+.summary{margin-top:7px;color:#9cc6e2;line-height:1.45}
+.meta{margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{padding:5px 8px;border-radius:999px;background:#102a44;color:#8bdcff;font-size:12px}
+.newBadge{padding:5px 8px;border-radius:999px;background:#123c59;color:#8bdcff;font-size:11px;font-weight:bold}
+.empty{padding:20px;background:#091a2c;border:1px solid #173b5d;border-radius:12px;color:#8db0cf;text-align:center}
+.back{display:inline-block;margin-top:24px;color:#18bfff;text-decoration:none}
+.back:hover{text-decoration:underline}
+@media(max-width:700px){
+  .top{padding:0 15px}
+  .logo{font-size:22px;letter-spacing:4px}
+  .container{padding:0 12px;margin-top:20px}
+  .itemTop{display:block}
+  .time{display:block;margin-top:7px}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">NEXORA</div>
+  <div>Oyuncu: <strong id="playerName">Oyuncu</strong></div>
+</div>
+
+<div class="container">
+  <a class="topBack" href="game.html">← Koloniye Dön</a>
+  <h1>🔔 Aktivite Merkezi</h1>
+  <div class="sub">Savaş, NPC, keşif ve günlük görev ödülü hareketlerini tek yerde takip et.</div>
+
+  <div class="toolbar">
+    <div class="counter">Yeni aktivite <b id="unreadCount">0</b></div>
+    <button class="button" id="markSeenButton" type="button" disabled>Tümünü Okundu Say</button>
+  </div>
+
+  <div id="status" class="status"></div>
+  <div id="activityList" class="list"></div>
+
+  <a class="back" href="game.html">← Koloniye Dön</a>
+</div>
+
+<script>
+const token=localStorage.getItem('nexora_token');
+const user=JSON.parse(localStorage.getItem('nexora_player')||'null');
+if(!token)location.href='login.html';
+if(user?.username)document.getElementById('playerName').textContent=user.username;
+
+let snapshot=null;
+let loadPromise=null;
+let markPending=false;
+
+function clearInvalidSession(){
+  localStorage.removeItem('nexora_token');
+  localStorage.removeItem('nexora_player');
+  location.href='login.html';
+}
+
+function escapeHtml(value){
+  return String(value??'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+function numberValue(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
+}
+
+function showStatus(message){
+  const el=document.getElementById('status');
+  el.textContent=message||'';
+  el.style.display=message?'block':'none';
+}
+
+function safeHref(value){
+  const allowed=new Set(['reports.html','world.html','missions.html']);
+  const href=String(value||'');
+  return allowed.has(href)?href:'game.html';
+}
+
+function typeLabel(type){
+  return ({
+    pvp_battle:'PvP',
+    npc_battle:'PvE',
+    world_exploration:'Keşif',
+    daily_mission_claim:'Günlük Görev'
+  })[type]||'Aktivite';
+}
+
+function formatTime(value){
+  if(!value)return '';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return '';
+  return date.toLocaleString('tr-TR',{
+    day:'2-digit',
+    month:'2-digit',
+    year:'numeric',
+    hour:'2-digit',
+    minute:'2-digit'
+  });
+}
+
+function render(data){
+  snapshot=data&&typeof data==='object'?data:{};
+  const items=Array.isArray(snapshot.items)?snapshot.items:[];
+  const unread=numberValue(snapshot.unreadCount);
+
+  document.getElementById('unreadCount').textContent=unread.toLocaleString('tr-TR');
+  document.getElementById('markSeenButton').disabled=markPending||unread<=0;
+
+  const list=document.getElementById('activityList');
+  if(!items.length){
+    list.innerHTML='<div class="empty">Henüz gösterilecek aktivite yok.</div>';
+    return;
+  }
+
+  list.innerHTML=items.map(item=>{
+    const tone=['success','danger','neutral'].includes(item?.tone)?item.tone:'neutral';
+    const unreadClass=item?.unread===true?' unread':'';
+    return '<a class="item '+tone+unreadClass+'" href="'+escapeHtml(safeHref(item?.href))+'">'+
+      '<div class="itemTop">'+
+        '<div class="itemTitle">'+escapeHtml(item?.title||'Aktivite')+'</div>'+
+        '<span class="time">'+escapeHtml(formatTime(item?.occurredAt))+'</span>'+
+      '</div>'+
+      '<div class="summary">'+escapeHtml(item?.summary||'')+'</div>'+
+      '<div class="meta">'+
+        '<span class="pill">'+escapeHtml(typeLabel(item?.type))+'</span>'+
+        (item?.unread===true?'<span class="newBadge">YENİ</span>':'')+
+      '</div>'+
+    '</a>';
+  }).join('');
+}
+
+async function loadActivity(silent=false){
+  if(loadPromise)return loadPromise;
+  if(!silent)showStatus('Aktiviteler yükleniyor...');
+
+  loadPromise=(async()=>{
+    try{
+      const response=await fetch('/api/auth?action=activity',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token}
+      });
+      const data=await response.json();
+
+      if(response.status===401){
+        clearInvalidSession();
+        return;
+      }
+
+      if(!response.ok||!data.success){
+        showStatus(data.message||'Aktiviteler yüklenemedi.');
+        return;
+      }
+
+      render(data);
+      if(!silent)showStatus('');
+    }catch(error){
+      console.error(error);
+      showStatus('Bağlantı hatası.');
+    }
+  })().finally(()=>{
+    loadPromise=null;
+  });
+
+  return loadPromise;
+}
+
+async function markAllSeen(){
+  if(markPending)return;
+  markPending=true;
+  document.getElementById('markSeenButton').disabled=true;
+  showStatus('Aktiviteler okundu olarak işaretleniyor...');
+
+  try{
+    const response=await fetch('/api/auth?action=markactivityseen',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const data=await response.json();
+
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      showStatus(data.message||'Aktivite durumu güncellenemedi.');
+      return;
+    }
+
+    render(data);
+    showStatus('Tüm aktiviteler okundu olarak işaretlendi.');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    markPending=false;
+    if(snapshot)render(snapshot);
+  }
+}
+
+document.getElementById('markSeenButton').addEventListener('click',markAllSeen);
+loadActivity();
+setInterval(()=>loadActivity(true),15000);
+</script>
+</body>
+</html>
