@@ -16,6 +16,8 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .menu{list-style:none;padding:0;margin:0 0 26px}
 .menu li{padding:12px;border-radius:8px;margin-bottom:5px;color:#b9d4eb;cursor:pointer}
 .menu li:hover,.menu li.active{background:#102e49;color:#23b8ff}
+.menuItemWithBadge{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.activityBadge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#138dcc;color:#fff;font-size:11px;font-weight:bold}
 .main{flex:1;padding:24px;max-width:1380px;margin:auto;width:100%}
 .mobileNav{display:none;width:100%;margin:0 0 14px;padding:11px 12px;border:1px solid #285476;border-radius:8px;background:#071526;color:#eaf4ff;font-weight:bold}
 
@@ -202,7 +204,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
     <li class="active">🏙️ Kolonim</li>
     <li onclick="go('world.html')">🌍 Dünya Haritası</li>
     <li onclick="go('reports.html')">⚔️ Savaş Raporları</li>
-    <li onclick="go('activity.html')">🔔 Aktivite Merkezi</li>
+    <li class="menuItemWithBadge" onclick="go('activity.html')"><span>🔔 Aktivite Merkezi</span><span class="activityBadge" id="activityUnreadBadge" hidden>0</span></li>
     <li onclick="go('army.html')">🪖 Ordu</li>
     <li onclick="go('research.html')">🔬 Araştırma</li>
     <li onclick="go('ranking.html')">🏆 Sıralama</li>
@@ -225,7 +227,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   <option value="game.html">🏙️ Kolonim</option>
   <option value="world.html">🌍 Dünya Haritası</option>
   <option value="reports.html">⚔️ Savaş Raporları</option>
-  <option value="activity.html">🔔 Aktivite Merkezi</option>
+  <option id="activityMobileOption" value="activity.html">🔔 Aktivite Merkezi</option>
   <option value="army.html">🪖 Ordu</option>
   <option value="research.html">🔬 Araştırma</option>
   <option value="ranking.html">🏆 Sıralama</option>
@@ -1666,6 +1668,79 @@ async function upgrade(name,slot=1){
 }
 
 
+function setActivityUnread(count){
+
+  const value=Math.max(
+    0,
+    Math.floor(
+      Number(count)||0
+    )
+  );
+
+  const badge=document.getElementById(
+    'activityUnreadBadge'
+  );
+
+  if(badge){
+    badge.hidden=value<=0;
+    badge.textContent=
+      value>99
+        ?'99+'
+        :String(value);
+  }
+
+  const mobile=document.getElementById(
+    'activityMobileOption'
+  );
+
+  if(mobile){
+    mobile.textContent=
+      value>0
+        ?'🔔 Aktivite Merkezi ('+
+          (value>99?'99+':value)+
+          ')'
+        :'🔔 Aktivite Merkezi';
+  }
+}
+
+async function loadActivityUnread(){
+
+  try{
+
+    const r=await fetch(
+      '/api/auth?action=activity',
+      {
+        method:'POST',
+        headers:{
+          Authorization:'Bearer '+token
+        }
+      }
+    );
+
+    if(r.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!r.ok)return;
+
+    const d=await r.json();
+
+    if(d&&d.success===true){
+      setActivityUnread(
+        d.unreadCount
+      );
+    }
+
+  }catch(e){
+    console.error(
+      'Aktivite rozeti güncellenemedi.',
+      e
+    );
+  }
+}
+
+
 function logout(){
 
   localStorage.removeItem(
@@ -1683,6 +1758,7 @@ function logout(){
 /* İlk yükleme */
 loadCity();
 loadBeginnerGuide();
+loadActivityUnread();
 
 /* Koloni polling döngüsü */
 setInterval(
@@ -1694,6 +1770,12 @@ setInterval(
 setInterval(
   loadBeginnerGuide,
   10000
+);
+
+/* Aktivite rozeti hafif tempoda güncellenir. */
+setInterval(
+  loadActivityUnread,
+  30000
 );
 
 </script>
