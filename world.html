@@ -773,6 +773,77 @@ body {
   box-shadow:0 0 20px rgba(255,105,105,.46);
 }
 
+.world-site.npc-camp.encounter-small {
+  width:40px;
+  height:40px;
+  z-index:9;
+  font-size:20px;
+  background:rgba(8,32,24,.96);
+  border-color:#72f2b2;
+  box-shadow:0 0 16px rgba(114,242,178,.42);
+}
+
+.world-site.npc-camp.encounter-strong {
+  width:48px;
+  height:48px;
+  z-index:9;
+  font-size:24px;
+  background:rgba(44,27,8,.96);
+  border-color:#ffb34d;
+  box-shadow:0 0 20px rgba(255,179,77,.48);
+}
+
+.world-site.npc-camp.encounter-elite {
+  width:56px;
+  height:56px;
+  z-index:10;
+  font-size:28px;
+  background:rgba(38,16,55,.97);
+  border-color:#c47bff;
+  box-shadow:0 0 24px rgba(196,123,255,.55);
+}
+
+.world-site.npc-camp.encounter-boss {
+  width:64px;
+  height:64px;
+  z-index:11;
+  font-size:32px;
+  background:rgba(57,10,22,.98);
+  border-color:#ff5f84;
+  box-shadow:0 0 30px rgba(255,70,110,.68);
+  animation:bossPulse 1.8s ease-in-out infinite;
+}
+
+.world-site.npc-camp.encounter-small .world-site-label {
+  top:38px;
+}
+
+.world-site.npc-camp.encounter-strong .world-site-label {
+  top:46px;
+}
+
+.world-site.npc-camp.encounter-elite .world-site-label {
+  top:53px;
+  color:#e9c9ff;
+}
+
+.world-site.npc-camp.encounter-boss .world-site-label {
+  top:61px;
+  color:#ffb4c4;
+  font-size:11px;
+}
+
+@keyframes bossPulse {
+  0%,100% {
+    filter:brightness(1);
+    box-shadow:0 0 24px rgba(255,70,110,.54);
+  }
+  50% {
+    filter:brightness(1.22);
+    box-shadow:0 0 36px rgba(255,70,110,.86);
+  }
+}
+
 .world-site.npc-camp.selected {
   transform:translate(-50%,-50%) scale(1.18);
   filter:brightness(1.35);
@@ -1112,6 +1183,10 @@ body {
           <span>🛡️ İttifak Bölgesi</span>
           <span>🛡️ Yeni Oyuncu Koruması</span>
           <span>🏕️ NPC Kampı</span>
+          <span>🐀 Küçük Canavar</span>
+          <span>⚡ Güçlü Canavar</span>
+          <span>🐅 Elite</span>
+          <span>🐉 Büyük Boss</span>
         </div>
   </div>
 </div>
@@ -2626,7 +2701,7 @@ function renderMissionPanel(missions) {
         const coords =
           (
             mission.missionKind === "npc"
-              ? "🏕️ PvE · "
+              ? "⚔️ PvE · "
               : ""
           ) +
           "X:" +
@@ -4373,11 +4448,46 @@ function npcDifficultyLabel(value) {
   })[String(value || "").toLowerCase()] || "Bilinmiyor";
 }
 
+function npcEncounterClass(camp) {
+  const value = String(
+    camp?.encounterClass ||
+    camp?.encounter_class ||
+    "camp"
+  ).toLowerCase();
+
+  return ["camp", "small", "strong", "elite", "boss"].includes(value)
+    ? value
+    : "camp";
+}
+
+function npcEncounterLabel(camp) {
+  return ({
+    camp: "NPC Kampı",
+    small: "Küçük Canavar",
+    strong: "Güçlü Canavar",
+    elite: "Elite Canavar",
+    boss: "Büyük Boss"
+  })[npcEncounterClass(camp)] || "PvE Hedefi";
+}
+
 function npcCampIcon(camp) {
+  const configuredIcon = String(camp?.icon || "").trim();
+  if (configuredIcon) return configuredIcon;
+
   const tier = Number(camp?.tier || camp?.campTier || 1);
   if (tier >= 3) return "🏰";
   if (tier === 2) return "⚔️";
   return "🏕️";
+}
+
+function npcAttackButtonText(camp) {
+  return ({
+    camp: "⚔️ NPC Kampına Saldır",
+    small: "⚔️ Küçük Canavara Saldır",
+    strong: "⚔️ Güçlü Canavara Saldır",
+    elite: "⚔️ Elite Canavara Saldır",
+    boss: "⚔️ Büyük Boss'a Saldır"
+  })[npcEncounterClass(camp)] || "⚔️ PvE Hedefine Saldır";
 }
 
 function hideNpcCampDetails() {
@@ -4446,7 +4556,7 @@ function updateNpcCampAttackButton() {
   }
 
   button.disabled = !attackUnitsAvailable;
-  button.textContent = "⚔️ NPC Kampına Saldır";
+  button.textContent = npcAttackButtonText(selectedNpcCamp);
 }
 
 function renderSelectedNpcCampDetails() {
@@ -4474,7 +4584,7 @@ function renderSelectedNpcCampDetails() {
           " · Sv." + Math.max(1, Number(unit.level || 1))
         );
       }).join("<br>")
-    : "Garnizon bilgisi yok.";
+    : "Savaş profili bilgisi yok.";
 
   const rewardText =
     "🔩 Metal " + Math.max(0, Number(reward.metal || 0)) +
@@ -4504,18 +4614,36 @@ function renderSelectedNpcCampDetails() {
     statusText = "⏳ Tekrar saldırı: " + formatMissionTime(cooldown);
   } else if (camp.canAttack !== true) {
     statusClass = "cooldown";
-    statusText = "⛔ Kamp şu anda saldırıya açık değil.";
+    statusText = "⛔ PvE hedefi şu anda saldırıya açık değil.";
   }
+
+  const encounterClass = npcEncounterClass(camp);
+  const encounterLabel = npcEncounterLabel(camp);
+  const level = Math.max(1, Number(camp.level || camp.tier || 1));
+  const recommendedHq = Math.max(
+    1,
+    Number(camp.recommendedHq || camp.recommended_hq || 1)
+  );
+  const profileTitle =
+    encounterClass === "camp"
+      ? "🛡️ Garnizon"
+      : "👾 Savaş Profili";
 
   box.innerHTML =
     "<div><strong>" +
     escapeHtml(
       npcCampIcon(camp) +
-      " Tier " + Number(camp.tier || 1) +
+      " Seviye " + level +
+      " · " + encounterLabel +
       " · " + npcDifficultyLabel(camp.difficulty)
     ) +
     "</strong></div>" +
-    '<div class="npc-camp-section"><strong>🛡️ Garnizon</strong><br>' +
+    '<div class="npc-camp-section">🏛️ Önerilen Merkez Bina: <strong>Sv.' +
+    recommendedHq +
+    "</strong></div>" +
+    '<div class="npc-camp-section"><strong>' +
+    profileTitle +
+    "</strong><br>" +
     armyText +
     "</div>" +
     '<div class="npc-camp-section"><strong>🎁 Zafer Ödülü</strong><br>' +
@@ -4744,8 +4872,13 @@ function renderNpcCamps() {
       ? difficulty
       : "easy";
 
+    const encounterClass = npcEncounterClass(camp);
     const el = document.createElement("div");
-    el.className = "world-site npc-camp " + safeDifficulty;
+    el.className =
+      "world-site npc-camp " +
+      safeDifficulty +
+      " encounter-" +
+      encounterClass;
 
     if (Number(selectedNpcCamp?.id) === Number(camp.id)) {
       el.classList.add("selected");
@@ -4754,8 +4887,9 @@ function renderNpcCamps() {
     el.style.left = x + "%";
     el.style.top = y + "%";
     el.title =
-      String(camp.name || "NPC Kampı") +
-      " — Tier " + Number(camp.tier || 1) +
+      String(camp.name || "PvE Hedefi") +
+      " — Seviye " + Number(camp.level || camp.tier || 1) +
+      " · " + npcEncounterLabel(camp) +
       " · " + npcDifficultyLabel(camp.difficulty);
 
     el.innerHTML =
@@ -4808,12 +4942,14 @@ function selectNpcCamp(camp, element) {
   );
 
   updateSelectedInfo(
-    String(camp.name || "NPC Kampı"),
+    String(camp.name || "PvE Hedefi"),
     x,
     y,
     getRegionName(x, y),
-    (camp.description || "Bağımsız NPC garnizonu.") +
-      " 📏 Mesafe: " + distance +
+    (camp.description || "Bağımsız PvE hedefi.") +
+      " · " + npcEncounterLabel(camp) +
+      " · Seviye " + Number(camp.level || camp.tier || 1) +
+      " · 📏 Mesafe: " + distance +
       " km. Birliklerini ve savaş taktiğini seçerek saldırabilirsin."
   );
 
@@ -4978,7 +5114,7 @@ function formatNpcBattleAlert(mission, statusData) {
           : {};
 
   return (
-    "⚔️ NPC Savaş Sonucu: " +
+    "⚔️ PvE Savaş Sonucu: " +
     (result.result || "Tamamlandı") +
     "\n\nHedef: " +
     (mission?.targetName || mission?.camp_name || "NPC Kampı") +
@@ -5126,10 +5262,10 @@ async function attackNpcCamp() {
     updateNpcCampAttackButton();
     alert(
       cooldown > 0
-        ? "Bu kampa tekrar saldırmak için " +
+        ? "Bu hedefe tekrar saldırmak için " +
           formatMissionTime(cooldown) +
           " beklemelisin."
-        : "Bu NPC kampı şu anda saldırıya açık değil."
+        : "Bu PvE hedefi şu anda saldırıya açık değil."
     );
     return;
   }
