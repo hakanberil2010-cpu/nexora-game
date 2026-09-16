@@ -3489,6 +3489,22 @@ async function claimDailyMission(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getHeaderBadges(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_header_badges_snapshot",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"Bildirim sayaçları şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function getActivity(req,res){
   const playerId=authPlayerId(req);
   if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
@@ -4568,6 +4584,9 @@ if (action === "claimgamemission") {
 }
 if (action === "claimdailymission") {
   return await claimDailyMission(req, res);
+}
+if (action === "headerbadges") {
+  return await getHeaderBadges(req, res);
 }
 if (action === "activity") {
   return await getActivity(req, res);
