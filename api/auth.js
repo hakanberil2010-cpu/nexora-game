@@ -917,15 +917,33 @@ async function getCity(req, res) {
   const result = await supabase("cities?select=*&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
   if (!result.ok) return send(res, 500, { success: false, message: "Koloni veritaban\u0131ndan al\u0131namad\u0131." });
 
-  if (!result.data?.[0]) {
-    const createResult = await supabase("cities", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({
-      player_id: playerId, name: "Yeni Koloni", level: 1, metal: 1000, energy: 500, water: 500, crystal: 250
-    }) });
-    if (!createResult.ok) return send(res, 500, { success: false, message: "Koloni olu\u015fturulamad\u0131." });
-    return send(res, 200, { success: true, city: createResult.data[0], buildings: [], units: [], productionQueue: [] });
+  let city = result.data?.[0];
+  if (!city) {
+    const createResult = await supabase("rpc/nexora_create_starting_city", {
+      method: "POST",
+      body: JSON.stringify({
+        p_player_id: Number(playerId),
+        p_name: "Yeni Koloni"
+      })
+    });
+    if (
+      !createResult.ok ||
+      createResult.data?.success !== true ||
+      !createResult.data?.city
+    ) {
+      console.error(
+        "Başlangıç kolonisi fallback hatası:",
+        createResult.data
+      );
+      return send(res, 500, {
+        success: false,
+        message:
+          createResult.data?.message ||
+          "Koloni olu\u015fturulamad\u0131."
+      });
+    }
+    city = createResult.data.city;
   }
-
-  let city = result.data[0];
   const buildingsResult = await supabase("buildings?select=*&city_id=eq." + encodeURIComponent(city.id) + "&order=building_type.asc,slot.asc");
   if (!buildingsResult.ok) return send(res, 500, { success: false, message: "Bina verileri al\u0131namad\u0131." });
   let buildings = [];
@@ -2528,9 +2546,12 @@ async function upgradeResearch(req,res){
   if(!cityResult.ok)return send(res,500,{success:false,message:"Koloni veritabanından alınamadı."});
   let city=cityResult.data?.[0];
   if(!city){
-    const createResult=await supabase("cities",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,name:"Yeni Koloni",level:1,metal:1000,energy:500,water:500,crystal:250})});
-    if(!createResult.ok||!createResult.data?.[0])return send(res,500,{success:false,message:"Koloni oluşturulamadı."});
-    city=createResult.data[0];
+    const createResult=await supabase("rpc/nexora_create_starting_city",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_name:"Yeni Koloni"})});
+    if(!createResult.ok||createResult.data?.success!==true||!createResult.data?.city){
+      console.error("Başlangıç kolonisi fallback hatası:",createResult.data);
+      return send(res,500,{success:false,message:createResult.data?.message||"Koloni oluşturulamadı."});
+    }
+    city=createResult.data.city;
   }
   const buildingsResult=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id)); const buildings=buildingsResult.ok?(buildingsResult.data||[]):[];
   const rr=await supabase("research?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"); let research=rr.data?.[0];
@@ -3020,9 +3041,12 @@ async function getResearch(req,res){
   if(!cityResult.ok)return send(res,500,{success:false,message:"Koloni veritabanından alınamadı."});
   let city=cityResult.data?.[0];
   if(!city){
-    const createResult=await supabase("cities",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,name:"Yeni Koloni",level:1,metal:1000,energy:500,water:500,crystal:250})});
-    if(!createResult.ok||!createResult.data?.[0])return send(res,500,{success:false,message:"Koloni oluşturulamadı."});
-    city=createResult.data[0];
+    const createResult=await supabase("rpc/nexora_create_starting_city",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_name:"Yeni Koloni"})});
+    if(!createResult.ok||createResult.data?.success!==true||!createResult.data?.city){
+      console.error("Başlangıç kolonisi fallback hatası:",createResult.data);
+      return send(res,500,{success:false,message:createResult.data?.message||"Koloni oluşturulamadı."});
+    }
+    city=createResult.data.city;
   }
   const buildingsResult=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id));
   const buildings=buildingsResult.ok?(buildingsResult.data||[]):[];
