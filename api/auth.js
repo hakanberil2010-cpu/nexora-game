@@ -3489,6 +3489,38 @@ async function claimDailyMission(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getActivity(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_activity_snapshot",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId,p_limit:30})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"Aktivite merkezi şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function markActivitySeen(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_mark_activity_seen",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"Aktivite durumu güncellenemedi."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function exploreWorld(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const body=await readBody(req);
@@ -4051,6 +4083,12 @@ if (action === "claimgamemission") {
 }
 if (action === "claimdailymission") {
   return await claimDailyMission(req, res);
+}
+if (action === "activity") {
+  return await getActivity(req, res);
+}
+if (action === "markactivityseen") {
+  return await markActivitySeen(req, res);
 }
 if (action === "explorestatus") {
   return await getWorldExploration(req, res);
