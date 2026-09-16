@@ -39,11 +39,37 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .territory small{display:block;margin-top:5px;color:#8db0cf}
 .territoryLink{display:inline-block;padding:8px 10px;border-radius:7px;background:#2e2450;color:#d9c7ff;text-decoration:none;font-size:12px;font-weight:bold}
 .empty{color:#7799b8;padding:8px 0}
+.allianceMissionPanel{margin:18px 0;padding:16px;border:1px solid #355f88;border-radius:12px;background:#071526}
+.allianceMissionHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.allianceMissionMeta{color:#8db0cf;font-size:12px;line-height:1.5;text-align:right}
+.allianceMissionGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.allianceMissionCard{padding:12px;border:1px solid #244d70;border-radius:10px;background:#091d31}
+.allianceMissionCard.done{border-color:#287a5a;background:#0a241f}
+.allianceMissionCard h4{margin:0 0 6px}
+.allianceMissionCard p{margin:0;color:#8db0cf;font-size:12px;line-height:1.4}
+.allianceMissionProgressText{display:flex;justify-content:space-between;gap:10px;margin-top:10px;color:#9fc9e6;font-size:12px}
+.allianceMissionProgress{height:8px;margin-top:6px;border-radius:999px;overflow:hidden;background:#04101b}
+.allianceMissionProgressBar{height:100%;width:0;background:#18bfff}
+.allianceMissionCard.done .allianceMissionProgressBar{background:#58d69a}
+.allianceChest{margin-top:12px;padding:13px;border:1px solid #705b25;border-radius:10px;background:#231c09}
+.allianceChest.ready{border-color:#b99024;background:#302509}
+.allianceChest.claimed{border-color:#2f7657;background:#0b241d}
+.allianceChest strong{color:#ffd970}
+.allianceChest small{display:block;margin-top:5px;color:#c8b67f}
+.allianceContribution{margin-top:14px}
+.allianceContributionTable{width:100%;border-collapse:collapse;font-size:12px}
+.allianceContributionTable th,.allianceContributionTable td{padding:8px;border-bottom:1px solid #17344f;text-align:left}
+.allianceContributionTable th{color:#8db0cf;font-weight:normal}
+.allianceContributionTable td:not(:first-child),.allianceContributionTable th:not(:first-child){text-align:right}
 @media(max-width:700px){
   .top{padding:0 14px}.logo{font-size:23px;letter-spacing:4px}
   .container{padding:0 12px;margin-top:20px}
   .item{align-items:flex-start;flex-direction:column}
   .itemActions{justify-content:flex-start}
+  .allianceMissionGrid{grid-template-columns:1fr}
+  .allianceMissionMeta{text-align:left}
+  .allianceContribution{overflow-x:auto}
+  .allianceContributionTable{min-width:620px}
 }
 </style>
 </head>
@@ -71,6 +97,31 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   <div id="mine" class="panel hidden">
     <h2 id="myTitle"></h2>
     <div id="myStats" class="muted"></div>
+
+    <div id="allianceMissions" class="allianceMissionPanel">
+      <div class="allianceMissionHead">
+        <div>
+          <h3 style="margin:0 0 5px">🎯 Haftalık İttifak Görevleri</h3>
+          <div class="muted">Tüm üyelerin katkısı ortak ilerlemeye eklenir.</div>
+        </div>
+        <div class="allianceMissionMeta">
+          <div>Hafta: <strong id="allianceMissionWeek">-</strong></div>
+          <div>Reset: <strong id="allianceMissionCountdown">-</strong></div>
+          <div>İlerleme: <strong id="allianceMissionCount">0 / 4</strong></div>
+        </div>
+      </div>
+      <div id="allianceMissionGrid" class="allianceMissionGrid">
+        <div class="empty">İttifak görevleri yükleniyor...</div>
+      </div>
+      <div id="allianceMissionChest" class="allianceChest">
+        <strong>🎁 İttifak Haftalık Sandığı</strong>
+        <small>Dört ortak hedef tamamlandığında her mevcut üye sandığı bir kez alabilir.</small>
+      </div>
+      <div class="allianceContribution">
+        <h4 style="margin:0 0 8px">📊 Üye Katkıları</h4>
+        <div id="allianceContributionTable" class="empty">Katkılar yükleniyor...</div>
+      </div>
+    </div>
 
     <h3 class="sectionTitle">👥 Üyeler</h3>
     <div id="members"></div>
@@ -107,6 +158,9 @@ if(u?.username)document.getElementById('player').textContent=u.username;
 
 let currentAlliance=null;
 let currentMember=null;
+let allianceMissionsSnapshot=null;
+let allianceMissionServerOffsetMs=0;
+let allianceMissionNextResetMs=0;
 
 const esc=s=>{
   const d=document.createElement('div');
@@ -302,6 +356,174 @@ async function loadTerritories(allianceId){
   }
 }
 
+function allianceMissionNumber(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(0,n):0;
+}
+
+function allianceMissionPercent(progress,target){
+  const t=Math.max(1,allianceMissionNumber(target));
+  return Math.max(0,Math.min(100,(allianceMissionNumber(progress)/t)*100));
+}
+
+function allianceMissionRewardText(reward){
+  const r=reward&&typeof reward==='object'?reward:{};
+  const parts=[];
+  if(allianceMissionNumber(r.metal)>0)parts.push('⛏️ '+allianceMissionNumber(r.metal).toLocaleString('tr-TR')+' Metal');
+  if(allianceMissionNumber(r.energy)>0)parts.push('⚡ '+allianceMissionNumber(r.energy).toLocaleString('tr-TR')+' Enerji');
+  if(allianceMissionNumber(r.water)>0)parts.push('💧 '+allianceMissionNumber(r.water).toLocaleString('tr-TR')+' Su');
+  if(allianceMissionNumber(r.crystal)>0)parts.push('💎 '+allianceMissionNumber(r.crystal).toLocaleString('tr-TR')+' Kristal');
+  return parts.join(' · ')||'Kaynak ödülü';
+}
+
+function allianceMissionDuration(seconds){
+  let s=Math.max(0,Math.floor(Number(seconds)||0));
+  const days=Math.floor(s/86400);s%=86400;
+  const hours=Math.floor(s/3600);s%=3600;
+  const minutes=Math.floor(s/60);s%=60;
+  if(days>0)return `${days}g ${hours}s ${minutes}dk`;
+  if(hours>0)return `${hours}s ${minutes}dk`;
+  if(minutes>0)return `${minutes}dk ${s}sn`;
+  return `${s}sn`;
+}
+
+function updateAllianceMissionCountdown(){
+  const el=document.getElementById('allianceMissionCountdown');
+  if(!el)return;
+  if(!allianceMissionNextResetMs){
+    el.textContent='-';
+    return;
+  }
+  const serverNow=Date.now()+allianceMissionServerOffsetMs;
+  const seconds=Math.max(0,Math.ceil((allianceMissionNextResetMs-serverNow)/1000));
+  el.textContent=allianceMissionDuration(seconds);
+}
+
+function renderAllianceMissions(data){
+  allianceMissionsSnapshot=data&&typeof data==='object'?data:null;
+
+  const grid=document.getElementById('allianceMissionGrid');
+  const contribution=document.getElementById('allianceContributionTable');
+  const chestEl=document.getElementById('allianceMissionChest');
+  if(!grid||!contribution||!chestEl)return;
+
+  if(!data||data.success!==true||data.inAlliance!==true){
+    grid.innerHTML='<div class="empty">İttifak görevi bulunmuyor.</div>';
+    contribution.innerHTML='<div class="empty">Katkı bulunmuyor.</div>';
+    chestEl.className='allianceChest';
+    chestEl.innerHTML='<strong>🎁 İttifak Haftalık Sandığı</strong><small>Bir ittifaka katıldıktan sonra ortak görevlere katkı sağlayabilirsin.</small>';
+    return;
+  }
+
+  const serverTime=new Date(data.serverTime||Date.now()).getTime();
+  const nextReset=new Date(data.nextResetAt||0).getTime();
+  allianceMissionServerOffsetMs=Number.isFinite(serverTime)?serverTime-Date.now():0;
+  allianceMissionNextResetMs=Number.isFinite(nextReset)?nextReset:0;
+
+  const week=document.getElementById('allianceMissionWeek');
+  const count=document.getElementById('allianceMissionCount');
+  if(week)week.textContent=String(data.weekKey||'-');
+  if(count){
+    count.textContent=
+      allianceMissionNumber(data.completedCount).toLocaleString('tr-TR')+
+      ' / '+
+      allianceMissionNumber(data.totalCount).toLocaleString('tr-TR');
+  }
+  updateAllianceMissionCountdown();
+
+  const missions=Array.isArray(data.missions)?data.missions:[];
+  grid.innerHTML=missions.map(m=>{
+    const progress=allianceMissionNumber(m.progress);
+    const target=Math.max(1,allianceMissionNumber(m.target));
+    const done=m.completed===true;
+    const pct=allianceMissionPercent(progress,target);
+    return `<div class="allianceMissionCard ${done?'done':''}">
+      <h4>${esc(m.title||'İttifak Görevi')}</h4>
+      <p>${esc(m.description||'')}</p>
+      <div class="allianceMissionProgressText">
+        <span>${done?'✅ Tamamlandı':'İlerleme'}</span>
+        <strong>${progress.toLocaleString('tr-TR')} / ${target.toLocaleString('tr-TR')}</strong>
+      </div>
+      <div class="allianceMissionProgress"><div class="allianceMissionProgressBar" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('')||'<div class="empty">Aktif ittifak görevi bulunmuyor.</div>';
+
+  const chest=data.chest&&typeof data.chest==='object'?data.chest:{};
+  const rewardText=allianceMissionRewardText(chest.reward);
+  if(chest.claimed===true){
+    chestEl.className='allianceChest claimed';
+    chestEl.innerHTML=
+      '<strong>✅ İttifak Haftalık Sandığı Alındı</strong>'+
+      '<small>'+esc(rewardText)+'</small>';
+  }else if(chest.claimable===true){
+    chestEl.className='allianceChest ready';
+    chestEl.innerHTML=
+      '<strong>🎁 İttifak Haftalık Sandığı Hazır</strong>'+
+      '<small>'+esc(rewardText)+'</small>'+
+      '<button class="button" style="margin-top:10px" onclick="claimAllianceMissionChest()">Sandığı Al</button>';
+  }else{
+    chestEl.className='allianceChest';
+    chestEl.innerHTML=
+      '<strong>🔒 İttifak Haftalık Sandığı</strong>'+
+      '<small>'+esc(rewardText)+' · Dört ortak hedef tamamlanınca açılır.</small>';
+  }
+
+  const members=Array.isArray(data.contributions)?data.contributions:[];
+  if(!members.length){
+    contribution.innerHTML='<div class="empty">Henüz katkı bulunmuyor.</div>';
+  }else{
+    contribution.innerHTML=`<table class="allianceContributionTable">
+      <thead>
+        <tr>
+          <th>Üye</th>
+          <th>🪖 Birlik</th>
+          <th>🧭 Keşif</th>
+          <th>⚔️ Zafer</th>
+          <th>📅 Aktif Gün</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${members.map(x=>`<tr>
+          <td><strong>${esc(x.username||'Oyuncu')}</strong><br><span class="muted">${roleLabel(String(x.role||'member'))}</span></td>
+          <td>${allianceMissionNumber(x.unitsTrainingStarted).toLocaleString('tr-TR')}</td>
+          <td>${allianceMissionNumber(x.explorationsCompleted).toLocaleString('tr-TR')}</td>
+          <td>${allianceMissionNumber(x.battleWins).toLocaleString('tr-TR')}</td>
+          <td>${allianceMissionNumber(x.activeDays).toLocaleString('tr-TR')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+}
+
+async function loadAllianceMissions(){
+  try{
+    const r=await fetch('/api/auth?action=alliancemissions',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const d=await readResponse(r);
+    if(!r.ok||!d.success){
+      console.error('İttifak görevleri alınamadı:',d);
+      return;
+    }
+    renderAllianceMissions(d);
+  }catch(e){
+    console.error(e);
+  }
+}
+
+async function claimAllianceMissionChest(){
+  const r=await fetch('/api/auth?action=claimalliancemissionchest',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token}
+  });
+  const d=await readResponse(r);
+  msg(d.message||'');
+  if(r.ok&&d.success){
+    renderAllianceMissions(d.snapshot||allianceMissionsSnapshot);
+  }
+}
+
 function activityText(x){
   const actor=esc(x.actor_username||'Oyuncu');
   const target=esc(x.target_username||'Oyuncu');
@@ -326,6 +548,8 @@ function activityText(x){
     case 'war_started': return '⚔️ İttifak savaşı başladı.';
     case 'war_finished':
       return `🏁 İttifak savaşı tamamlandı. Skor: ${Number(meta.ownScore||0)} - ${Number(meta.opponentScore||0)}.`;
+    case 'alliance_mission_chest_claimed':
+      return `${actor} haftalık ittifak sandığını aldı.`;
     default: return 'İttifak aktivitesi güncellendi.';
   }
 }
@@ -363,6 +587,10 @@ function showNoAlliance(){
   document.getElementById('create').classList.remove('hidden');
   const territories=document.getElementById('territories');
   if(territories)territories.innerHTML='';
+  allianceMissionsSnapshot=null;
+  allianceMissionServerOffsetMs=0;
+  allianceMissionNextResetMs=0;
+  renderAllianceMissions({success:true,inAlliance:false});
 }
 
 async function loadMine(){
@@ -378,7 +606,10 @@ async function loadMine(){
     }
     if(d.alliance){
       showMine(d.alliance,d.member,d.members,d.announcements,d.activity);
-      await loadTerritories(d.alliance.id);
+      await Promise.all([
+        loadTerritories(d.alliance.id),
+        loadAllianceMissions()
+      ]);
     }else{
       showNoAlliance();
     }
@@ -454,6 +685,7 @@ async function leaveAlliance(){
 
 loadAll();
 loadMine();
+setInterval(updateAllianceMissionCountdown,1000);
 </script>
 </body>
 </html>
