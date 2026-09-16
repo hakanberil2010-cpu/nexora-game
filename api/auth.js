@@ -3521,6 +3521,76 @@ async function markActivitySeen(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getPrivateMessages(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_private_messages_snapshot",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId,p_limit:30})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Özel mesaj snapshot RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Özel mesajlar şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function sendPrivateMessage(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch(error){return sendBodyError(res,error);}
+
+  const recipientUsername=String(body?.recipientUsername||"").trim();
+  const message=String(body?.message||"").trim();
+
+  if(!recipientUsername||recipientUsername.length>100){
+    return send(res,400,{success:false,message:"Geçerli bir alıcı oyuncu adı gerekli."});
+  }
+
+  if(!message||message.length>500){
+    return send(res,400,{success:false,message:"Mesaj 1-500 karakter arasında olmalı."});
+  }
+
+  const result=await supabase("rpc/nexora_send_private_message",{
+    method:"POST",
+    body:JSON.stringify({
+      p_sender_player_id:playerId,
+      p_recipient_username:recipientUsername,
+      p_message:message
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Özel mesaj gönderme RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Mesaj gönderilemedi."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function markPrivateMessagesRead(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_mark_private_messages_read",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Özel mesaj okundu RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Mesaj durumu güncellenemedi."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function exploreWorld(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const body=await readBody(req);
@@ -4089,6 +4159,15 @@ if (action === "activity") {
 }
 if (action === "markactivityseen") {
   return await markActivitySeen(req, res);
+}
+if (action === "privatemessages") {
+  return await getPrivateMessages(req, res);
+}
+if (action === "sendprivatemessage") {
+  return await sendPrivateMessage(req, res);
+}
+if (action === "markprivatemessagesread") {
+  return await markPrivateMessagesRead(req, res);
 }
 if (action === "explorestatus") {
   return await getWorldExploration(req, res);
