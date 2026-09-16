@@ -106,6 +106,7 @@ h1{margin:0 0 8px}
 <script>
 const token=localStorage.getItem('nexora_token');
 const user=JSON.parse(localStorage.getItem('nexora_player')||'null');
+const prefillRecipient=String(new URLSearchParams(location.search).get('to')||'').trim();
 
 if(!token)location.href='login.html';
 if(user?.username)document.getElementById('playerName').textContent=user.username;
@@ -360,6 +361,11 @@ document.getElementById('sendButton').addEventListener('click',sendMessage);
 document.getElementById('markReadButton').addEventListener('click',markAllRead);
 document.getElementById('inboxTab').addEventListener('click',()=>setTab('inbox'));
 document.getElementById('sentTab').addEventListener('click',()=>setTab('sent'));
+
+if(prefillRecipient&&prefillRecipient.length<=100){
+  document.getElementById('recipientUsername').value=prefillRecipient;
+  document.getElementById('messageText').focus();
+}
 
 updateCharCount();
 loadMessages();
