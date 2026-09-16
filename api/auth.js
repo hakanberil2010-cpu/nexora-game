@@ -3535,6 +3535,31 @@ async function claimDailyMission(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function claimProgressionMission(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch(error){return sendBodyError(res,error);}
+
+  const missionId=String(body?.missionId||"").trim();
+  if(!missionId||missionId.length>100||!/^[a-z0-9_-]+$/i.test(missionId)){
+    return send(res,400,{success:false,message:"Geçersiz ilerleme görevi."});
+  }
+
+  const result=await supabase("rpc/nexora_claim_progression_mission",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId,p_mission_id:missionId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"İlerleme görevi ödülü işlemi şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function getHeaderBadges(req,res){
   const playerId=authPlayerId(req);
   if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
@@ -4760,6 +4785,9 @@ if (action === "claimgamemission") {
 }
 if (action === "claimdailymission") {
   return await claimDailyMission(req, res);
+}
+if (action === "claimprogressionmission") {
+  return await claimProgressionMission(req, res);
 }
 if (action === "headerbadges") {
   return await getHeaderBadges(req, res);
