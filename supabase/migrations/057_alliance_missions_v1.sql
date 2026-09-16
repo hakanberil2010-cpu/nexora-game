@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION public.nexora_alliance_member_metric_value(
 RETURNS bigint
 LANGUAGE plpgsql
 STABLE
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $function$
 DECLARE
@@ -210,7 +210,7 @@ CREATE OR REPLACE FUNCTION public.nexora_alliance_metric_value(
 RETURNS bigint
 LANGUAGE plpgsql
 STABLE
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $function$
 DECLARE
@@ -269,7 +269,7 @@ CREATE OR REPLACE FUNCTION public.nexora_alliance_missions_snapshot(
 RETURNS jsonb
 LANGUAGE plpgsql
 STABLE
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $function$
 DECLARE
@@ -475,7 +475,7 @@ CREATE OR REPLACE FUNCTION public.nexora_claim_alliance_mission_chest(
 )
 RETURNS jsonb
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $function$
 DECLARE
