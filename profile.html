@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NEXORA - Oyuncu Profili</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
+.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
+.container{max-width:1050px;margin:30px auto;padding:0 20px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.button,.buttonAlt{display:inline-flex;align-items:center;justify-content:center;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:bold;cursor:pointer}
+.button{border:1px solid #1aa9ee;background:#138dcc;color:#fff}
+.buttonAlt{border:1px solid #285476;background:#071526;color:#b9d4eb}
+.button:hover,.buttonAlt:hover{filter:brightness(1.08)}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:start;padding:20px;background:#091a2c;border:1px solid #173b5d;border-radius:14px}
+.kicker{font-size:12px;color:#7196b8;text-transform:uppercase;letter-spacing:.9px;font-weight:bold}
+h1{margin:5px 0 8px;font-size:31px}
+.meta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;padding:6px 9px;border-radius:999px;background:#102a44;color:#9edcff;font-size:12px}
+.scoreBox{min-width:155px;text-align:center;padding:15px;border-radius:12px;background:#071526;border:1px solid #285476}
+.scoreLabel{font-size:11px;color:#7196b8;text-transform:uppercase}
+.scoreValue{margin-top:5px;font-size:30px;font-weight:bold;color:#18bfff}
+.section{margin-top:16px;padding:18px;background:#091a2c;border:1px solid #173b5d;border-radius:14px}
+.section h2{margin:0 0 13px;font-size:18px}
+.bio{min-height:58px;color:#c9dbea;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.bioEmpty{color:#7196b8}
+.editor{display:none;margin-top:12px}
+.textarea{width:100%;min-height:105px;padding:11px 12px;border:1px solid #285476;border-radius:9px;background:#071526;color:#eaf4ff;font:inherit;resize:vertical}
+.textarea:focus{outline:none;border-color:#1aa9ee}
+.editorBottom{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:8px}
+.counter{font-size:12px;color:#7196b8}
+.save{padding:10px 15px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
+.save:disabled{opacity:.5;cursor:not-allowed}
+.save:hover:not(:disabled){filter:brightness(1.08)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{padding:14px;border-radius:11px;background:#071526;border:1px solid #173b5d}
+.statLabel{font-size:11px;text-transform:uppercase;color:#7196b8}
+.statValue{margin-top:5px;font-size:21px;font-weight:bold;color:#dff4ff}
+.status{display:none;margin-top:14px;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff}
+.loading{padding:24px;text-align:center;color:#7196b8}
+.hidden{display:none!important}
+@media(max-width:760px){
+  .top{padding:0 15px}
+  .logo{font-size:22px;letter-spacing:4px}
+  .container{padding:0 12px;margin-top:20px}
+  .hero{grid-template-columns:1fr}
+  .scoreBox{width:100%}
+  .stats{grid-template-columns:1fr 1fr}
+}
+@media(max-width:430px){
+  .stats{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">NEXORA</div>
+  <div>Oyuncu: <strong id="viewerName">Oyuncu</strong></div>
+</div>
+
+<div class="container">
+  <div class="actions">
+    <a class="button" href="game.html">← Koloniye Dön</a>
+    <a class="buttonAlt" href="ranking.html">🏆 Sıralama</a>
+    <a class="buttonAlt hidden" id="messageButton" href="messages.html">✉️ Özel Mesaj Gönder</a>
+  </div>
+
+  <div id="loading" class="loading">Profil yükleniyor...</div>
+
+  <main id="profileContent" class="hidden">
+    <section class="hero">
+      <div>
+        <div class="kicker">Komutan Profili</div>
+        <h1 id="profileUsername">Oyuncu</h1>
+        <div class="meta">
+          <span class="pill" id="alliancePill">İttifak yok</span>
+          <span class="pill" id="achievementPill">0 Başarım</span>
+          <span class="pill" id="memberPill">Üyelik tarihi bilinmiyor</span>
+        </div>
+      </div>
+      <div class="scoreBox">
+        <div class="scoreLabel">Toplam Güç Puanı</div>
+        <div class="scoreValue" id="scoreValue">0</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>📝 Profil Açıklaması</h2>
+      <div id="bioView" class="bio bioEmpty">Henüz profil açıklaması yok.</div>
+
+      <div id="bioEditor" class="editor">
+        <textarea id="bioInput" class="textarea" maxlength="300" placeholder="Kendinden, oyun tarzından veya ittifak hedeflerinden kısaca bahset..."></textarea>
+        <div class="editorBottom">
+          <span class="counter"><strong id="bioCount">0</strong>/300</span>
+          <button class="save" id="saveBioButton" type="button">Profili Kaydet</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>📊 Oyuncu İstatistikleri</h2>
+      <div class="stats">
+        <div class="stat"><div class="statLabel">Koloni Seviyesi</div><div class="statValue" id="colonyLevel">0</div></div>
+        <div class="stat"><div class="statLabel">Ordu Gücü</div><div class="statValue" id="armyPower">0</div></div>
+        <div class="stat"><div class="statLabel">Savaş Puanı</div><div class="statValue" id="battlePoints">0</div></div>
+        <div class="stat"><div class="statLabel">Araştırma</div><div class="statValue" id="researchLevel">0</div></div>
+        <div class="stat"><div class="statLabel">Galibiyet</div><div class="statValue" id="wins">0</div></div>
+        <div class="stat"><div class="statLabel">Yenilgi</div><div class="statValue" id="losses">0</div></div>
+        <div class="stat"><div class="statLabel">Beraberlik</div><div class="statValue" id="draws">0</div></div>
+        <div class="stat"><div class="statLabel">Bina Seviyesi Toplamı</div><div class="statValue" id="buildingsLevel">0</div></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="status" class="status"></div>
+</div>
+
+<script>
+const token=localStorage.getItem('nexora_token');
+const viewer=JSON.parse(localStorage.getItem('nexora_player')||'null');
+
+if(!token)location.href='login.html';
+if(viewer?.username)document.getElementById('viewerName').textContent=viewer.username;
+
+const params=new URLSearchParams(location.search);
+const requestedUsername=(params.get('username')||'').trim();
+
+let currentProfile=null;
+let saving=false;
+
+function clearInvalidSession(){
+  localStorage.removeItem('nexora_token');
+  localStorage.removeItem('nexora_player');
+  location.href='login.html';
+}
+
+function formatNumber(value){
+  const n=Number(value);
+  return (Number.isFinite(n)?Math.round(n):0).toLocaleString('tr-TR');
+}
+
+function formatDate(value){
+  if(!value)return 'Üyelik tarihi bilinmiyor';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return 'Üyelik tarihi bilinmiyor';
+  return 'Üye: '+date.toLocaleDateString('tr-TR',{
+    day:'2-digit',
+    month:'long',
+    year:'numeric'
+  });
+}
+
+function showStatus(message){
+  const el=document.getElementById('status');
+  el.textContent=message||'';
+  el.style.display=message?'block':'none';
+}
+
+function updateBioCount(){
+  document.getElementById('bioCount').textContent=
+    document.getElementById('bioInput').value.length;
+}
+
+function render(data){
+  const profile=data.profile||{};
+  const stats=data.stats||{};
+
+  currentProfile=profile;
+
+  document.getElementById('profileUsername').textContent=
+    profile.username||'Oyuncu';
+
+  document.title=
+    'NEXORA - '+(profile.username||'Oyuncu')+' Profili';
+
+  const alliance=profile.alliance;
+  document.getElementById('alliancePill').textContent=
+    alliance
+      ?'🤝 ['+(alliance.tag||'-')+'] '+(alliance.name||'İttifak')
+      :'🤝 İttifak yok';
+
+  document.getElementById('achievementPill').textContent=
+    '🏅 '+formatNumber(profile.achievementCount)+' Başarım';
+
+  document.getElementById('memberPill').textContent=
+    formatDate(profile.createdAt);
+
+  document.getElementById('scoreValue').textContent=
+    formatNumber(stats.score);
+
+  document.getElementById('colonyLevel').textContent=
+    formatNumber(stats.colonyLevel);
+  document.getElementById('armyPower').textContent=
+    formatNumber(stats.armyPower);
+  document.getElementById('battlePoints').textContent=
+    formatNumber(stats.battlePoints);
+  document.getElementById('researchLevel').textContent=
+    formatNumber(stats.researchLevel);
+  document.getElementById('wins').textContent=
+    formatNumber(stats.wins);
+  document.getElementById('losses').textContent=
+    formatNumber(stats.losses);
+  document.getElementById('draws').textContent=
+    formatNumber(stats.draws);
+  document.getElementById('buildingsLevel').textContent=
+    formatNumber(stats.buildingsLevel);
+
+  const bio=String(profile.bio||'');
+  const bioView=document.getElementById('bioView');
+
+  bioView.textContent=bio||'Henüz profil açıklaması yok.';
+  bioView.classList.toggle('bioEmpty',!bio);
+
+  const isSelf=profile.isSelf===true;
+  document.getElementById('bioEditor').style.display=
+    isSelf?'block':'none';
+
+  if(isSelf){
+    document.getElementById('bioInput').value=bio;
+    updateBioCount();
+  }
+
+  const messageButton=document.getElementById('messageButton');
+
+  if(!isSelf&&profile.username){
+    messageButton.classList.remove('hidden');
+    messageButton.href=
+      'messages.html?to='+
+      encodeURIComponent(profile.username);
+  }else{
+    messageButton.classList.add('hidden');
+  }
+
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('profileContent').classList.remove('hidden');
+}
+
+async function loadProfile(){
+  showStatus('');
+
+  const query=requestedUsername
+    ?'&username='+encodeURIComponent(requestedUsername)
+    :'';
+
+  try{
+    const response=await fetch(
+      '/api/auth?action=playerprofile'+query,
+      {
+        method:'POST',
+        headers:{Authorization:'Bearer '+token}
+      }
+    );
+
+    const data=await response.json();
+
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      document.getElementById('loading').textContent=
+        data.message||'Profil yüklenemedi.';
+      return;
+    }
+
+    render(data);
+  }catch(error){
+    console.error(error);
+    document.getElementById('loading').textContent=
+      'Profil yüklenirken bağlantı hatası oluştu.';
+  }
+}
+
+async function saveBio(){
+  if(saving||currentProfile?.isSelf!==true)return;
+
+  const bio=document.getElementById('bioInput').value.trim();
+
+  if(bio.length>300){
+    showStatus('Profil açıklaması en fazla 300 karakter olabilir.');
+    return;
+  }
+
+  saving=true;
+  const button=document.getElementById('saveBioButton');
+  button.disabled=true;
+  showStatus('Profil kaydediliyor...');
+
+  try{
+    const response=await fetch(
+      '/api/auth?action=updateplayerprofile',
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          Authorization:'Bearer '+token
+        },
+        body:JSON.stringify({bio})
+      }
+    );
+
+    const data=await response.json();
+
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      showStatus(data.message||'Profil güncellenemedi.');
+      return;
+    }
+
+    currentProfile.bio=String(data.profile?.bio??bio);
+
+    const bioView=document.getElementById('bioView');
+    bioView.textContent=
+      currentProfile.bio||'Henüz profil açıklaması yok.';
+    bioView.classList.toggle('bioEmpty',!currentProfile.bio);
+
+    document.getElementById('bioInput').value=currentProfile.bio;
+    updateBioCount();
+    showStatus(data.message||'Profil güncellendi.');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    saving=false;
+    button.disabled=false;
+  }
+}
+
+document.getElementById('bioInput').addEventListener('input',updateBioCount);
+document.getElementById('saveBioButton').addEventListener('click',saveBio);
+
+loadProfile();
+</script>
+</body>
+</html>
