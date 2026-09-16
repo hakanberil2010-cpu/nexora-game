@@ -31,6 +31,21 @@ h1{margin:0 0 8px}
 .badge.done{background:#153d2f;color:#64f0aa}
 .badge.claimed{background:#253245;color:#a9bdd0}
 .badge.achievement{background:#2e2440;color:#cfa9ff}
+.achievementPanel{margin:30px 0 14px;padding:17px 18px;background:#081827;border:1px solid #4a3f78;border-radius:14px}
+.achievementPanel .sectionTitle{margin:0 0 10px}
+.achievementMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
+.achievementMeta strong{color:#c9b6ff}
+.achievementControls{display:flex;flex-wrap:wrap;gap:10px;margin-top:13px}
+.achievementControls label{display:flex;align-items:center;gap:7px;color:#8db0cf;font-size:12px}
+.achievementControls select{padding:8px 10px;border:1px solid #315879;border-radius:8px;background:#071526;color:#eaf4ff}
+.achievementTags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.achievementTags .badge{margin-bottom:0}
+.badge.categoryBadge{background:#102a44;color:#8bdcff}
+.badge.tierBronze{background:#3b2c22;color:#e1b08b}
+.badge.tierSilver{background:#253245;color:#c8d7e6}
+.badge.tierGold{background:#403414;color:#ffd66f}
+.badge.tierLegendary{background:#3a2049;color:#efa8ff}
+.achievementPoints{margin-top:9px;color:#ffd36e;font-size:12px;font-weight:bold}
 .progressText{display:flex;justify-content:space-between;gap:12px;color:#8db0cf;font-size:12px;margin-top:12px}
 .progress{height:9px;background:#061321;border-radius:999px;overflow:hidden;border:1px solid #173b5d;margin:7px 0 13px}
 .progressBar{height:100%;background:linear-gradient(90deg,#138dcc,#20c6ff);width:0}
@@ -130,7 +145,43 @@ h1{margin:0 0 8px}
   <div class="sectionTitle">📋 Görevler</div>
   <div id="missionGrid" class="grid"></div>
 
-  <div class="sectionTitle">🏆 Başarımlar</div>
+  <div class="achievementPanel">
+    <div class="sectionTitle">🏆 Başarım Koleksiyonu</div>
+    <div class="achievementMeta">
+      <span>Rozet: <strong id="achievementCollectionCount">0 / 0</strong></span>
+      <span>Puan: <strong id="achievementPoints">0 / 0</strong></span>
+    </div>
+    <div class="progress" aria-hidden="true">
+      <div class="progressBar" id="achievementCollectionBar"></div>
+    </div>
+    <div class="achievementControls">
+      <label>
+        Kategori
+        <select id="achievementCategoryFilter" onchange="renderAchievementCollection()">
+          <option value="all">Tümü</option>
+          <option value="colony">Koloni</option>
+          <option value="army">Ordu</option>
+          <option value="research">Araştırma</option>
+          <option value="exploration">Keşif</option>
+          <option value="combat">Savaş</option>
+          <option value="world">Dünya</option>
+          <option value="economy">Ekonomi</option>
+          <option value="loyalty">Sadakat</option>
+          <option value="weekly">Haftalık</option>
+          <option value="progression">İlerleme</option>
+          <option value="general">Genel</option>
+        </select>
+      </label>
+      <label>
+        Durum
+        <select id="achievementStatusFilter" onchange="renderAchievementCollection()">
+          <option value="all">Tümü</option>
+          <option value="unlocked">Açılanlar</option>
+          <option value="locked">Kilitliler</option>
+        </select>
+      </label>
+    </div>
+  </div>
   <div id="achievementGrid" class="grid"></div>
 
   <a class="back" href="game.html">← Koloniye Dön</a>
@@ -451,6 +502,129 @@ function renderWeekly(weekly){
   }).join('');
 }
 
+const ACHIEVEMENT_CATEGORY_LABELS={
+  colony:'Koloni',
+  army:'Ordu',
+  research:'Araştırma',
+  exploration:'Keşif',
+  combat:'Savaş',
+  world:'Dünya',
+  economy:'Ekonomi',
+  loyalty:'Sadakat',
+  weekly:'Haftalık',
+  progression:'İlerleme',
+  general:'Genel'
+};
+
+const ACHIEVEMENT_TIER_LABELS={
+  bronze:'Bronz',
+  silver:'Gümüş',
+  gold:'Altın',
+  legendary:'Efsane'
+};
+
+const ACHIEVEMENT_TIER_CLASSES={
+  bronze:'tierBronze',
+  silver:'tierSilver',
+  gold:'tierGold',
+  legendary:'tierLegendary'
+};
+
+function renderAchievementCollection(){
+  const achievements=Array.isArray(snapshot?.achievements)?snapshot.achievements:[];
+  const summary=snapshot?.achievementSummary&&typeof snapshot.achievementSummary==='object'
+    ?snapshot.achievementSummary
+    :{};
+
+  const unlockedFallback=achievements.filter(a=>a?.unlocked===true).length;
+  const unlocked=numberValue(summary.unlockedCount??unlockedFallback);
+  const total=numberValue(summary.totalCount??achievements.length);
+  const points=numberValue(summary.points);
+  const maxPoints=numberValue(summary.maxPoints);
+
+  const countEl=document.getElementById('achievementCollectionCount');
+  const pointsEl=document.getElementById('achievementPoints');
+  const bar=document.getElementById('achievementCollectionBar');
+  const grid=document.getElementById('achievementGrid');
+  const category=document.getElementById('achievementCategoryFilter')?.value||'all';
+  const status=document.getElementById('achievementStatusFilter')?.value||'all';
+
+  if(countEl){
+    countEl.textContent=
+      unlocked.toLocaleString('tr-TR')+
+      ' / '+
+      total.toLocaleString('tr-TR');
+  }
+
+  if(pointsEl){
+    pointsEl.textContent=
+      points.toLocaleString('tr-TR')+
+      ' / '+
+      maxPoints.toLocaleString('tr-TR');
+  }
+
+  if(bar){
+    bar.style.width=progressPercent(unlocked,Math.max(1,total))+'%';
+  }
+
+  if(!grid)return;
+
+  const filtered=achievements.filter(a=>{
+    const achievementCategory=String(a?.category||'general');
+    const unlockedState=a?.unlocked===true;
+
+    if(category!=='all'&&achievementCategory!==category)return false;
+    if(status==='unlocked'&&!unlockedState)return false;
+    if(status==='locked'&&unlockedState)return false;
+    return true;
+  });
+
+  if(!achievements.length){
+    grid.innerHTML='<div class="empty">Aktif başarım bulunmuyor.</div>';
+    return;
+  }
+
+  if(!filtered.length){
+    grid.innerHTML='<div class="empty">Bu filtrelere uygun başarım bulunmuyor.</div>';
+    return;
+  }
+
+  grid.innerHTML=filtered.map(a=>{
+    const progress=numberValue(a.progress);
+    const target=Math.max(1,numberValue(a.target));
+    const unlockedState=a.unlocked===true;
+    const pct=progressPercent(progress,target);
+    const achievementCategory=String(a.category||'general');
+    const tier=String(a.tier||'bronze');
+    const categoryLabel=
+      ACHIEVEMENT_CATEGORY_LABELS[achievementCategory]||
+      ACHIEVEMENT_CATEGORY_LABELS.general;
+    const tierLabel=
+      ACHIEVEMENT_TIER_LABELS[tier]||
+      ACHIEVEMENT_TIER_LABELS.bronze;
+    const tierClass=
+      ACHIEVEMENT_TIER_CLASSES[tier]||
+      ACHIEVEMENT_TIER_CLASSES.bronze;
+    const badgePoints=numberValue(a.points);
+
+    return '<div class="card '+(unlockedState?'done':'lockedAchievement')+'">'+
+      '<div class="icon">'+escapeHtml(a.icon||'🏆')+'</div>'+
+      '<div class="achievementTags">'+
+        '<span class="badge achievement">'+(unlockedState?'Açıldı':'Kilitli')+'</span>'+
+        '<span class="badge '+tierClass+'">'+escapeHtml(tierLabel)+'</span>'+
+        '<span class="badge categoryBadge">'+escapeHtml(categoryLabel)+'</span>'+
+      '</div>'+
+      '<h2>'+escapeHtml(a.title||'Başarım')+'</h2>'+
+      '<p>'+escapeHtml(a.description||'')+'</p>'+
+      '<div class="progressText"><span>İlerleme</span><strong>'+
+        progress.toLocaleString('tr-TR')+' / '+target.toLocaleString('tr-TR')+
+      '</strong></div>'+
+      '<div class="progress"><div class="progressBar" style="width:'+pct+'%"></div></div>'+
+      '<div class="achievementPoints">🏆 '+badgePoints.toLocaleString('tr-TR')+' başarım puanı</div>'+
+    '</div>';
+  }).join('');
+}
+
 function render(data){
   snapshot=data||{};
   const missions=Array.isArray(snapshot.missions)?snapshot.missions:[];
@@ -546,8 +720,21 @@ function render(data){
     missions.filter(m=>m?.completed===true).length;
   document.getElementById('claimedMissionCount').textContent=
     missions.filter(m=>m?.claimed===true).length;
+  const achievementSummary=snapshot.achievementSummary&&typeof snapshot.achievementSummary==='object'
+    ?snapshot.achievementSummary
+    :{};
+  const achievementUnlocked=numberValue(
+    achievementSummary.unlockedCount??
+    achievements.filter(a=>a?.unlocked===true).length
+  );
+  const achievementTotal=numberValue(
+    achievementSummary.totalCount??
+    achievements.length
+  );
   document.getElementById('achievementCount').textContent=
-    achievements.filter(a=>a?.unlocked===true).length;
+    achievementUnlocked.toLocaleString('tr-TR')+
+    ' / '+
+    achievementTotal.toLocaleString('tr-TR');
   document.getElementById('strategicSiteCount').textContent=
     numberValue(metrics.strategicSites);
 
@@ -578,25 +765,7 @@ function render(data){
     }).join('');
   }
 
-  const achievementGrid=document.getElementById('achievementGrid');
-  if(!achievements.length){
-    achievementGrid.innerHTML='<div class="empty">Aktif başarım bulunmuyor.</div>';
-  }else{
-    achievementGrid.innerHTML=achievements.map(a=>{
-      const progress=numberValue(a.progress);
-      const target=Math.max(1,numberValue(a.target));
-      const unlocked=a.unlocked===true;
-      const pct=progressPercent(progress,target);
-      return '<div class="card '+(unlocked?'done':'lockedAchievement')+'">'+
-        '<div class="icon">'+escapeHtml(a.icon||'🏆')+'</div>'+
-        '<span class="badge achievement">'+(unlocked?'Açıldı':'Kilitli')+'</span>'+
-        '<h2>'+escapeHtml(a.title||'Başarım')+'</h2>'+
-        '<p>'+escapeHtml(a.description||'')+'</p>'+
-        '<div class="progressText"><span>İlerleme</span><strong>'+progress.toLocaleString('tr-TR')+' / '+target.toLocaleString('tr-TR')+'</strong></div>'+
-        '<div class="progress"><div class="progressBar" style="width:'+pct+'%"></div></div>'+
-      '</div>';
-    }).join('');
-  }
+  renderAchievementCollection();
 }
 
 async function loadObjectives(silent=false){
