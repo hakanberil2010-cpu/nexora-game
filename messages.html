@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NEXORA - Özel Mesajlar</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
+.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
+.container{max-width:1050px;margin:30px auto;padding:0 20px}
+.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
+.topBack:hover{filter:brightness(1.08)}
+h1{margin:0 0 8px}
+.sub{color:#7196b8;line-height:1.45}
+.compose{margin:22px 0;padding:18px;background:#091a2c;border:1px solid #173b5d;border-radius:14px}
+.compose h2{margin:0 0 14px;font-size:19px}
+.formRow{display:grid;grid-template-columns:220px 1fr auto;gap:10px;align-items:start}
+.input,.textarea{width:100%;border:1px solid #285476;background:#071526;color:#eaf4ff;border-radius:9px;padding:11px 12px;font:inherit}
+.textarea{min-height:92px;resize:vertical}
+.input:focus,.textarea:focus{outline:none;border-color:#1aa9ee}
+.sendButton,.button{border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
+.sendButton{padding:11px 18px;min-height:43px}
+.button{padding:10px 14px}
+.sendButton:hover:not(:disabled),.button:hover:not(:disabled){filter:brightness(1.08)}
+.sendButton:disabled,.button:disabled{opacity:.5;cursor:not-allowed}
+.counterLine{display:flex;justify-content:space-between;gap:10px;margin-top:7px;color:#7196b8;font-size:12px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0 12px}
+.tabs{display:flex;gap:8px}
+.tab{padding:10px 14px;border-radius:8px;border:1px solid #285476;background:#071526;color:#b9d4eb;font-weight:bold;cursor:pointer}
+.tab.active{background:#102e49;color:#23b8ff;border-color:#1aa9ee}
+.unreadBox{display:flex;align-items:center;gap:8px;color:#9cc6e2}
+.unreadBox b{font-size:20px;color:#18bfff}
+.status{display:none;margin:12px 0;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff}
+.list{display:grid;gap:11px}
+.messageCard{background:#091a2c;border:1px solid #173b5d;border-radius:13px;padding:16px}
+.messageCard.unread{border-color:#1aa9ee;box-shadow:0 0 0 1px rgba(26,169,238,.14)}
+.messageTop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.who{font-weight:bold;font-size:17px}
+.time{font-size:12px;color:#7196b8;white-space:nowrap}
+.body{margin-top:9px;color:#c9dbea;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.messageMeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px}
+.pill{padding:5px 8px;border-radius:999px;background:#102a44;color:#8bdcff;font-size:12px}
+.newBadge{padding:5px 8px;border-radius:999px;background:#123c59;color:#8bdcff;font-size:11px;font-weight:bold}
+.replyButton{margin-left:auto;padding:7px 10px;border:1px solid #285476;background:#071526;color:#8bdcff;border-radius:7px;cursor:pointer}
+.replyButton:hover{filter:brightness(1.08)}
+.empty{padding:20px;background:#091a2c;border:1px solid #173b5d;border-radius:12px;color:#8db0cf;text-align:center}
+.back{display:inline-block;margin-top:24px;color:#18bfff;text-decoration:none}
+.back:hover{text-decoration:underline}
+@media(max-width:760px){
+  .top{padding:0 15px}
+  .logo{font-size:22px;letter-spacing:4px}
+  .container{padding:0 12px;margin-top:20px}
+  .formRow{grid-template-columns:1fr}
+  .sendButton{width:100%}
+  .messageTop{display:block}
+  .time{display:block;margin-top:6px}
+  .replyButton{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">NEXORA</div>
+  <div>Oyuncu: <strong id="playerName">Oyuncu</strong></div>
+</div>
+
+<div class="container">
+  <a class="topBack" href="game.html">← Koloniye Dön</a>
+  <h1>✉️ Özel Mesajlar</h1>
+  <div class="sub">Diğer oyunculara doğrudan mesaj gönder ve gelen kutunu takip et.</div>
+
+  <section class="compose">
+    <h2>Yeni Mesaj</h2>
+    <div class="formRow">
+      <input class="input" id="recipientUsername" maxlength="100" placeholder="Oyuncu adı">
+      <div>
+        <textarea class="textarea" id="messageText" maxlength="500" placeholder="Mesajını yaz..."></textarea>
+        <div class="counterLine">
+          <span>En fazla 500 karakter</span>
+          <span><strong id="charCount">0</strong>/500</span>
+        </div>
+      </div>
+      <button class="sendButton" id="sendButton" type="button">Gönder</button>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <div class="tabs">
+      <button class="tab active" id="inboxTab" type="button">📥 Gelen Kutusu</button>
+      <button class="tab" id="sentTab" type="button">📤 Gönderilenler</button>
+    </div>
+    <div class="unreadBox">
+      Okunmamış <b id="unreadCount">0</b>
+      <button class="button" id="markReadButton" type="button" disabled>Tümünü Okundu Say</button>
+    </div>
+  </div>
+
+  <div id="status" class="status"></div>
+  <div id="messageList" class="list"></div>
+
+  <a class="back" href="game.html">← Koloniye Dön</a>
+</div>
+
+<script>
+const token=localStorage.getItem('nexora_token');
+const user=JSON.parse(localStorage.getItem('nexora_player')||'null');
+
+if(!token)location.href='login.html';
+if(user?.username)document.getElementById('playerName').textContent=user.username;
+
+let snapshot=null;
+let activeTab='inbox';
+let loading=false;
+let sending=false;
+let markPending=false;
+
+function clearInvalidSession(){
+  localStorage.removeItem('nexora_token');
+  localStorage.removeItem('nexora_player');
+  location.href='login.html';
+}
+
+function escapeHtml(value){
+  return String(value??'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+function numberValue(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
+}
+
+function formatTime(value){
+  if(!value)return '';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return '';
+  return date.toLocaleString('tr-TR',{
+    day:'2-digit',
+    month:'2-digit',
+    year:'numeric',
+    hour:'2-digit',
+    minute:'2-digit'
+  });
+}
+
+function showStatus(message){
+  const el=document.getElementById('status');
+  el.textContent=message||'';
+  el.style.display=message?'block':'none';
+}
+
+function updateCharCount(){
+  document.getElementById('charCount').textContent=
+    document.getElementById('messageText').value.length;
+}
+
+function setTab(tab){
+  activeTab=tab==='sent'?'sent':'inbox';
+  document.getElementById('inboxTab').classList.toggle('active',activeTab==='inbox');
+  document.getElementById('sentTab').classList.toggle('active',activeTab==='sent');
+  render();
+}
+
+function fillReply(username){
+  document.getElementById('recipientUsername').value=String(username||'');
+  document.getElementById('messageText').focus();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function render(){
+  const data=snapshot&&typeof snapshot==='object'?snapshot:{};
+  const unread=numberValue(data.unreadCount);
+
+  document.getElementById('unreadCount').textContent=unread.toLocaleString('tr-TR');
+  document.getElementById('markReadButton').disabled=markPending||unread<=0;
+
+  const items=activeTab==='sent'
+    ?(Array.isArray(data.sent)?data.sent:[])
+    :(Array.isArray(data.inbox)?data.inbox:[]);
+
+  const list=document.getElementById('messageList');
+
+  if(!items.length){
+    list.innerHTML='<div class="empty">'+
+      (activeTab==='sent'?'Henüz gönderilmiş mesaj yok.':'Gelen kutun boş.')+
+    '</div>';
+    return;
+  }
+
+  list.innerHTML=items.map(item=>{
+    if(activeTab==='sent'){
+      return '<div class="messageCard">'+
+        '<div class="messageTop">'+
+          '<div class="who">Kime: '+escapeHtml(item.recipientUsername||'Oyuncu')+'</div>'+
+          '<span class="time">'+escapeHtml(formatTime(item.createdAt))+'</span>'+
+        '</div>'+
+        '<div class="body">'+escapeHtml(item.message||'')+'</div>'+
+        '<div class="messageMeta">'+
+          '<span class="pill">'+(item.read===true?'Okundu':'Henüz okunmadı')+'</span>'+
+        '</div>'+
+      '</div>';
+    }
+
+    return '<div class="messageCard '+(item.unread===true?'unread':'')+'">'+
+      '<div class="messageTop">'+
+        '<div class="who">Kimden: '+escapeHtml(item.senderUsername||'Oyuncu')+'</div>'+
+        '<span class="time">'+escapeHtml(formatTime(item.createdAt))+'</span>'+
+      '</div>'+
+      '<div class="body">'+escapeHtml(item.message||'')+'</div>'+
+      '<div class="messageMeta">'+
+        (item.unread===true?'<span class="newBadge">YENİ</span>':'<span class="pill">Okundu</span>')+
+        '<button class="replyButton" type="button" data-reply="'+escapeHtml(item.senderUsername||'')+'">↩️ Yanıtla</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  list.querySelectorAll('[data-reply]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      fillReply(button.getAttribute('data-reply'));
+    });
+  });
+}
+
+async function loadMessages(silent=false){
+  if(loading)return;
+  loading=true;
+  if(!silent)showStatus('Mesajlar yükleniyor...');
+
+  try{
+    const response=await fetch('/api/auth?action=privatemessages',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+
+    const data=await response.json();
+
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      showStatus(data.message||'Mesajlar yüklenemedi.');
+      return;
+    }
+
+    snapshot=data;
+    render();
+    if(!silent)showStatus('');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    loading=false;
+  }
+}
+
+async function sendMessage(){
+  if(sending)return;
+
+  const recipientUsername=
+    document.getElementById('recipientUsername').value.trim();
+  const message=
+    document.getElementById('messageText').value.trim();
+
+  if(!recipientUsername){
+    showStatus('Alıcı oyuncu adını yaz.');
+    return;
+  }
+
+  if(!message||message.length>500){
+    showStatus('Mesaj 1-500 karakter arasında olmalı.');
+    return;
+  }
+
+  sending=true;
+  document.getElementById('sendButton').disabled=true;
+  showStatus('Mesaj gönderiliyor...');
+
+  try{
+    const response=await fetch('/api/auth?action=sendprivatemessage',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        Authorization:'Bearer '+token
+      },
+      body:JSON.stringify({recipientUsername,message})
+    });
+
+    const data=await response.json();
+
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      showStatus(data.message||'Mesaj gönderilemedi.');
+      return;
+    }
+
+    document.getElementById('messageText').value='';
+    updateCharCount();
+    await loadMessages(true);
+    setTab('sent');
+    showStatus(data.message||'Mesaj gönderildi.');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    sending=false;
+    document.getElementById('sendButton').disabled=false;
+  }
+}
+
+async function markAllRead(){
+  if(markPending)return;
+  markPending=true;
+  document.getElementById('markReadButton').disabled=true;
+  showStatus('Mesajlar okundu olarak işaretleniyor...');
+
+  try{
+    const response=await fetch('/api/auth?action=markprivatemessagesread',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+
+    const data=await response.json();
+
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      showStatus(data.message||'Mesaj durumu güncellenemedi.');
+      return;
+    }
+
+    snapshot=data;
+    render();
+    showStatus('Tüm gelen mesajlar okundu olarak işaretlendi.');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    markPending=false;
+    render();
+  }
+}
+
+document.getElementById('messageText').addEventListener('input',updateCharCount);
+document.getElementById('sendButton').addEventListener('click',sendMessage);
+document.getElementById('markReadButton').addEventListener('click',markAllRead);
+document.getElementById('inboxTab').addEventListener('click',()=>setTab('inbox'));
+document.getElementById('sentTab').addEventListener('click',()=>setTab('sent'));
+
+updateCharCount();
+loadMessages();
+setInterval(()=>loadMessages(true),15000);
+</script>
+</body>
+</html>
