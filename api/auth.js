@@ -4183,48 +4183,15 @@ async function getMilitaryMissions(req,res){
 
 async function getRankings(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const [playersR,citiesR,buildingsR,unitsR,reportsR,researchR]=await Promise.all([
-    supabase("players?select=id,username"),
-    supabase("cities?select=id,player_id,level"),
-    supabase("buildings?select=city_id,level"),
-    supabase("units?select=city_id,quantity,attack,defense,hp"),
-    supabase("battle_reports?select=attacker_player_id,defender_player_id,result,battle_points,winner_player_id"),
-    supabase("research?select=player_id,production_level,combat_level,defense_level,crystal_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level,travel_speed_level")
-  ]);
-  const cityByPlayer={}; for(const c of citiesR.data||[])cityByPlayer[c.player_id]=c;
-  const score={}; for(const p of playersR.data||[])score[p.id]={player_id:p.id,username:p.username,colony_level:Number(cityByPlayer[p.id]?.level||1),army_power:0,battle_points:0,wins:0,losses:0,draws:0,research_level:0,buildings_level:0,score:0};
-  const cityPlayer={}; for(const c of citiesR.data||[])cityPlayer[c.id]=c.player_id;
-  for(const b of buildingsR.data||[]){const pid=cityPlayer[b.city_id];if(score[pid])score[pid].buildings_level+=Number(b.level||0);}
-  for(const u of unitsR.data||[]){const pid=cityPlayer[u.city_id];if(score[pid])score[pid].army_power+=Number(u.quantity||0)*(Number(u.attack||0)+Number(u.defense||0)+Number(u.hp||0)*0.5);}
-  for(const r of researchR.data||[]){if(score[r.player_id])score[r.player_id].research_level+=Object.keys(r).filter(k=>k.endsWith('_level')).reduce((s,k)=>s+Number(r[k]||0),0);}
-  for(const r of reportsR.data||[]){
-    let raw=r.result;
-    if(typeof raw==='string'){
-      try{
-        const parsed=JSON.parse(raw);
-        if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))raw=parsed;
-      }catch{}
-    }
-    const result=raw&&typeof raw==='object'?String(raw.result||''):String(raw||'');
-    const attackerId=Number(r.attacker_player_id);
-    const defenderId=Number(r.defender_player_id);
-    const points=Number(r.battle_points ?? (raw&&typeof raw==='object'?raw.battlePoints:0))||0;
-    let winner=Number(r.winner_player_id ?? (raw&&typeof raw==='object'?raw.winnerPlayerId:0))||0;
-    if(!winner){
-      if(result==='Zafer')winner=attackerId;
-      else if(result==='Yenilgi')winner=defenderId;
-    }
-    if(winner&&score[winner])score[winner].battle_points+=points;
-    if(result==='Beraberlik'){
-      if(score[attackerId])score[attackerId].draws+=1;
-      if(score[defenderId])score[defenderId].draws+=1;
-      continue;
-    }
-    if(winner){
-      if(score[winner])score[winner].wins+=1;
-      const loser=winner===attackerId?defenderId:winner===defenderId?attackerId:0;
-      if(loser&&score[loser])score[loser].losses+=1;
-    }
+  const metricsR=await supabase("rpc/nexora_rankings_metrics_v2",{method:"POST",body:"{}"});
+  if(!metricsR.ok||!Array.isArray(metricsR.data)){
+    console.error("Sıralama metrikleri RPC hatası:",metricsR.data);
+    return send(res,500,{success:false,message:"Sıralama verileri alınamadı."});
+  }
+  const score={};
+  for(const r of metricsR.data){
+    const pid=Number(r.player_id);
+    score[pid]={player_id:pid,username:r.username,colony_level:Number(r.colony_level||1),army_power:Number(r.army_power||0),battle_points:Number(r.battle_points||0),wins:Number(r.wins||0),losses:Number(r.losses||0),draws:Number(r.draws||0),research_level:Number(r.research_level||0),buildings_level:Number(r.buildings_level||0),score:0};
   }
   for(const x of Object.values(score))x.score=Math.round(x.colony_level*100+x.army_power+x.battle_points+x.research_level*30+x.buildings_level*20+x.wins*25);
   const rankings=Object.values(score).sort((a,b)=>b.score-a.score||b.battle_points-a.battle_points||b.army_power-a.army_power||b.wins-a.wins||a.username.localeCompare(b.username,'tr')).map((x,i)=>({...x,rank:i+1,is_me:x.player_id===playerId}));
