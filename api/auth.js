@@ -238,6 +238,7 @@ function createToken(player) {
       id: player.id,
       username: player.username,
       email: player.email,
+      session_version: Math.max(1, Number(player.session_version) || 1),
       iat: now,
       exp: now + TOKEN_TTL_SECONDS
     })
@@ -719,7 +720,7 @@ async function login(req, res) {
   }
 
   const result = await supabase(
-    "players?select=id,username,email,password_hash&email=eq." +
+    "players?select=id,username,email,password_hash,session_version&email=eq." +
       encodeURIComponent(email) +
       "&limit=1"
   );
@@ -773,6 +774,52 @@ function authPlayerId(req) {
   if (!decoded || !decoded.id) return null;
   const id = Number(decoded.id);
   return Number.isInteger(id) ? id : null;
+}
+
+async function ensureCurrentSession(req,res){
+  const authHeader=String(req.headers.authorization||"");
+  if(!authHeader.startsWith("Bearer "))return true;
+
+  const decoded=verifyToken(authHeader.slice(7).trim());
+  if(!decoded||!decoded.id)return true;
+
+  const playerId=Number(decoded.id);
+  const tokenSessionVersion=Number(decoded.session_version??1);
+
+  if(
+    !Number.isSafeInteger(playerId)||playerId<=0||
+    !Number.isSafeInteger(tokenSessionVersion)||tokenSessionVersion<1
+  ){
+    send(res,401,{success:false,message:"Geçersiz oturum."});
+    return false;
+  }
+
+  const result=await supabase(
+    "players?select=session_version&id=eq."+
+    encodeURIComponent(playerId)+
+    "&limit=1"
+  );
+
+  if(!result.ok){
+    console.error("Oturum sürümü kontrol hatası:",result.data);
+    send(res,503,{success:false,message:"Oturum doğrulaması şu anda kullanılamıyor."});
+    return false;
+  }
+
+  const currentSessionVersion=Number(
+    result.data?.[0]?.session_version
+  );
+
+  if(
+    !Number.isSafeInteger(currentSessionVersion)||
+    currentSessionVersion<1||
+    currentSessionVersion!==tokenSessionVersion
+  ){
+    send(res,401,{success:false,message:"Oturumun sona erdi. Lütfen tekrar giriş yap."});
+    return false;
+  }
+
+  return true;
 }
 
 const UNIT_CONFIG = {
@@ -4119,7 +4166,7 @@ async function changePassword(req,res){
   }
 
   const playerResult=await supabase(
-    "players?select=id,password_hash&id=eq."+
+    "players?select=id,password_hash,session_version&id=eq."+
     encodeURIComponent(playerId)+
     "&limit=1"
   );
@@ -4149,11 +4196,14 @@ async function changePassword(req,res){
     encodeURIComponent(playerId)+
     "&password_hash=eq."+
     encodeURIComponent(player.password_hash)+
-    "&select=id",
+    "&select=id,session_version",
     {
       method:"PATCH",
       headers:{Prefer:"return=representation"},
-      body:JSON.stringify({password_hash:passwordHash})
+      body:JSON.stringify({
+        password_hash:passwordHash,
+        session_version:Math.max(1,Number(player.session_version)||1)+1
+      })
     }
   );
 
@@ -4685,6 +4735,10 @@ module.exports = async function handler(req, res) {
 
     if (action === "login") {
       return await login(req, res);
+    }
+
+    if(!(await ensureCurrentSession(req,res))){
+      return;
     }
     if (action === "city") {
   return await getCity(req, res);
