@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NEXORA - Arkadaşlar</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.player{color:#9fc0df}.container{max-width:1100px;margin:28px auto;padding:0 20px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}.btn,.linkBtn{border:1px solid #1a6b98;border-radius:8px;background:#0d2941;color:#eaf4ff;padding:10px 14px;font-weight:bold;cursor:pointer;text-decoration:none}.btn:hover,.linkBtn:hover{filter:brightness(1.08)}.btn.primary{background:#138dcc;border-color:#1aa9ee;color:#fff}.btn.danger{background:#522431;border-color:#8b3d4d}.btn.good{background:#174a3c;border-color:#2b826a}.btn:disabled{opacity:.5;cursor:not-allowed}h1{margin:0 0 6px}.sub{color:#7897b6;margin-bottom:20px}.panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:18px;margin-bottom:18px}.panel h2{margin:0 0 14px;font-size:18px}.sendRow{display:flex;gap:10px;flex-wrap:wrap}.sendRow input{flex:1;min-width:220px;padding:11px 12px;border-radius:8px;border:1px solid #285476;background:#071526;color:#fff;outline:none}.sendRow input:focus{border-color:#18bfff}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.cardList{display:grid;gap:10px}.card{padding:12px;border-radius:10px;background:#071526;border:1px solid #17344f}.name{font-weight:bold;color:#dff4ff;overflow-wrap:anywhere}.meta{margin-top:5px;color:#7897b6;font-size:12px}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.actions .btn,.actions .linkBtn{padding:7px 10px;font-size:12px}.empty{padding:14px;border-radius:9px;background:#071526;color:#7897b6;text-align:center}.count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;padding:0 7px;border-radius:999px;background:#102e49;color:#8bdcff;font-size:12px}.status{min-height:22px;margin:10px 0 0;color:#8bdcff;font-size:13px}.status.error{color:#ff9b9b}.status.ok{color:#7ee3b5}@media(max-width:850px){.grid{grid-template-columns:1fr}.top{height:auto;min-height:70px;padding:12px 16px;gap:10px;flex-wrap:wrap}.logo{font-size:24px;letter-spacing:4px}.container{padding:0 12px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="logo">NEXORA</div><div class="player">Oyuncu: <strong id="playerName">Komutan</strong></div></header>
+<main class="container">
+  <div class="toolbar"><a class="linkBtn" href="game.html">← Koloniye Dön</a><a class="linkBtn" href="profile.html">👤 Profilim</a><a class="linkBtn" href="ranking.html">🏆 Sıralama</a></div>
+  <h1>🤝 Arkadaşlar</h1>
+  <div class="sub">Oyuncu adını tam yazarak arkadaşlık isteği gönderebilirsin.</div>
+  <section class="panel"><h2>Arkadaşlık İsteği Gönder</h2><div class="sendRow"><input id="usernameInput" maxlength="24" autocomplete="off" placeholder="Oyuncu adı"><button class="btn primary" id="sendBtn" type="button">İstek Gönder</button></div><div id="status" class="status"></div></section>
+  <div class="grid">
+    <section class="panel"><h2>Arkadaşlar <span id="friendsCount" class="count">0</span></h2><div id="friendsList" class="cardList"><div class="empty">Yükleniyor...</div></div></section>
+    <section class="panel"><h2>Gelen İstekler <span id="incomingCount" class="count">0</span></h2><div id="incomingList" class="cardList"><div class="empty">Yükleniyor...</div></div></section>
+    <section class="panel"><h2>Gönderilen İstekler <span id="outgoingCount" class="count">0</span></h2><div id="outgoingList" class="cardList"><div class="empty">Yükleniyor...</div></div></section>
+  </div>
+</main>
+<script>
+const token=localStorage.getItem('nexora_token');if(!token)location.href='login.html';
+let viewer=null;try{viewer=JSON.parse(localStorage.getItem('nexora_player')||'null')}catch(_){}if(viewer?.username)document.getElementById('playerName').textContent=viewer.username;
+const statusEl=document.getElementById('status'),inputEl=document.getElementById('usernameInput'),sendBtn=document.getElementById('sendBtn');let loadPromise=null;
+function clearInvalidSession(){localStorage.removeItem('nexora_token');localStorage.removeItem('nexora_player');location.href='login.html'}
+function setStatus(message,type=''){statusEl.textContent=message||'';statusEl.className='status'+(type?' '+type:'')}
+function formatDate(value){if(!value)return '';const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleString('tr-TR')}
+function profileHref(username){return 'profile.html?username='+encodeURIComponent(String(username||''))}
+function empty(text){const el=document.createElement('div');el.className='empty';el.textContent=text;return el}
+function button(text,cls,handler){const el=document.createElement('button');el.type='button';el.className='btn '+cls;el.textContent=text;el.addEventListener('click',handler);return el}
+function profileLink(username){const a=document.createElement('a');a.className='linkBtn';a.href=profileHref(username);a.textContent='Profil';return a}
+async function api(action,body){const r=await fetch('/api/auth?action='+encodeURIComponent(action),{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});let d={};try{d=await r.json()}catch(_){}if(r.status===401){clearInvalidSession();return null}if(!r.ok||!d.success)throw new Error(d.message||'İşlem başarısız.');return d}
+function cardFor(item,mode){const card=document.createElement('div');card.className='card';const name=document.createElement('div');name.className='name';name.textContent=String(item.username||'Oyuncu');card.appendChild(name);const meta=document.createElement('div');meta.className='meta';const date=formatDate(mode==='friend'?item.friendsSince:item.requestedAt);meta.textContent=mode==='friend'?(date?'Arkadaşlık: '+date:'Arkadaş'):(date?(mode==='incoming'?'İstek: ':'Gönderildi: ')+date:'Arkadaşlık isteği');card.appendChild(meta);const actions=document.createElement('div');actions.className='actions';actions.appendChild(profileLink(item.username));if(mode==='friend')actions.appendChild(button('Arkadaşlıktan Çıkar','danger',()=>removeFriend(item.username)));if(mode==='incoming'){actions.appendChild(button('Kabul Et','good',()=>respond('acceptfriendrequest',item.username)));actions.appendChild(button('Reddet','danger',()=>respond('rejectfriendrequest',item.username)))}card.appendChild(actions);return card}
+function render(rootId,items,mode,emptyText){const root=document.getElementById(rootId);root.textContent='';if(!items.length){root.appendChild(empty(emptyText));return}for(const item of items)root.appendChild(cardFor(item,mode))}
+async function loadFriends(){if(loadPromise)return loadPromise;loadPromise=(async()=>{try{const d=await api('friends');if(!d)return;const friends=Array.isArray(d.friends)?d.friends:[],incoming=Array.isArray(d.incoming)?d.incoming:[],outgoing=Array.isArray(d.outgoing)?d.outgoing:[];render('friendsList',friends,'friend','Henüz arkadaşın yok.');render('incomingList',incoming,'incoming','Bekleyen gelen istek yok.');render('outgoingList',outgoing,'outgoing','Gönderilmiş bekleyen istek yok.');document.getElementById('friendsCount').textContent=String(d.counts?.friends??friends.length);document.getElementById('incomingCount').textContent=String(d.counts?.incoming??incoming.length);document.getElementById('outgoingCount').textContent=String(d.counts?.outgoing??outgoing.length)}catch(e){console.error(e);setStatus('Arkadaşlık bilgileri alınamadı. Birazdan yeniden denenecek.','error')}})().finally(()=>{loadPromise=null});return loadPromise}
+async function sendRequest(){const username=String(inputEl.value||'').trim();if(!username){setStatus('Oyuncu adı yazmalısın.','error');inputEl.focus();return}sendBtn.disabled=true;try{const d=await api('sendfriendrequest',{username});if(!d)return;inputEl.value='';setStatus(d.message||'Arkadaşlık isteği gönderildi.','ok');await loadFriends()}catch(e){setStatus(e.message||'İstek gönderilemedi.','error')}finally{sendBtn.disabled=false}}
+async function respond(action,username){try{const d=await api(action,{username});if(!d)return;setStatus(d.message||'İşlem tamamlandı.','ok');await loadFriends()}catch(e){setStatus(e.message||'İşlem başarısız.','error')}}
+async function removeFriend(username){if(!confirm(username+' adlı oyuncuyu arkadaş listesinden çıkarmak istiyor musun?'))return;try{const d=await api('removefriend',{username});if(!d)return;setStatus(d.message||'Arkadaş silindi.','ok');await loadFriends()}catch(e){setStatus(e.message||'Arkadaş silinemedi.','error')}}
+sendBtn.addEventListener('click',sendRequest);inputEl.addEventListener('keydown',e=>{if(e.key==='Enter')sendRequest()});loadFriends();setInterval(loadFriends,20000);
+</script>
+</body>
+</html>
