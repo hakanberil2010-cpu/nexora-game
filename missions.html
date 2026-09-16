@@ -24,6 +24,7 @@ h1{margin:0 0 8px}
 .card.done{border-color:#2b8f66}
 .card.claimed{border-color:#315879;opacity:.78}
 .card.lockedAchievement{opacity:.72}
+.card.progressionUpcoming{opacity:.7;border-style:dashed}
 .card h2{font-size:19px;margin:0 0 7px}
 .card p{color:#9cc6e2;min-height:42px;line-height:1.45}
 .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#102a44;color:#8bdcff;font-size:12px;font-weight:bold;margin-bottom:10px}
@@ -37,7 +38,15 @@ h1{margin:0 0 8px}
 .button{width:100%;padding:11px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer;margin-top:12px}
 .button:hover:not(:disabled){filter:brightness(1.08)}
 .button:disabled{opacity:.5;cursor:not-allowed}
+.buttonLink{display:block;text-align:center;text-decoration:none}
 .status{margin:14px 0 4px;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff;display:none}
+.progressionPanel{margin:28px 0 8px;padding:17px 18px;background:#081827;border:1px solid #315879;border-radius:14px}
+.progressionPanel .sectionTitle{margin:0 0 10px}
+.progressionMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
+.progressionMeta strong{color:#8bdcff}
+.progressionNotice{display:none;margin:12px 0 0;padding:10px 12px;border-radius:9px;background:#151d2a;border:1px solid #3b4d63;color:#c6d7e6}
+.progressionNotice.locked{display:block;background:#241d12;border-color:#695027;color:#ffd98a}
+.progressionNotice.complete{display:block;background:#153d2f;border-color:#2b8f66;color:#79efb3}
 .dailyPanel{margin:28px 0 8px;padding:17px 18px;background:#081827;border:1px solid #1b4668;border-radius:14px}
 .dailyPanel .sectionTitle{margin:0 0 10px}
 .dailyMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
@@ -78,6 +87,16 @@ h1{margin:0 0 8px}
   </div>
 
   <div id="status" class="status"></div>
+
+  <div class="progressionPanel">
+    <div class="sectionTitle">🧭 Uzun Vadeli İlerleme</div>
+    <div class="progressionMeta">
+      <span>Aşama: <strong id="progressionCount">0 / 30</strong></span>
+      <span>Bölüm: <strong id="progressionChapter">--</strong></span>
+    </div>
+    <div id="progressionNotice" class="progressionNotice"></div>
+  </div>
+  <div id="progressionGrid" class="grid"></div>
 
   <div class="dailyPanel">
     <div class="sectionTitle">☀️ Günlük Görevler</div>
@@ -153,6 +172,11 @@ function rewardText(reward){
   return parts.length?parts.join(' · '):'Ödül yok';
 }
 
+function safeGameAction(value){
+  const action=String(value||'');
+  return /^[a-z0-9_-]+\.html$/i.test(action)?action:'game.html';
+}
+
 function formatDayKey(dayKey){
   const parts=String(dayKey||'').split('-');
   return parts.length===3
@@ -184,12 +208,121 @@ function showStatus(message){
   el.style.display=message?'block':'none';
 }
 
+function renderProgression(progression){
+  const countEl=document.getElementById('progressionCount');
+  const chapterEl=document.getElementById('progressionChapter');
+  const notice=document.getElementById('progressionNotice');
+  const grid=document.getElementById('progressionGrid');
+
+  if(!progression||progression.success!==true){
+    countEl.textContent='0 / 30';
+    chapterEl.textContent='--';
+    notice.className='progressionNotice';
+    notice.style.display='block';
+    notice.textContent=progression?.message||'Uzun vadeli ilerleme şu anda kullanılamıyor.';
+    grid.innerHTML='';
+    return;
+  }
+
+  const claimed=numberValue(progression.claimedCount);
+  const total=Math.max(1,numberValue(progression.totalStages)||30);
+  const current=progression.currentStep&&typeof progression.currentStep==='object'
+    ?progression.currentStep
+    :null;
+  const unlocked=progression.unlocked===true;
+  const complete=progression.completed===true;
+
+  countEl.textContent=claimed.toLocaleString('tr-TR')+' / '+total.toLocaleString('tr-TR');
+  chapterEl.textContent=current?.chapterTitle||(
+    complete?'Tamamlandı':'--'
+  );
+
+  if(!unlocked){
+    notice.className='progressionNotice locked';
+    notice.style.display='block';
+    notice.textContent='🔒 Uzun vadeli ilerleme Başlangıç Rehberi tamamlandığında açılır.';
+  }else if(complete){
+    notice.className='progressionNotice complete';
+    notice.style.display='block';
+    notice.textContent='🏆 30 aşamalı NEXORA ilerleme yolunu tamamladın.';
+  }else{
+    notice.className='progressionNotice';
+    notice.style.display='none';
+    notice.textContent='';
+  }
+
+  if(!current){
+    grid.innerHTML=complete
+      ?''
+      :'<div class="empty">Aktif ilerleme aşaması bulunmuyor.</div>';
+    return;
+  }
+
+  const progress=numberValue(current.progress);
+  const target=Math.max(1,numberValue(current.target));
+  const completed=current.completed===true;
+  const claimable=current.claimable===true;
+  const pct=progressPercent(progress,target);
+  const badge=!unlocked
+    ?'Kilitli'
+    :claimable
+      ?'Ödül Hazır'
+      :completed
+        ?'Tamamlandı'
+        :'Aktif Aşama';
+  const badgeClass=!unlocked?'locked':completed?'done':'';
+  const cardClass=completed?'done':'';
+
+  let actionHtml='';
+  if(!unlocked){
+    actionHtml='<button class="button" disabled>🔒 Başlangıç Rehberi Gerekli</button>';
+  }else if(claimable){
+    actionHtml='<button class="button" '+(claimPending?'disabled':'')+
+      ' onclick="claimProgressionMission(\''+escapeHtml(current.id||'')+'\')">🎁 Aşama Ödülünü Al</button>';
+  }else{
+    actionHtml='<a class="button buttonLink" href="'+
+      escapeHtml(safeGameAction(current.action))+'">'+
+      escapeHtml(current.actionLabel||'Hedefe Git')+'</a>';
+  }
+
+  const currentHtml='<div class="card '+cardClass+'">'+
+    '<div class="icon">'+escapeHtml(current.icon||'🧭')+'</div>'+
+    '<span class="badge '+badgeClass+'">'+badge+'</span>'+
+    '<h2>'+escapeHtml(current.title||'İlerleme Aşaması')+'</h2>'+
+    '<p>'+escapeHtml(current.description||'')+'</p>'+
+    '<div class="progressText"><span>Aşama '+numberValue(current.order)+' / '+total+
+      '</span><strong>'+progress.toLocaleString('tr-TR')+' / '+target.toLocaleString('tr-TR')+'</strong></div>'+
+    '<div class="progress"><div class="progressBar" style="width:'+pct+'%"></div></div>'+
+    '<div class="reward">🎁 '+escapeHtml(rewardText(current.reward))+'</div>'+
+    actionHtml+
+  '</div>';
+
+  const upcoming=Array.isArray(progression.nextSteps)?progression.nextSteps:[];
+  const upcomingHtml=upcoming.map(step=>
+    '<div class="card progressionUpcoming">'+
+      '<div class="icon">'+escapeHtml(step?.icon||'🔒')+'</div>'+
+      '<span class="badge locked">Sıradaki</span>'+
+      '<h2>'+escapeHtml(step?.title||'Yaklaşan Aşama')+'</h2>'+
+      '<p>'+escapeHtml(step?.chapterTitle||'Uzun Vadeli İlerleme')+
+        ' · Aşama '+numberValue(step?.order)+'</p>'+
+      '<button class="button" disabled>🔒 Önce aktif aşamayı tamamla</button>'+
+    '</div>'
+  ).join('');
+
+  grid.innerHTML=currentHtml+upcomingHtml;
+}
+
 function render(data){
   snapshot=data||{};
   const missions=Array.isArray(snapshot.missions)?snapshot.missions:[];
   const achievements=Array.isArray(snapshot.achievements)?snapshot.achievements:[];
   const metrics=snapshot.metrics&&typeof snapshot.metrics==='object'?snapshot.metrics:{};
+  const progression=snapshot.progression&&typeof snapshot.progression==='object'
+    ?snapshot.progression
+    :null;
   const daily=snapshot.daily&&typeof snapshot.daily==='object'?snapshot.daily:null;
+
+  renderProgression(progression);
 
   const dailyDayKey=document.getElementById('dailyDayKey');
   const dailyNotice=document.getElementById('dailyNotice');
@@ -383,6 +516,44 @@ async function claimMission(missionId){
     }
     await loadObjectives(true);
     showStatus(data.message||'Görev ödülü alındı.');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    claimPending=false;
+    if(snapshot)render(snapshot);
+  }
+}
+
+async function claimProgressionMission(missionId){
+  if(claimPending||!missionId)return;
+  claimPending=true;
+  showStatus('İlerleme aşaması ödülü alınıyor...');
+  if(snapshot)render(snapshot);
+
+  try{
+    const response=await fetch('/api/auth?action=claimprogressionmission',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        Authorization:'Bearer '+token
+      },
+      body:JSON.stringify({missionId})
+    });
+
+    const data=await response.json();
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      showStatus(data.message||'İlerleme aşaması ödülü alınamadı.');
+      return;
+    }
+
+    await loadObjectives(true);
+    showStatus(data.message||'İlerleme aşaması tamamlandı.');
   }catch(error){
     console.error(error);
     showStatus('Bağlantı hatası.');
