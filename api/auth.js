@@ -4021,6 +4021,162 @@ async function updatePlayerProfile(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getAccountSettings(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase(
+    "players?select=id,username,email,created_at&id=eq."+
+    encodeURIComponent(playerId)+
+    "&limit=1"
+  );
+
+  if(!result.ok){
+    console.error("Hesap ayarları sorgu hatası:",result.data);
+    return send(res,503,{success:false,message:"Hesap bilgileri şu anda alınamıyor."});
+  }
+
+  const account=result.data?.[0]||null;
+  if(!account){
+    return send(res,404,{success:false,message:"Oyuncu hesabı bulunamadı."});
+  }
+
+  return send(res,200,{
+    success:true,
+    account:{
+      id:Number(account.id),
+      username:String(account.username||""),
+      email:String(account.email||""),
+      createdAt:account.created_at||null
+    }
+  });
+}
+
+async function changePassword(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const body=await readBody(req);
+  const currentPassword=String(body.currentPassword||"");
+  const newPassword=String(body.newPassword||"");
+
+  if(!currentPassword||!newPassword){
+    return send(res,400,{success:false,message:"Mevcut ve yeni şifre gerekli."});
+  }
+
+  if(newPassword.length<6){
+    return send(res,400,{success:false,message:"Yeni şifre en az 6 karakter olmalı."});
+  }
+
+  if(currentPassword===newPassword){
+    return send(res,400,{success:false,message:"Yeni şifre mevcut şifreden farklı olmalı."});
+  }
+
+  const ip=clientIp(req);
+  const changeIpKey=rateLimitKeyHash(
+    "password_change_ip\n"+ip
+  );
+  const changeIdentityKey=rateLimitKeyHash(
+    "password_change_player\n"+playerId
+  );
+
+  const ipLimit=await consumeAuthRateLimit(
+    "login_ip",
+    changeIpKey,
+    LOGIN_IP_LIMIT,
+    LOGIN_RATE_WINDOW_SECONDS
+  );
+
+  if(!ipLimit.ok){
+    return send(res,503,{success:false,message:"Şifre güvenlik kontrolü şu anda kullanılamıyor."});
+  }
+
+  if(!ipLimit.allowed){
+    return sendRateLimited(
+      res,
+      "Çok fazla şifre değiştirme denemesi. Lütfen daha sonra tekrar deneyin.",
+      ipLimit.retryAfterSeconds
+    );
+  }
+
+  const identityLimit=await consumeAuthRateLimit(
+    "login_identity",
+    changeIdentityKey,
+    LOGIN_IDENTITY_LIMIT,
+    LOGIN_RATE_WINDOW_SECONDS
+  );
+
+  if(!identityLimit.ok){
+    return send(res,503,{success:false,message:"Şifre güvenlik kontrolü şu anda kullanılamıyor."});
+  }
+
+  if(!identityLimit.allowed){
+    return sendRateLimited(
+      res,
+      "Çok fazla şifre değiştirme denemesi. Lütfen daha sonra tekrar deneyin.",
+      identityLimit.retryAfterSeconds
+    );
+  }
+
+  const playerResult=await supabase(
+    "players?select=id,password_hash&id=eq."+
+    encodeURIComponent(playerId)+
+    "&limit=1"
+  );
+
+  if(!playerResult.ok){
+    console.error("Şifre değiştirme hesap sorgu hatası:",playerResult.data);
+    return send(res,503,{success:false,message:"Hesap bilgileri şu anda alınamıyor."});
+  }
+
+  const player=playerResult.data?.[0]||null;
+  if(!player){
+    return send(res,404,{success:false,message:"Oyuncu hesabı bulunamadı."});
+  }
+
+  const valid=await verifyPassword(
+    currentPassword,
+    player.password_hash||DUMMY_PASSWORD_HASH
+  );
+
+  if(!valid){
+    return send(res,400,{success:false,message:"Mevcut şifre hatalı."});
+  }
+
+  const passwordHash=await hashPassword(newPassword);
+  const updated=await supabase(
+    "players?id=eq."+
+    encodeURIComponent(playerId)+
+    "&password_hash=eq."+
+    encodeURIComponent(player.password_hash)+
+    "&select=id",
+    {
+      method:"PATCH",
+      headers:{Prefer:"return=representation"},
+      body:JSON.stringify({password_hash:passwordHash})
+    }
+  );
+
+  if(!updated.ok){
+    console.error("Şifre değiştirme güncelleme hatası:",updated.data);
+    return send(res,503,{success:false,message:"Şifre şu anda değiştirilemiyor."});
+  }
+
+  if(!updated.data?.[0]){
+    return send(res,409,{success:false,message:"Hesap bilgisi değişti. Lütfen tekrar deneyin."});
+  }
+
+  await clearAuthRateLimit(
+    "login_identity",
+    changeIdentityKey
+  );
+
+  return send(res,200,{
+    success:true,
+    message:"Şifren değiştirildi. Yeniden giriş yapmalısın."
+  });
+}
+
 async function exploreWorld(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const body=await readBody(req);
@@ -4589,6 +4745,12 @@ if (action === "playerprofile") {
 }
 if (action === "updateplayerprofile") {
   return await updatePlayerProfile(req, res);
+}
+if (action === "accountsettings") {
+  return await getAccountSettings(req, res);
+}
+if (action === "changepassword") {
+  return await changePassword(req, res);
 }
 if (action === "explorestatus") {
   return await getWorldExploration(req, res);
