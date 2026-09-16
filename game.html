@@ -1689,6 +1689,7 @@ function setActivityUnread(count){
 
   if(badge){
     badge.hidden=value<=0;
+    badge.style.display=value<=0?'none':'';
     badge.textContent=
       value>99
         ?'99+'
@@ -1724,6 +1725,7 @@ function setMessageUnread(count){
 
   if(badge){
     badge.hidden=value<=0;
+    badge.style.display=value<=0?'none':'';
     badge.textContent=
       value>99
         ?'99+'
@@ -1759,6 +1761,7 @@ function setFriendIncoming(count){
 
   if(badge){
     badge.hidden=value<=0;
+    badge.style.display=value<=0?'none':'';
     badge.textContent=
       value>99
         ?'99+'
@@ -1780,116 +1783,34 @@ function setFriendIncoming(count){
 }
 
 
-async function loadFriendIncoming(){
+let headerBadgesLoading=false;
+
+async function loadHeaderBadges(){
+  if(headerBadgesLoading)return;
+  headerBadgesLoading=true;
 
   try{
-
-    const r=await fetch(
-      '/api/auth?action=friends',
-      {
-        method:'POST',
-        headers:{
-          Authorization:'Bearer '+token
-        }
-      }
-    );
+    const r=await fetch('/api/auth?action=headerbadges',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
 
     if(r.status===401){
       clearInvalidSession();
       return;
     }
-
     if(!r.ok)return;
 
     const d=await r.json();
-
     if(d&&d.success===true){
-      setFriendIncoming(
-        d.counts?.incoming
-      );
+      setActivityUnread(d.activityUnread);
+      setMessageUnread(d.messageUnread);
+      setFriendIncoming(d.friendIncoming);
     }
-
   }catch(e){
-    console.error(
-      'Arkadaşlık isteği rozeti güncellenemedi.',
-      e
-    );
-  }
-}
-
-
-async function loadMessageUnread(){
-
-  try{
-
-    const r=await fetch(
-      '/api/auth?action=privatemessages',
-      {
-        method:'POST',
-        headers:{
-          Authorization:'Bearer '+token
-        }
-      }
-    );
-
-    if(r.status===401){
-      clearInvalidSession();
-      return;
-    }
-
-    if(!r.ok)return;
-
-    const d=await r.json();
-
-    if(d&&d.success===true){
-      setMessageUnread(
-        d.unreadCount
-      );
-    }
-
-  }catch(e){
-    console.error(
-      'Mesaj rozeti güncellenemedi.',
-      e
-    );
-  }
-}
-
-
-async function loadActivityUnread(){
-
-  try{
-
-    const r=await fetch(
-      '/api/auth?action=activity',
-      {
-        method:'POST',
-        headers:{
-          Authorization:'Bearer '+token
-        }
-      }
-    );
-
-    if(r.status===401){
-      clearInvalidSession();
-      return;
-    }
-
-    if(!r.ok)return;
-
-    const d=await r.json();
-
-    if(d&&d.success===true){
-      setActivityUnread(
-        d.unreadCount
-      );
-    }
-
-  }catch(e){
-    console.error(
-      'Aktivite rozeti güncellenemedi.',
-      e
-    );
+    console.error('Bildirim rozetleri güncellenemedi.',e);
+  }finally{
+    headerBadgesLoading=false;
   }
 }
 
@@ -1911,9 +1832,7 @@ function logout(){
 /* İlk yükleme */
 loadCity();
 loadBeginnerGuide();
-loadActivityUnread();
-loadMessageUnread();
-loadFriendIncoming();
+loadHeaderBadges();
 
 /* Koloni polling döngüsü */
 setInterval(
@@ -1927,21 +1846,9 @@ setInterval(
   10000
 );
 
-/* Aktivite rozeti hafif tempoda güncellenir. */
+/* Menü rozetleri tek hafif istekle güncellenir. */
 setInterval(
-  loadActivityUnread,
-  30000
-);
-
-/* Özel mesaj rozeti de hafif tempoda güncellenir. */
-setInterval(
-  loadMessageUnread,
-  30000
-);
-
-/* Gelen arkadaşlık isteği rozeti hafif tempoda güncellenir. */
-setInterval(
-  loadFriendIncoming,
+  loadHeaderBadges,
   30000
 );
 
