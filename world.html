@@ -317,6 +317,50 @@ body {
   white-space: nowrap;
 }
 
+.pvp-protection-badge {
+  display:none;
+  position:absolute;
+  top:-10px;
+  right:12px;
+  z-index:12;
+  min-width:27px;
+  height:27px;
+  padding:0 6px;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #75c8ff;
+  border-radius:999px;
+  background:rgba(7,31,52,.96);
+  box-shadow:0 0 15px rgba(66,177,255,.48);
+  font-size:15px;
+  line-height:1;
+}
+
+.colony.pvp-protected .pvp-protection-badge { display:flex; }
+.colony.pvp-protected .colony-icon {
+  border-color:#75c8ff;
+  box-shadow:0 0 22px rgba(66,177,255,.46);
+}
+
+.pvp-protection-status {
+  display:none;
+  margin:12px 0;
+  padding:11px 12px;
+  border:1px solid #2f79a6;
+  border-radius:10px;
+  background:rgba(10,43,68,.78);
+  color:#a9dcff;
+  font-size:13px;
+  line-height:1.45;
+}
+
+.pvp-protection-status.active { display:block; }
+.pvp-protection-status.viewer-warning {
+  border-color:#94762b;
+  background:rgba(75,55,10,.50);
+  color:#ffe39a;
+}
+
 .you {
   z-index: 10;
 }
@@ -908,6 +952,7 @@ body {
               onclick="selectColony('Senin Kolonin', true)"
             >
               <div class="colony-icon">🏰</div>
+              <span class="pvp-protection-badge" id="ownPvpProtectionBadge" title="Yeni Oyuncu PvP Koruması">🛡️</span>
               <div class="colony-name">Senin Kolonin</div>
             </div>
 
@@ -996,6 +1041,8 @@ body {
 
         <p id="selectedText"></p>
 
+        <div id="pvpProtectionStatus" class="pvp-protection-status"></div>
+
         <div
           id="npcCampDetails"
           class="npc-camp-details"
@@ -1063,6 +1110,7 @@ body {
           <span>💎 Kaynak Bölgesi</span>
           <span>🏚️ Terk Edilmiş Koloni</span>
           <span>🛡️ İttifak Bölgesi</span>
+          <span>🛡️ Yeni Oyuncu Koruması</span>
           <span>🏕️ NPC Kampı</span>
         </div>
   </div>
@@ -1435,6 +1483,10 @@ let selectedPlayer = null;
 let selectedPlayerId = null;
 let selectedPlayerX = null;
 let selectedPlayerY = null;
+let selectedPlayerProtection = null;
+let viewerPvpProtection = { protected:false, protectedUntil:null, remainingSeconds:0 };
+let worldPlayersCache = [];
+let pvpAttackBusy = false;
 
 let npcCamps = [];
 let selectedNpcCamp = null;
@@ -1475,6 +1527,116 @@ function getPlayerPosition(playerId) {
     mapPositions.length
   ];
 
+}
+
+
+function normalizePvpProtection(value) {
+  const p = value && typeof value === "object" ? value : {};
+  const protectedUntil = p.protectedUntil || p.protected_until || null;
+  const untilMs = protectedUntil ? new Date(protectedUntil).getTime() : NaN;
+  const remainingSeconds = Number.isFinite(untilMs)
+    ? Math.max(0, Math.ceil((untilMs - Date.now()) / 1000))
+    : Math.max(0, Number(p.remainingSeconds || p.remaining_seconds || 0));
+  const active = p.protected === true && remainingSeconds > 0;
+  return {
+    protected: active,
+    protectedUntil,
+    remainingSeconds: active ? remainingSeconds : 0
+  };
+}
+
+function isPvpProtectionActive(value) {
+  return normalizePvpProtection(value).protected;
+}
+
+function formatPvpProtectionTime(seconds) {
+  let total = Math.max(0, Math.ceil(Number(seconds) || 0));
+  const days = Math.floor(total / 86400);
+  total -= days * 86400;
+  const hours = Math.floor(total / 3600);
+  total -= hours * 3600;
+  const minutes = Math.floor(total / 60);
+  const secs = total % 60;
+  if (days > 0) return days + "g " + hours + "sa " + minutes + "dk";
+  if (hours > 0) return hours + "sa " + minutes + "dk";
+  if (minutes > 0) return minutes + "dk " + secs + "sn";
+  return secs + "sn";
+}
+
+function getCachedPlayerProtection(playerId) {
+  const player = (worldPlayersCache || []).find(
+    x => Number(x.player_id) === Number(playerId)
+  );
+  return normalizePvpProtection(player?.pvpProtection);
+}
+
+function applyPvpBadge(colony, protection) {
+  if (!colony) return;
+  const p = normalizePvpProtection(protection);
+  colony.classList.toggle("pvp-protected", p.protected);
+  const badge = colony.querySelector(".pvp-protection-badge");
+  if (!badge) return;
+  badge.style.display = p.protected ? "flex" : "none";
+  badge.title = p.protected
+    ? "Yeni Oyuncu PvP Koruması · " +
+      formatPvpProtectionTime(p.remainingSeconds) + " kaldı"
+    : "";
+}
+
+function refreshPvpProtectionBadges() {
+  applyPvpBadge(document.querySelector(".colony.you"), viewerPvpProtection);
+  document.querySelectorAll("#realPlayers .colony[data-player-id]").forEach(
+    colony => applyPvpBadge(
+      colony,
+      getCachedPlayerProtection(colony.dataset.playerId)
+    )
+  );
+}
+
+function updatePvpAttackButton() {
+  if (selectedNpcCamp) return;
+  const button = document.getElementById("attackButton");
+  if (!button || !selectedPlayerId) return;
+  button.style.display = "inline-block";
+  if (pvpAttackBusy) {
+    button.disabled = true;
+    return;
+  }
+  if (isPvpProtectionActive(selectedPlayerProtection)) {
+    button.disabled = true;
+    button.textContent = "🛡️ PvP Koruması";
+    return;
+  }
+  button.disabled = !attackUnitsAvailable;
+  button.textContent = "⚔️ Saldır";
+}
+
+function refreshPvpProtectionUi() {
+  refreshPvpProtectionBadges();
+  const box = document.getElementById("pvpProtectionStatus");
+  if (!box) return;
+
+  box.classList.remove("active", "viewer-warning");
+  box.textContent = "";
+
+  if (!selectedPlayerId || selectedNpcCamp) return;
+
+  selectedPlayerProtection = normalizePvpProtection(selectedPlayerProtection);
+  viewerPvpProtection = normalizePvpProtection(viewerPvpProtection);
+
+  if (selectedPlayerProtection.protected) {
+    box.textContent =
+      "🛡️ Yeni Oyuncu PvP Koruması · " +
+      formatPvpProtectionTime(selectedPlayerProtection.remainingSeconds) +
+      " kaldı. Bu oyuncuya askeri saldırı gönderilemez; casusluk kullanılabilir.";
+    box.classList.add("active");
+  } else if (viewerPvpProtection.protected) {
+    box.textContent =
+      "⚠️ Yeni oyuncu koruman aktif. Bu oyuncuya PvP saldırısı başlatırsan koruman kalıcı olarak sona erecek.";
+    box.classList.add("active", "viewer-warning");
+  }
+
+  updatePvpAttackButton();
 }
 
 
@@ -1661,6 +1823,8 @@ function selectColony(
     selectedPlayerId = null;
     selectedPlayerX = null;
     selectedPlayerY = null;
+    selectedPlayerProtection = null;
+    refreshPvpProtectionUi();
 
     toggleOwnColonyMenu();
 
@@ -1674,6 +1838,11 @@ function selectColony(
 
   selectedPlayerId =
     playerId;
+
+  selectedPlayerProtection =
+    getCachedPlayerProtection(
+      playerId
+    );
 
   const position =
     getPlayerPosition(
@@ -1721,6 +1890,7 @@ function selectColony(
   const spyButton = document.getElementById("spyButton");
   if (spyButton) spyButton.style.display = "inline-block";
   refreshEspionageUi();
+  refreshPvpProtectionUi();
 
   if (
     typeof renderAttackUnitSelector ===
@@ -1775,6 +1945,11 @@ function selectPlayerColony(
 
   selectedPlayerId =
     player.player_id;
+
+  selectedPlayerProtection =
+    normalizePvpProtection(
+      player.pvpProtection
+    );
 
   selectedPlayerX =
     Number(x);
@@ -1838,6 +2013,7 @@ function selectPlayerColony(
   const spyButton = document.getElementById("spyButton");
   if (spyButton) spyButton.style.display = "inline-block";
   refreshEspionageUi();
+  refreshPvpProtectionUi();
 
   if (
     typeof renderAttackUnitSelector ===
@@ -3155,8 +3331,7 @@ function renderAttackUnitSelector() {
           if (selectedNpcCamp) {
             updateNpcCampAttackButton();
           } else {
-            attackButton.disabled =
-              false;
+            updatePvpAttackButton();
           }
         }
 
@@ -3608,8 +3783,7 @@ async function attack() {
       totalSelected <= 0
     ) {
 
-      attackButton.disabled =
-        false;
+      updatePvpAttackButton();
 
       alert(
         "En az bir birlik miktarı seçmelisin."
@@ -3618,6 +3792,29 @@ async function attack() {
       return;
 
     }
+
+    if (isPvpProtectionActive(selectedPlayerProtection)) {
+      updatePvpAttackButton();
+      alert("Bu oyuncu yeni oyuncu PvP koruması altında.");
+      return;
+    }
+
+    const viewerWasProtected =
+      isPvpProtectionActive(viewerPvpProtection);
+
+    if (
+      viewerWasProtected &&
+      !confirm(
+        "🛡️ Yeni oyuncu koruman aktif.\n\n" +
+        "Bu PvP seferini başlatırsan koruman kalıcı olarak sona erecek.\n\n" +
+        "Saldırıya devam edilsin mi?"
+      )
+    ) {
+      updatePvpAttackButton();
+      return;
+    }
+
+    pvpAttackBusy = true;
 
     attackButton.disabled =
       true;
@@ -3665,6 +3862,22 @@ async function attack() {
       !data.mission
     ) {
 
+      if (String(data.code || "") === "TARGET_PVP_PROTECTED") {
+        selectedPlayerProtection = normalizePvpProtection({
+          protected: true,
+          protectedUntil:
+            data.protectedUntil ||
+            selectedPlayerProtection?.protectedUntil ||
+            null,
+          remainingSeconds:
+            Number(
+              data.remainingSeconds ||
+              selectedPlayerProtection?.remainingSeconds ||
+              0
+            )
+        });
+      }
+
       alert(
         data.message ||
         "Sefer oluşturulamadı."
@@ -3673,13 +3886,7 @@ async function attack() {
       if (
         controlsCurrentAttackTarget()
       ) {
-
-        attackButton.disabled =
-          false;
-
-        attackButton.textContent =
-          "⚔️ Saldır";
-
+        refreshPvpProtectionUi();
       } else if (
         selectedNpcCamp
       ) {
@@ -3690,6 +3897,15 @@ async function attack() {
 
       return;
 
+    }
+
+    if (viewerWasProtected) {
+      viewerPvpProtection = {
+        protected: false,
+        protectedUntil: viewerPvpProtection.protectedUntil || null,
+        remainingSeconds: 0
+      };
+      refreshPvpProtectionUi();
     }
 
     const missionId =
@@ -4117,16 +4333,12 @@ async function attack() {
 
   } finally {
 
+    pvpAttackBusy = false;
+
     if (
       controlsCurrentAttackTarget()
     ) {
-
-      attackButton.disabled =
-        false;
-
-      attackButton.textContent =
-        "⚔️ Saldır";
-
+      refreshPvpProtectionUi();
     } else if (
       selectedNpcCamp
     ) {
@@ -4573,6 +4785,8 @@ function selectNpcCamp(camp, element) {
   selectedPlayerId = null;
   selectedPlayerX = null;
   selectedPlayerY = null;
+  selectedPlayerProtection = null;
+  refreshPvpProtectionUi();
 
   updateWorldClaimButton();
 
@@ -5052,8 +5266,20 @@ function createPlayerColony(
       ? savedY
       : fallbackPosition.y;
 
+  const playerProtection =
+    normalizePvpProtection(
+      player.pvpProtection
+    );
+
   colony.className =
     "colony";
+
+  colony.dataset.playerId =
+    String(player.player_id);
+
+  if (playerProtection.protected) {
+    colony.classList.add("pvp-protected");
+  }
 
   colony.style.left =
     x + "%";
@@ -5066,6 +5292,7 @@ function createPlayerColony(
 
   colony.innerHTML =
     '<div class="colony-icon">🏠</div>' +
+    '<span class="pvp-protection-badge" title="Yeni Oyuncu PvP Koruması">🛡️</span>' +
     '<div class="colony-name">' +
     escapeHtml(
       player.username
@@ -6218,6 +6445,23 @@ async function loadWorldPlayers() {
       data.regionControl
     );
 
+    viewerPvpProtection =
+      normalizePvpProtection(
+        data.viewerPvpProtection
+      );
+
+    worldPlayersCache =
+      Array.isArray(data.players)
+        ? data.players
+        : [];
+
+    if (selectedPlayerId && !selectedNpcCamp) {
+      selectedPlayerProtection =
+        getCachedPlayerProtection(
+          selectedPlayerId
+        );
+    }
+
     const playersContainer =
       document.getElementById(
         "realPlayers"
@@ -6277,7 +6521,7 @@ async function loadWorldPlayers() {
 
     const otherPlayers =
       (
-        data.players ||
+        worldPlayersCache ||
         []
       ).filter(
         function(player) {
@@ -6320,6 +6564,8 @@ async function loadWorldPlayers() {
       }
     );
 
+    refreshPvpProtectionUi();
+
   } catch (error) {
 
     console.error(
@@ -6349,6 +6595,11 @@ loadMyCoordinates()
       startNpcMissionTracking();
       refreshEspionageUi();
       pollEspionageMission();
+
+      setInterval(
+        refreshPvpProtectionUi,
+        1000
+      );
 
     }
   );
