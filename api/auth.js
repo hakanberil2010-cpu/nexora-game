@@ -3591,6 +3591,148 @@ async function markPrivateMessagesRead(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getFriends(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_friends_snapshot",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Arkadaşlık snapshot RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Arkadaşlık bilgileri şu anda alınamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function sendFriendRequest(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch(error){return sendBodyError(res,error);}
+
+  const targetUsername=String(body?.username||"").trim();
+
+  if(!targetUsername||targetUsername.length>24){
+    return send(res,400,{success:false,message:"Geçerli bir oyuncu adı gerekli."});
+  }
+
+  const result=await supabase("rpc/nexora_send_friend_request",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:playerId,
+      p_target_username:targetUsername
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Arkadaşlık isteği RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Arkadaşlık isteği şu anda gönderilemiyor."});
+  }
+
+  const code=String(result.data.code||"");
+  const status=result.data.success
+    ?200
+    :(code==="TARGET_NOT_FOUND"?404:409);
+
+  return send(res,status,result.data);
+}
+
+async function acceptFriendRequest(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch(error){return sendBodyError(res,error);}
+
+  const username=String(body?.username||"").trim();
+
+  if(!username||username.length>24){
+    return send(res,400,{success:false,message:"Geçerli bir oyuncu adı gerekli."});
+  }
+
+  const result=await supabase("rpc/nexora_accept_friend_request",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:playerId,
+      p_requester_username:username
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Arkadaşlık kabul RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Arkadaşlık isteği şu anda kabul edilemiyor."});
+  }
+
+  return send(res,result.data.success?200:404,result.data);
+}
+
+async function rejectFriendRequest(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch(error){return sendBodyError(res,error);}
+
+  const username=String(body?.username||"").trim();
+
+  if(!username||username.length>24){
+    return send(res,400,{success:false,message:"Geçerli bir oyuncu adı gerekli."});
+  }
+
+  const result=await supabase("rpc/nexora_reject_friend_request",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:playerId,
+      p_requester_username:username
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Arkadaşlık ret RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Arkadaşlık isteği şu anda reddedilemiyor."});
+  }
+
+  return send(res,result.data.success?200:404,result.data);
+}
+
+async function removeFriend(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch(error){return sendBodyError(res,error);}
+
+  const username=String(body?.username||"").trim();
+
+  if(!username||username.length>24){
+    return send(res,400,{success:false,message:"Geçerli bir oyuncu adı gerekli."});
+  }
+
+  const result=await supabase("rpc/nexora_remove_friend",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:playerId,
+      p_friend_username:username
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Arkadaş silme RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Arkadaş şu anda silinemiyor."});
+  }
+
+  return send(res,result.data.success?200:404,result.data);
+}
+
 async function getPlayerProfile(req,res){
   const playerId=authPlayerId(req);
   if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
@@ -4441,6 +4583,21 @@ if (action === "sendprivatemessage") {
 }
 if (action === "markprivatemessagesread") {
   return await markPrivateMessagesRead(req, res);
+}
+if (action === "friends") {
+  return await getFriends(req, res);
+}
+if (action === "sendfriendrequest") {
+  return await sendFriendRequest(req, res);
+}
+if (action === "acceptfriendrequest") {
+  return await acceptFriendRequest(req, res);
+}
+if (action === "rejectfriendrequest") {
+  return await rejectFriendRequest(req, res);
+}
+if (action === "removefriend") {
+  return await removeFriend(req, res);
 }
 if (action === "playerprofile") {
   return await getPlayerProfile(req, res);
