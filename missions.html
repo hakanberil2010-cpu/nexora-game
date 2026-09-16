@@ -47,6 +47,13 @@ h1{margin:0 0 8px}
 .progressionNotice{display:none;margin:12px 0 0;padding:10px 12px;border-radius:9px;background:#151d2a;border:1px solid #3b4d63;color:#c6d7e6}
 .progressionNotice.locked{display:block;background:#241d12;border-color:#695027;color:#ffd98a}
 .progressionNotice.complete{display:block;background:#153d2f;border-color:#2b8f66;color:#79efb3}
+.weeklyPanel{margin:28px 0 8px;padding:17px 18px;background:#081827;border:1px solid #4a3f78;border-radius:14px}
+.weeklyPanel .sectionTitle{margin:0 0 10px}
+.weeklyMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
+.weeklyMeta strong{color:#c9b6ff}
+.weeklyNotice{display:none;margin:12px 0 0;padding:10px 12px;border-radius:9px;background:#151d2a;border:1px solid #3b4d63;color:#c6d7e6}
+.weeklyNotice.locked{display:block;background:#241d12;border-color:#695027;color:#ffd98a}
+.card.weeklyLocked{opacity:.66;border-color:#4a4438}
 .dailyPanel{margin:28px 0 8px;padding:17px 18px;background:#081827;border:1px solid #1b4668;border-radius:14px}
 .dailyPanel .sectionTitle{margin:0 0 10px}
 .dailyMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
@@ -98,6 +105,17 @@ h1{margin:0 0 8px}
   </div>
   <div id="progressionGrid" class="grid"></div>
 
+  <div class="weeklyPanel">
+    <div class="sectionTitle">📆 Haftalık Görevler</div>
+    <div class="weeklyMeta">
+      <span>Hafta: <strong id="weeklyWeekKey">--</strong></span>
+      <span>Yenilenmeye kalan: <strong id="weeklyCountdown">--:--:--</strong></span>
+      <span>Reset: <strong>Pazartesi 00:00 Türkiye saati</strong></span>
+    </div>
+    <div id="weeklyNotice" class="weeklyNotice"></div>
+  </div>
+  <div id="weeklyGrid" class="grid"></div>
+
   <div class="dailyPanel">
     <div class="sectionTitle">☀️ Günlük Görevler</div>
     <div class="dailyMeta">
@@ -133,6 +151,8 @@ if(user?.username)document.getElementById('playerName').textContent=user.usernam
 let snapshot=null;
 let claimPending=false;
 let objectivesLoadPromise=null;
+let weeklyServerOffsetMs=0;
+let weeklyNextResetMs=null;
 let dailyServerOffsetMs=0;
 let dailyNextResetMs=null;
 
@@ -182,6 +202,38 @@ function formatDayKey(dayKey){
   return parts.length===3
     ?parts[2]+'.'+parts[1]+'.'+parts[0]
     :'--';
+}
+
+function formatWeekKey(weekKey){
+  const parts=String(weekKey||'').split('-');
+  if(parts.length!==3)return '--';
+  const start=new Date(parts[0]+'-'+parts[1]+'-'+parts[2]+'T00:00:00+03:00');
+  if(Number.isNaN(start.getTime()))return '--';
+  const end=new Date(start.getTime()+6*24*60*60*1000);
+  const format=date=>new Intl.DateTimeFormat('tr-TR',{
+    day:'2-digit',
+    month:'2-digit'
+  }).format(date);
+  return format(start)+' - '+format(end);
+}
+
+function updateWeeklyCountdown(){
+  const el=document.getElementById('weeklyCountdown');
+  if(!el)return;
+  if(!Number.isFinite(weeklyNextResetMs)){
+    el.textContent='--:--:--';
+    return;
+  }
+
+  const serverNow=Date.now()+weeklyServerOffsetMs;
+  const remaining=Math.max(0,weeklyNextResetMs-serverNow);
+  const totalSeconds=Math.floor(remaining/1000);
+  const days=Math.floor(totalSeconds/86400);
+  const hours=Math.floor((totalSeconds%86400)/3600);
+  const minutes=Math.floor((totalSeconds%3600)/60);
+  const seconds=totalSeconds%60;
+  const pad=value=>String(value).padStart(2,'0');
+  el.textContent=days+'g '+pad(hours)+':'+pad(minutes)+':'+pad(seconds);
 }
 
 function updateDailyCountdown(){
@@ -312,6 +364,93 @@ function renderProgression(progression){
   grid.innerHTML=currentHtml+upcomingHtml;
 }
 
+function renderWeekly(weekly){
+  const weekKey=document.getElementById('weeklyWeekKey');
+  const notice=document.getElementById('weeklyNotice');
+  const grid=document.getElementById('weeklyGrid');
+
+  if(!weekly||weekly.success!==true){
+    weekKey.textContent='--';
+    weeklyServerOffsetMs=0;
+    weeklyNextResetMs=null;
+    updateWeeklyCountdown();
+    notice.className='weeklyNotice';
+    notice.style.display='block';
+    notice.textContent=weekly?.message||'Haftalık görev sistemi şu anda kullanılamıyor.';
+    grid.innerHTML='';
+    return;
+  }
+
+  weekKey.textContent=formatWeekKey(weekly.weekKey);
+
+  const serverTimeMs=new Date(weekly.serverTime).getTime();
+  weeklyServerOffsetMs=Number.isFinite(serverTimeMs)
+    ?serverTimeMs-Date.now()
+    :0;
+
+  const nextResetMs=new Date(weekly.nextResetAt).getTime();
+  weeklyNextResetMs=Number.isFinite(nextResetMs)?nextResetMs:null;
+  updateWeeklyCountdown();
+
+  const unlocked=weekly.unlocked===true;
+  if(unlocked){
+    notice.className='weeklyNotice';
+    notice.style.display='none';
+    notice.textContent='';
+  }else{
+    notice.className='weeklyNotice locked';
+    notice.style.display='block';
+    notice.textContent='🔒 Haftalık görevler Başlangıç Rehberi tamamlandığında açılır.';
+  }
+
+  const missions=Array.isArray(weekly.missions)?weekly.missions:[];
+  if(!missions.length){
+    grid.innerHTML='<div class="empty">Bu hafta için aktif haftalık görev bulunmuyor.</div>';
+    return;
+  }
+
+  grid.innerHTML=missions.map(m=>{
+    const progress=numberValue(m.progress);
+    const target=Math.max(1,numberValue(m.target));
+    const completed=m.completed===true;
+    const claimed=m.claimed===true;
+    const claimable=m.claimable===true;
+    const pct=progressPercent(progress,target);
+    const badge=!unlocked
+      ?'Kilitli'
+      :claimed
+        ?'Ödül Alındı'
+        :completed
+          ?'Tamamlandı'
+          :'Devam Ediyor';
+    const badgeClass=!unlocked?'locked':claimed?'claimed':completed?'done':'';
+    const cardClass=!unlocked?'weeklyLocked':claimed?'claimed':completed?'done':'';
+    const buttonText=!unlocked
+      ?'🔒 Başlangıç Rehberi Gerekli'
+      :claimed
+        ?'Ödül Alındı'
+        :completed
+          ?'🎁 Haftalık Ödülü Al'
+          :'Henüz Tamamlanmadı';
+    const credited=claimed
+      ?'<div class="creditedReward">✅ Depoya eklenen: '+escapeHtml(rewardText(m.creditedReward))+'</div>'
+      :'';
+
+    return '<div class="card '+cardClass+'">'+
+      '<span class="badge '+badgeClass+'">'+badge+'</span>'+
+      '<h2>'+escapeHtml(m.title||'Haftalık Görev')+'</h2>'+
+      '<p>'+escapeHtml(m.description||'')+'</p>'+
+      '<div class="progressText"><span>Bu haftaki ilerleme</span><strong>'+
+        progress.toLocaleString('tr-TR')+' / '+target.toLocaleString('tr-TR')+'</strong></div>'+
+      '<div class="progress"><div class="progressBar" style="width:'+pct+'%"></div></div>'+
+      '<div class="reward">🎁 '+escapeHtml(rewardText(m.reward))+'</div>'+
+      credited+
+      '<button class="button" '+(!claimable||claimPending?'disabled':'')+
+        ' onclick="claimWeeklyMission(\''+escapeHtml(m.id||'')+'\')">'+buttonText+'</button>'+
+    '</div>';
+  }).join('');
+}
+
 function render(data){
   snapshot=data||{};
   const missions=Array.isArray(snapshot.missions)?snapshot.missions:[];
@@ -320,9 +459,11 @@ function render(data){
   const progression=snapshot.progression&&typeof snapshot.progression==='object'
     ?snapshot.progression
     :null;
+  const weekly=snapshot.weekly&&typeof snapshot.weekly==='object'?snapshot.weekly:null;
   const daily=snapshot.daily&&typeof snapshot.daily==='object'?snapshot.daily:null;
 
   renderProgression(progression);
+  renderWeekly(weekly);
 
   const dailyDayKey=document.getElementById('dailyDayKey');
   const dailyNotice=document.getElementById('dailyNotice');
@@ -563,6 +704,44 @@ async function claimProgressionMission(missionId){
   }
 }
 
+async function claimWeeklyMission(missionId){
+  if(claimPending||!missionId)return;
+  claimPending=true;
+  showStatus('Haftalık görev ödülü alınıyor...');
+  if(snapshot)render(snapshot);
+
+  try{
+    const response=await fetch('/api/auth?action=claimweeklymission',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        Authorization:'Bearer '+token
+      },
+      body:JSON.stringify({missionId})
+    });
+
+    const data=await response.json();
+    if(response.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!response.ok||!data.success){
+      showStatus(data.message||'Haftalık görev ödülü alınamadı.');
+      return;
+    }
+
+    await loadObjectives(true);
+    showStatus(data.message||'Haftalık görev ödülü alındı.');
+  }catch(error){
+    console.error(error);
+    showStatus('Bağlantı hatası.');
+  }finally{
+    claimPending=false;
+    if(snapshot)render(snapshot);
+  }
+}
+
 async function claimDailyMission(missionId){
   if(claimPending||!missionId)return;
   claimPending=true;
@@ -603,6 +782,7 @@ async function claimDailyMission(missionId){
 
 loadObjectives();
 setInterval(()=>loadObjectives(true),10000);
+setInterval(updateWeeklyCountdown,1000);
 setInterval(updateDailyCountdown,1000);
 </script>
 </body>
