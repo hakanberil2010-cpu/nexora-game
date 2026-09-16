@@ -3601,6 +3601,38 @@ async function claimLoginReward(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getAllianceMissions(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_alliance_missions_snapshot",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"İttifak görevleri şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function claimAllianceMissionChest(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_claim_alliance_mission_chest",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"İttifak görev sandığı işlemi şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function getHeaderBadges(req,res){
   const playerId=authPlayerId(req);
   if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
@@ -4835,6 +4867,12 @@ if (action === "claimweeklymission") {
 }
 if (action === "claimloginreward") {
   return await claimLoginReward(req, res);
+}
+if (action === "alliancemissions") {
+  return await getAllianceMissions(req, res);
+}
+if (action === "claimalliancemissionchest") {
+  return await claimAllianceMissionChest(req, res);
 }
 if (action === "headerbadges") {
   return await getHeaderBadges(req, res);
