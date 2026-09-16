@@ -3464,6 +3464,31 @@ async function claimGameMission(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function claimDailyMission(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}
+  catch(error){return sendBodyError(res,error);}
+
+  const missionId=String(body?.missionId||"").trim();
+  if(!missionId||missionId.length>100||!/^[a-z0-9_-]+$/i.test(missionId)){
+    return send(res,400,{success:false,message:"Geçersiz günlük görev."});
+  }
+
+  const result=await supabase("rpc/nexora_claim_daily_mission",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId,p_mission_id:missionId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"Günlük görev ödülü işlemi şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function exploreWorld(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const body=await readBody(req);
@@ -4023,6 +4048,9 @@ if (action === "gameobjectives") {
 }
 if (action === "claimgamemission") {
   return await claimGameMission(req, res);
+}
+if (action === "claimdailymission") {
+  return await claimDailyMission(req, res);
 }
 if (action === "explorestatus") {
   return await getWorldExploration(req, res);
