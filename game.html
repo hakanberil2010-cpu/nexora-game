@@ -210,7 +210,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
     <li onclick="go('research.html')">🔬 Araştırma</li>
     <li onclick="go('ranking.html')">🏆 Sıralama</li>
     <li onclick="go('profile.html')">👤 Profilim</li>
-    <li onclick="go('friends.html')">🤝 Arkadaşlar</li>
+    <li class="menuItemWithBadge" onclick="go('friends.html')"><span>🤝 Arkadaşlar</span><span class="activityBadge" id="friendIncomingBadge" hidden>0</span></li>
     <li onclick="go('alliance.html')">🤝 İttifak</li>
     <li onclick="go('trade.html')">💱 Ticaret</li>
     <li onclick="go('missions.html')">🎯 Görevler</li>
@@ -236,7 +236,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   <option value="research.html">🔬 Araştırma</option>
   <option value="ranking.html">🏆 Sıralama</option>
   <option value="profile.html">👤 Profilim</option>
-  <option value="friends.html">🤝 Arkadaşlar</option>
+  <option id="friendMobileOption" value="friends.html">🤝 Arkadaşlar</option>
   <option value="alliance.html">🤝 İttifak</option>
   <option value="trade.html">💱 Ticaret</option>
   <option value="missions.html">🎯 Görevler</option>
@@ -1744,6 +1744,80 @@ function setMessageUnread(count){
   }
 }
 
+function setFriendIncoming(count){
+
+  const value=Math.max(
+    0,
+    Math.floor(
+      Number(count)||0
+    )
+  );
+
+  const badge=document.getElementById(
+    'friendIncomingBadge'
+  );
+
+  if(badge){
+    badge.hidden=value<=0;
+    badge.textContent=
+      value>99
+        ?'99+'
+        :String(value);
+  }
+
+  const mobile=document.getElementById(
+    'friendMobileOption'
+  );
+
+  if(mobile){
+    mobile.textContent=
+      value>0
+        ?'🤝 Arkadaşlar ('+
+          (value>99?'99+':value)+
+          ')'
+        :'🤝 Arkadaşlar';
+  }
+}
+
+
+async function loadFriendIncoming(){
+
+  try{
+
+    const r=await fetch(
+      '/api/auth?action=friends',
+      {
+        method:'POST',
+        headers:{
+          Authorization:'Bearer '+token
+        }
+      }
+    );
+
+    if(r.status===401){
+      clearInvalidSession();
+      return;
+    }
+
+    if(!r.ok)return;
+
+    const d=await r.json();
+
+    if(d&&d.success===true){
+      setFriendIncoming(
+        d.counts?.incoming
+      );
+    }
+
+  }catch(e){
+    console.error(
+      'Arkadaşlık isteği rozeti güncellenemedi.',
+      e
+    );
+  }
+}
+
+
 async function loadMessageUnread(){
 
   try{
@@ -1839,6 +1913,7 @@ loadCity();
 loadBeginnerGuide();
 loadActivityUnread();
 loadMessageUnread();
+loadFriendIncoming();
 
 /* Koloni polling döngüsü */
 setInterval(
@@ -1861,6 +1936,12 @@ setInterval(
 /* Özel mesaj rozeti de hafif tempoda güncellenir. */
 setInterval(
   loadMessageUnread,
+  30000
+);
+
+/* Gelen arkadaşlık isteği rozeti hafif tempoda güncellenir. */
+setInterval(
+  loadFriendIncoming,
   30000
 );
 
