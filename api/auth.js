@@ -914,11 +914,19 @@ async function getCity(req, res) {
   const playerId = authPlayerId(req);
   if (playerId === null) return send(res, 401, { success: false, message: "Oturum bulunamad\u0131." });
 
-  const result = await supabase("cities?select=*&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
-  if (!result.ok) return send(res, 500, { success: false, message: "Koloni veritaban\u0131ndan al\u0131namad\u0131." });
+  const loadSnapshot = () => supabase("rpc/nexora_city_snapshot_v2", {
+    method: "POST",
+    body: JSON.stringify({ p_player_id: Number(playerId) })
+  });
 
-  let city = result.data?.[0];
-  if (!city) {
+  let snapshotResult = await loadSnapshot();
+
+  if (!snapshotResult.ok) {
+    console.error("Koloni snapshot RPC hatas\u0131:", snapshotResult.data);
+    return send(res, 503, { success: false, message: "Koloni verileri senkronize edilemedi." });
+  }
+
+  if (snapshotResult.data?.success === false && snapshotResult.data?.code === "CITY_NOT_FOUND") {
     const createResult = await supabase("rpc/nexora_create_starting_city", {
       method: "POST",
       body: JSON.stringify({
@@ -926,6 +934,7 @@ async function getCity(req, res) {
         p_name: "Yeni Koloni"
       })
     });
+
     if (
       !createResult.ok ||
       createResult.data?.success !== true ||
@@ -942,44 +951,34 @@ async function getCity(req, res) {
           "Koloni olu\u015fturulamad\u0131."
       });
     }
-    city = createResult.data.city;
-  }
-  const buildingsResult = await supabase("buildings?select=*&city_id=eq." + encodeURIComponent(city.id) + "&order=building_type.asc,slot.asc");
-  if (!buildingsResult.ok) return send(res, 500, { success: false, message: "Bina verileri al\u0131namad\u0131." });
-  let buildings = [];
-  for (const b of (buildingsResult.data || [])) buildings.push(await finalizeBuilding(b));
 
-  const production = await syncProductionQueue(playerId, city.id);
-  if (!production.ok) return send(res, 500, { success: false, message: "\u00dcretim kuyru\u011fu al\u0131namad\u0131." });
-
-  const productionSync = await supabase("rpc/nexora_sync_city_production", {
-    method: "POST",
-    body: JSON.stringify({ p_player_id: playerId })
-  });
-  if (!productionSync.ok || productionSync.data?.success === false || !productionSync.data?.city) {
-    console.error("Atomik \u00fcretim senkronizasyonu hatas\u0131:", productionSync.data);
-    return send(res, 503, { success: false, message: "Koloni \u00fcretimi senkronize edilemedi." });
-  }
-  city = productionSync.data.city;
-
-  const populationSnapshot = await supabase("rpc/nexora_sync_city_population_snapshot", {
-    method: "POST",
-    body: JSON.stringify({ p_player_id: playerId })
-  });
-  if (!populationSnapshot.ok || populationSnapshot.data?.success === false || !populationSnapshot.data?.city) {
-    console.error("Atomik n\u00fcfus snapshot hatas\u0131:", populationSnapshot.data);
-    return send(res, 503, { success: false, message: "Koloni n\u00fcfusu senkronize edilemedi." });
+    snapshotResult = await loadSnapshot();
   }
 
-  city = populationSnapshot.data.city;
-  const units = Array.isArray(populationSnapshot.data.units) ? populationSnapshot.data.units : [];
-  const productionQueue = Array.isArray(populationSnapshot.data.queue) ? populationSnapshot.data.queue : [];
-  const population = Math.max(0, Number(populationSnapshot.data.population ?? city.population) || 0);
-  const populationCap = Math.max(0, Number(populationSnapshot.data.population_capacity ?? city.population_capacity) || 0);
-  const armyCap = Math.max(0, Number(populationSnapshot.data.army_capacity ?? city.army_capacity) || 0);
+  if (
+    !snapshotResult.ok ||
+    snapshotResult.data?.success !== true ||
+    !snapshotResult.data?.city
+  ) {
+    console.error("Koloni snapshot al\u0131namad\u0131:", snapshotResult.data);
+    return send(res, 503, {
+      success: false,
+      message: snapshotResult.data?.message || "Koloni verileri senkronize edilemedi."
+    });
+  }
 
-  const researchResult = await supabase("research?select=production_level,crystal_level&player_id=eq." + encodeURIComponent(playerId) + "&limit=1");
-  const research = researchResult.ok && researchResult.data?.[0] ? researchResult.data[0] : {};
+  const snapshot = snapshotResult.data;
+  const city = snapshot.city;
+  const buildings = Array.isArray(snapshot.buildings) ? snapshot.buildings : [];
+  const units = Array.isArray(snapshot.units) ? snapshot.units : [];
+  const productionQueue = Array.isArray(snapshot.productionQueue) ? snapshot.productionQueue : [];
+  const population = Math.max(0, Number(snapshot.population ?? city.population) || 0);
+  const populationCap = Math.max(0, Number(snapshot.population_capacity ?? city.population_capacity) || 0);
+  const armyCap = Math.max(0, Number(snapshot.army_capacity ?? city.army_capacity) || 0);
+
+  const research = snapshot.research && typeof snapshot.research === "object"
+    ? snapshot.research
+    : {};
   const prodMultiplier = 1 + Number(research.production_level || 0) * 0.10;
   const crystalMultiplier = 1 + Number(research.crystal_level || 0) * 0.08;
   const metalRate = buildingTotalLevel(buildings, "Metal Madeni") * 10 * prodMultiplier;
