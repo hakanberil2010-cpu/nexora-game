@@ -333,6 +333,7 @@ if(savedUser?.username){
 
 let beginnerGuideSnapshot=null;
 let beginnerGuideLoadPromise=null;
+let loginRewardClaimPromise=null;
 
 const BEGINNER_GUIDE_ALLOWED_ACTIONS=new Set([
   'game.html',
@@ -549,6 +550,42 @@ function fmt(n){
   return Math.floor(
     Number(n||0)
   ).toLocaleString('tr-TR');
+}
+
+function loginRewardSummary(reward){
+  const r=
+    reward&&typeof reward==='object'
+      ?reward
+      :{};
+
+  const parts=[];
+
+  [
+    ['⛏️','metal','Metal'],
+    ['⚡','energy','Enerji'],
+    ['💧','water','Su'],
+    ['💎','crystal','Kristal']
+  ].forEach(
+    ([icon,key,label])=>{
+      const value=Math.max(
+        0,
+        Math.floor(
+          Number(r[key])||0
+        )
+      );
+
+      if(value>0){
+        parts.push(
+          icon+' '+
+          fmt(value)+
+          ' '+
+          label
+        );
+      }
+    }
+  );
+
+  return parts.join(' • ');
 }
 
 function remain(s){
@@ -1199,6 +1236,96 @@ async function loadCity(){
   }finally{
 
     cityLoadPromise=null;
+
+  }
+}
+
+
+async function claimLoginReward(){
+
+  if(loginRewardClaimPromise){
+    return loginRewardClaimPromise;
+  }
+
+  loginRewardClaimPromise=(async function(){
+
+    try{
+
+      const r=await fetch(
+        '/api/auth?action=claimloginreward',
+        {
+          method:'POST',
+          headers:{
+            Authorization:'Bearer '+token
+          }
+        }
+      );
+
+      const d=await r.json();
+
+      if(r.status===401){
+        clearInvalidSession();
+        return;
+      }
+
+      if(!r.ok||!d.success){
+        console.error(
+          'Giriş ödülü alınamadı:',
+          d.message||
+          r.status
+        );
+        return;
+      }
+
+      if(d.alreadyClaimed===true){
+        return;
+      }
+
+      await loadCity();
+
+      const day=Math.max(
+        1,
+        Math.min(
+          7,
+          Math.floor(
+            Number(d.day)||1
+          )
+        )
+      );
+
+      const rewardText=
+        loginRewardSummary(
+          d.rewardCredited
+        );
+
+      alert(
+        '🎁 '+
+        day+
+        '. Gün Giriş Ödülü\n\n'+
+        (
+          rewardText||
+          'Depolar dolu olduğu için kaynak eklenemedi.'
+        )
+      );
+
+    }catch(error){
+
+      console.error(
+        'Giriş ödülü bağlantı hatası:',
+        error
+      );
+
+    }
+
+  })();
+
+  try{
+
+    return await loginRewardClaimPromise;
+
+  }finally{
+
+    loginRewardClaimPromise=null;
 
   }
 }
@@ -1859,8 +1986,19 @@ function logout(){
 }
 
 
+async function loadInitialColony(){
+  await loadCity();
+
+  if(!localStorage.getItem('nexora_token')){
+    return;
+  }
+
+  await claimLoginReward();
+}
+
+
 /* İlk yükleme */
-loadCity();
+loadInitialColony();
 loadBeginnerGuide();
 loadHeaderBadges();
 
