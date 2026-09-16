@@ -1600,12 +1600,16 @@ async function createMilitaryMission(req, res) {
   const started = startedResult.data || {};
   if (started.success !== true) {
     const code = String(started.code || "");
-    const status = code === "ACTIVE_MISSION"
+    const status = (
+      code === "ACTIVE_MISSION" ||
+      code === "TARGET_PVP_PROTECTED"
+    )
       ? 409
       : (code === "CITY_NOT_FOUND" || code === "TARGET_CITY_NOT_FOUND")
         ? 404
         : 400;
     return send(res,status,{
+      ...started,
       success:false,
       code:code || "MISSION_START_FAILED",
       message:started.message || "Sefer başlatılamadı."
@@ -3321,8 +3325,51 @@ async function getWorldPlayers(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const citiesResult=await supabase("cities?select=id,player_id,name,level,coordinate_x,coordinate_y"); if(!citiesResult.ok)return send(res,500,{success:false,message:"Koloniler alınamadı."});
   const playersResult=await supabase("players?select=id,username"); if(!playersResult.ok)return send(res,500,{success:false,message:"Oyuncular alınamadı."});
+
+  const protectionPlayerIds=Array.from(new Set([
+    Number(playerId),
+    ...(citiesResult.data||[]).map(c=>Number(c.player_id))
+  ].filter(id=>Number.isSafeInteger(id)&&id>0)));
+
+  const protectionResult=protectionPlayerIds.length
+    ?await supabase(
+      "player_pvp_protection?select=player_id,protected_until,ended_at"+
+      "&player_id=in.("+protectionPlayerIds.join(",")+")"
+    )
+    :{ok:true,data:[]};
+
+  if(!protectionResult.ok){
+    console.error("PvP koruma durumları alınamadı:",protectionResult.data);
+    return send(res,503,{success:false,message:"PvP koruma bilgileri şu anda alınamıyor."});
+  }
+
+  const protectionMap={};
+  const protectionNow=Date.now();
+  for(const row of protectionResult.data||[]){
+    const protectedUntil=row.protected_until||null;
+    const protectedUntilMs=protectedUntil?new Date(protectedUntil).getTime():NaN;
+    const active=
+      row.ended_at==null&&
+      Number.isFinite(protectedUntilMs)&&
+      protectedUntilMs>protectionNow;
+    protectionMap[Number(row.player_id)]={
+      protected:active,
+      protectedUntil:protectedUntil,
+      remainingSeconds:active
+        ?Math.max(0,Math.ceil((protectedUntilMs-protectionNow)/1000))
+        :0
+    };
+  }
+
+  const protectionFor=targetPlayerId=>
+    protectionMap[Number(targetPlayerId)]||{
+      protected:false,
+      protectedUntil:null,
+      remainingSeconds:0
+    };
+
   const map={}; for(const p of playersResult.data||[])map[p.id]=p.username;
-  const players=(citiesResult.data||[]).map(c=>{const region=regionForCoordinates(Number(c.coordinate_x||0),Number(c.coordinate_y||0));return {id:c.id,player_id:c.player_id,username:map[c.player_id]||"Oyuncu",name:c.name,level:c.level,coordinate_x:c.coordinate_x,coordinate_y:c.coordinate_y,region:region.name,region_bonus:region.bonus};});
+  const players=(citiesResult.data||[]).map(c=>{const region=regionForCoordinates(Number(c.coordinate_x||0),Number(c.coordinate_y||0));return {id:c.id,player_id:c.player_id,username:map[c.player_id]||"Oyuncu",name:c.name,level:c.level,coordinate_x:c.coordinate_x,coordinate_y:c.coordinate_y,region:region.name,region_bonus:region.bonus,pvpProtection:protectionFor(c.player_id)};});
   let sitesResult=await supabase("rpc/nexora_world_control_sites",{method:"POST",body:JSON.stringify({p_player_id:playerId})});
   if(!sitesResult.ok)sitesResult=await supabase("world_sites?select=id,site_type,name,coordinate_x,coordinate_y,reward&active=eq.true&site_type=neq.npc_camp");
 
@@ -3337,7 +3384,7 @@ async function getWorldPlayers(req,res){
     ?regionControlResult.data
     :{success:false,playerAllianceId:null,regions:[]};
 
-  return send(res,200,{success:true,players,sites:sitesResult.ok?(sitesResult.data||[]):[],regions:[
+  return send(res,200,{success:true,players,viewerPvpProtection:protectionFor(playerId),sites:sitesResult.ok?(sitesResult.data||[]):[],regions:[
     {name:"Çöl Bölgesi",bonus:"Metal üretimi +5%"},{name:"Orman Bölgesi",bonus:"Su üretimi +5%"},{name:"Buz Bölgesi",bonus:"Enerji üretimi +5%"},{name:"Dağ Bölgesi",bonus:"Savunma +5%"},{name:"Volkanik Bölge",bonus:"Kristal üretimi +5%"},{name:"Okyanus",bonus:"Seyahat süresi -5%"}
   ],regionControl});
 }
