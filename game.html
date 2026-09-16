@@ -914,6 +914,51 @@ function buildingRecord(name,slot=1){
   );
 }
 
+function renderConstructionQueue(){
+  const queue=document.getElementById(
+    'constructionQueue'
+  );
+
+  if(!queue)return;
+
+  const active=latestBuildings.filter(
+    x=>x&&x.is_under_construction
+  );
+
+  if(!active.length){
+    queue.textContent=
+      'İnşaat kuyruğu boş.';
+    return;
+  }
+
+  queue.innerHTML=active.map(
+    building=>{
+      const left=Math.max(
+        0,
+        Math.ceil(
+          (
+            new Date(
+              building.upgrade_ready_at
+            ).getTime()-
+            Date.now()
+          )/1000
+        )
+      );
+
+      return '🏗️ '+esc(
+        buildingLabel(
+          building.building_type,
+          Math.max(1,Number(building.slot)||1)
+        )
+      )+
+      ' geliştiriliyor. '+
+      '<span class="time">'+
+      remain(left)+
+      '</span>';
+    }
+  ).join('<br>');
+}
+
 function slotCenterRequirement(name,slot=1){
   if(slot!==2)return 0;
   return name==='Depo'?7:5;
@@ -1231,6 +1276,8 @@ function renderBuildings(buildings){
     ?buildings
     :[];
 
+  renderConstructionQueue();
+
   const el=document.getElementById(
     'buildings'
   );
@@ -1373,6 +1420,14 @@ function renderBuildingPopup(
   const pending=
     b&&b.is_under_construction;
 
+  const activeConstruction=latestBuildings.find(
+    x=>x&&x.is_under_construction
+  );
+
+  const constructionBusy=
+    !!activeConstruction&&
+    !pending;
+
   const left=pending
     ?Math.max(
       0,
@@ -1497,6 +1552,7 @@ function renderBuildingPopup(
   if(
     !maxed&&
     !pending&&
+    !constructionBusy&&
     slotReady
   ){
     meta.push(
@@ -1516,6 +1572,22 @@ function renderBuildingPopup(
       '<div class="time">İnşaat sürüyor: '+
       remain(left)+
       '</div>'
+    );
+  }
+
+  if(constructionBusy){
+    meta.push(
+      '<div class="lock">Önce '+
+      esc(
+        buildingLabel(
+          activeConstruction.building_type,
+          Math.max(
+            1,
+            Number(activeConstruction.slot)||1
+          )
+        )
+      )+
+      ' inşaatının tamamlanmasını bekle.</div>'
     );
   }
 
@@ -1550,6 +1622,7 @@ function renderBuildingPopup(
 
   button.disabled=
     !!pending||
+    constructionBusy||
     locked;
 
   button.textContent=
@@ -1559,7 +1632,9 @@ function renderBuildingPopup(
         ?'Maksimum'
         :locked
           ?'Kilitli'
-          :'Geliştir';
+          :constructionBusy
+            ?'İnşaat sürüyor'
+            :'Geliştir';
 
   button.onclick=
     ()=>{
@@ -1569,51 +1644,6 @@ function renderBuildingPopup(
       );
     };
 
-  const queue=document.getElementById(
-    'constructionQueue'
-  );
-
-  if(pending){
-    queue.innerHTML=
-      '🏗️ '+esc(label)+
-      ' geliştiriliyor.<br>'+ 
-      '<span class="time">'+
-      remain(left)+
-      '</span>';
-  }else{
-    const active=latestBuildings.find(
-      x=>x&&x.is_under_construction
-    );
-
-    if(active){
-      const activeLeft=Math.max(
-        0,
-        Math.ceil(
-          (
-            new Date(
-              active.upgrade_ready_at
-            ).getTime()-
-            Date.now()
-          )/1000
-        )
-      );
-
-      queue.innerHTML=
-        '🏗️ '+esc(
-          buildingLabel(
-            active.building_type,
-            Math.max(1,Number(active.slot)||1)
-          )
-        )+
-        ' geliştiriliyor.<br>'+ 
-        '<span class="time">'+
-        remain(activeLeft)+
-        '</span>';
-    }else{
-      queue.textContent=
-        'İnşaat kuyruğu boş.';
-    }
-  }
 }
 
 async function upgrade(name,slot=1){
