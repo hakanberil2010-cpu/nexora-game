@@ -284,7 +284,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
       <div class="scene-hud" aria-label="Kaynaklar">
         <span>⛏️ <b id="metal">0</b> <small id="metalCap">/ 0</small></span>
         <span>⚡ <b id="energy">0</b> <small id="energyCap">/ 0</small></span>
-        <span>💧 <b id="water">0</b> <small id="waterCap">/ 0</small></span>
+        <span>🧱 <b id="alloy">0</b> <small id="alloyCap">/ 0</small></span>
         <span>💎 <b id="crystal">0</b> <small id="crystalCap">/ 0</small></span>
       </div>
 
@@ -346,10 +346,10 @@ const BUILDING_INFO={
   "Merkez Bina":"Koloni merkezinin gelişimini sağlar.",
   "Metal Madeni":"Metal üretir.",
   "Enerji Santrali":"Enerji üretir.",
-  "Su Arıtma":"Su üretir.",
+  "Alaşım Rafinerisi":"Alaşım üretir.",
   "Kristal Madeni":"Kristal üretir.",
   "Kışla":"Birlik eğitimini hızlandırır ve ordu kapasitesini artırır.",
-  "Depo":"Metal, enerji ve su depolama kapasitesini artırır.",
+  "Depo":"Metal, enerji ve alaşım depolama kapasitesini artırır.",
   "Kristal Deposu":"Kristal depolama kapasitesini artırır.",
   "Konut":"Nüfus ve ordu kapasitesini artırır.",
   "Sur":"Koloni savunmasına bonus verir.",
@@ -361,14 +361,14 @@ const BUILDING_SITES=[
   {name:"Konut",slot:1,icon:"🏠",x:30,y:22},
   {name:"Gözcü Kulesi",slot:1,icon:"🔭",x:50,y:22},
   {name:"Enerji Santrali",slot:1,icon:"⚡",x:70,y:22},
-  {name:"Su Arıtma",slot:1,icon:"💧",x:88,y:22},
+  {name:"Alaşım Rafinerisi",slot:1,icon:"🧱",x:88,y:22},
   {name:"Kristal Madeni",slot:1,icon:"💎",x:10,y:48},
   {name:"Metal Madeni",slot:2,icon:"⛏️",x:28,y:48},
   {name:"Merkez Bina",slot:1,icon:"🏛️",x:50,y:48},
   {name:"Enerji Santrali",slot:2,icon:"⚡",x:72,y:48},
   {name:"Kristal Madeni",slot:2,icon:"💎",x:90,y:48},
   {name:"Kışla",slot:1,icon:"🪖",x:12,y:74},
-  {name:"Su Arıtma",slot:2,icon:"💧",x:30,y:74},
+  {name:"Alaşım Rafinerisi",slot:2,icon:"🧱",x:30,y:74},
   {name:"Depo",slot:1,icon:"📦",x:50,y:74},
   {name:"Depo",slot:2,icon:"📦",x:70,y:74},
   {name:"Kristal Deposu",slot:1,icon:"🔷",x:88,y:74},
@@ -380,14 +380,14 @@ const ROAD_LINKS=[
   ["Merkez Bina#1","Konut#1"],
   ["Konut#1","Metal Madeni#1"],
   ["Merkez Bina#1","Enerji Santrali#1"],
-  ["Enerji Santrali#1","Su Arıtma#1"],
+  ["Enerji Santrali#1","Alaşım Rafinerisi#1"],
   ["Merkez Bina#1","Metal Madeni#2"],
   ["Metal Madeni#2","Kristal Madeni#1"],
   ["Merkez Bina#1","Enerji Santrali#2"],
   ["Enerji Santrali#2","Kristal Madeni#2"],
   ["Merkez Bina#1","Depo#1"],
-  ["Depo#1","Su Arıtma#2"],
-  ["Su Arıtma#2","Kışla#1"],
+  ["Depo#1","Alaşım Rafinerisi#2"],
+  ["Alaşım Rafinerisi#2","Kışla#1"],
   ["Depo#1","Depo#2"],
   ["Depo#2","Kristal Deposu#1"],
   ["Depo#1","Sur#1"]
@@ -405,17 +405,17 @@ const BUILDING_RULES={
 
   "Metal Madeni":{
     max:30,
-    effect:"Her seviyede +10 metal/dk. İki madenin üretimi birlikte hesaplanır."
+    effect:"Her seviyede +12 metal/dk. İki madenin üretimi birlikte hesaplanır."
   },
 
   "Enerji Santrali":{
     max:30,
-    effect:"Her seviyede +10 enerji/dk. İki santralin üretimi birlikte hesaplanır."
+    effect:"Her seviyede +6 enerji/dk. Tank, hava birliği ve ileri teknoloji için stratejik enerji üretir."
   },
 
-  "Su Arıtma":{
+  "Alaşım Rafinerisi":{
     max:30,
-    effect:"Her seviyede +10 su/dk. İki tesisin üretimi birlikte hesaplanır."
+    effect:"Her seviyede +10 alaşım/dk. İki rafinerinin üretimi birlikte hesaplanır."
   },
 
   "Kristal Madeni":{
@@ -465,79 +465,79 @@ const BUILDING_RULES={
 
 const BUILDING_COSTS={
   "Metal Madeni":{
-    metal:500,
-    energy:100,
-    water:50,
+    metal:425,
+    energy:0,
+    alloy:150,
     crystal:25
   },
 
   "Enerji Santrali":{
-    metal:400,
-    energy:50,
-    water:50,
+    metal:340,
+    energy:0,
+    alloy:100,
     crystal:20
   },
 
-  "Su Arıtma":{
-    metal:350,
-    energy:75,
-    water:50,
+  "Alaşım Rafinerisi":{
+    metal:300,
+    energy:0,
+    alloy:125,
     crystal:20
   },
 
   "Kristal Madeni":{
-    metal:600,
-    energy:120,
-    water:40,
+    metal:510,
+    energy:0,
+    alloy:160,
     crystal:30
   },
 
   "Kışla":{
-    metal:450,
-    energy:100,
-    water:50,
+    metal:380,
+    energy:0,
+    alloy:150,
     crystal:25
   },
 
   "Merkez Bina":{
-    metal:750,
-    energy:150,
-    water:100,
+    metal:640,
+    energy:0,
+    alloy:250,
     crystal:50
   },
 
   "Depo":{
-    metal:700,
-    energy:120,
-    water:60,
+    metal:595,
+    energy:0,
+    alloy:180,
     crystal:40
   },
 
   "Kristal Deposu":{
-    metal:800,
-    energy:140,
-    water:70,
+    metal:680,
+    energy:0,
+    alloy:210,
     crystal:45
   },
 
   "Konut":{
-    metal:500,
-    energy:80,
-    water:100,
+    metal:425,
+    energy:0,
+    alloy:180,
     crystal:25
   },
 
   "Sur":{
-    metal:900,
-    energy:150,
-    water:80,
+    metal:765,
+    energy:0,
+    alloy:230,
     crystal:80
   },
 
   "Gözcü Kulesi":{
-    metal:1200,
-    energy:220,
-    water:100,
+    metal:1020,
+    energy:0,
+    alloy:320,
     crystal:100
   }
 };
@@ -563,14 +563,19 @@ function loginRewardSummary(reward){
   [
     ['⛏️','metal','Metal'],
     ['⚡','energy','Enerji'],
-    ['💧','water','Su'],
+    ['🧱','alloy','Alaşım'],
     ['💎','crystal','Kristal']
   ].forEach(
     ([icon,key,label])=>{
+      const rawValue=
+        key==='alloy'
+          ?(r.alloy??r.water)
+          :r[key];
+
       const value=Math.max(
         0,
         Math.floor(
-          Number(r[key])||0
+          Number(rawValue)||0
         )
       );
 
@@ -869,7 +874,7 @@ function runBeginnerGuideAction(){
     const target=[
       'Metal Madeni',
       'Enerji Santrali',
-      'Su Arıtma',
+      'Alaşım Rafinerisi',
       'Kristal Madeni'
     ].find(
       name=>
@@ -917,13 +922,30 @@ function runBeginnerGuideAction(){
 }
 
 
+function visibleBuildingType(name){
+  return name==='Su Arıtma'
+    ?'Alaşım Rafinerisi'
+    :name;
+}
+
+function storageBuildingType(name){
+  return name==='Alaşım Rafinerisi'
+    ?'Su Arıtma'
+    :name;
+}
+
 function getBuildingLevels(buildings){
   const map={};
 
   (buildings||[]).forEach(
     b=>{
-      map[b.building_type]=Math.max(
-        Number(map[b.building_type]||0),
+      const name=
+        visibleBuildingType(
+          b.building_type
+        );
+
+      map[name]=Math.max(
+        Number(map[name]||0),
         Math.max(
           0,
           Number(b.level||0)
@@ -944,9 +966,12 @@ function buildingLabel(name,slot=1){
 }
 
 function buildingRecord(name,slot=1){
+  const storageName=
+    storageBuildingType(name);
+
   return latestBuildings.find(
     x=>
-      x.building_type===name&&
+      x.building_type===storageName&&
       Math.max(1,Number(x.slot)||1)===slot
   );
 }
@@ -984,7 +1009,9 @@ function renderConstructionQueue(){
 
       return '🏗️ '+esc(
         buildingLabel(
-          building.building_type,
+          visibleBuildingType(
+            building.building_type
+          ),
           Math.max(1,Number(building.slot)||1)
         )
       )+
@@ -1078,7 +1105,21 @@ function costText(name,level){
     level+1
   );
 
-  return `Sonraki seviye maliyeti: ⛏️${fmt(base.metal*mult)} ⚡${fmt(base.energy*mult)} 💧${fmt(base.water*mult)} 💎${fmt(base.crystal*mult)}`;
+  const parts=[
+    `⛏️${fmt(base.metal*mult)}`,
+    `🧱${fmt(base.alloy*mult)}`,
+    `💎${fmt(base.crystal*mult)}`
+  ];
+
+  if(Number(base.energy||0)>0){
+    parts.splice(
+      1,
+      0,
+      `⚡${fmt(base.energy*mult)}`
+    );
+  }
+
+  return 'Sonraki seviye maliyeti: '+parts.join(' ');
 }
 
 
@@ -1125,12 +1166,16 @@ async function loadCity(){
       [
         'metal',
         'energy',
-        'water',
+        'alloy',
         'crystal'
       ].forEach(
         k=>{
           document.getElementById(k).textContent=
-            fmt(c[k]);
+            fmt(
+              k==='alloy'
+                ?(c.alloy??c.water)
+                :c[k]
+            );
         }
       );
 
@@ -1170,16 +1215,16 @@ async function loadCity(){
         fmt(p.metalPerMinute)+
         ' metal/dk  •  ⚡ '+
         fmt(p.energyPerMinute)+
-        ' enerji/dk  •  💧 '+
-        fmt(p.waterPerMinute)+
-        ' su/dk  •  💎 '+
+        ' enerji/dk  •  🧱 '+
+        fmt(p.alloyPerMinute??p.waterPerMinute)+
+        ' alaşım/dk  •  💎 '+
         fmt(p.crystalPerMinute)+
         ' kristal/dk';
 
       [
         'metal',
         'energy',
-        'water'
+        'alloy'
       ].forEach(
         k=>{
 
@@ -1188,13 +1233,23 @@ async function loadCity(){
           );
 
           if(e){
+            const capacityKey=
+              k+'_capacity';
+
             e.textContent=
               '/ '+
               fmt(
                 (d.capacities||{})[
-                  k+'_capacity'
+                  capacityKey
                 ]||
-                c[k+'_capacity']||
+                (
+                  k==='alloy'
+                    ?(
+                      c.alloy_capacity||
+                      c.water_capacity
+                    )
+                    :c[capacityKey]
+                )||
                 c.storage_capacity||
                 0
               );
