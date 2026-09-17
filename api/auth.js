@@ -3633,6 +3633,48 @@ async function claimAllianceMissionChest(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getAllianceProgression(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_alliance_progression_snapshot",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"İttifak ilerlemesi şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
+async function claimAllianceLevelReward(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const body=await readBody(req);
+  const level=Number(body.level);
+
+  if(!Number.isInteger(level)||level<2||level>10){
+    return send(res,400,{success:false,message:"Geçersiz ittifak seviyesi."});
+  }
+
+  const result=await supabase("rpc/nexora_claim_alliance_level_reward",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:playerId,
+      p_level:level
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"İttifak seviye ödülü işlemi şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function getBossRewards(req,res){
   const playerId=authPlayerId(req);
   if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
@@ -4931,6 +4973,12 @@ if (action === "alliancemissions") {
 }
 if (action === "claimalliancemissionchest") {
   return await claimAllianceMissionChest(req, res);
+}
+if (action === "allianceprogression") {
+  return await getAllianceProgression(req, res);
+}
+if (action === "claimalliancelevelreward") {
+  return await claimAllianceLevelReward(req, res);
 }
 if (action === "bossrewards") {
   return await getBossRewards(req, res);
