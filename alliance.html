@@ -422,7 +422,7 @@ function allianceProgressionRewardText(reward){
   const parts=[];
   if(allianceProgressionNumber(r.metal)>0)parts.push('⛏️ '+allianceProgressionNumber(r.metal).toLocaleString('tr-TR')+' Metal');
   if(allianceProgressionNumber(r.energy)>0)parts.push('⚡ '+allianceProgressionNumber(r.energy).toLocaleString('tr-TR')+' Enerji');
-  if(allianceProgressionNumber(r.water)>0)parts.push('💧 '+allianceProgressionNumber(r.water).toLocaleString('tr-TR')+' Su');
+  if(allianceProgressionNumber(r.alloy??r.water)>0)parts.push('🧱 '+allianceProgressionNumber(r.alloy??r.water).toLocaleString('tr-TR')+' Alaşım');
   if(allianceProgressionNumber(r.crystal)>0)parts.push('💎 '+allianceProgressionNumber(r.crystal).toLocaleString('tr-TR')+' Kristal');
   return parts.join(' · ')||'Ödül yok';
 }
@@ -576,7 +576,7 @@ function allianceMissionRewardText(reward){
   const parts=[];
   if(allianceMissionNumber(r.metal)>0)parts.push('⛏️ '+allianceMissionNumber(r.metal).toLocaleString('tr-TR')+' Metal');
   if(allianceMissionNumber(r.energy)>0)parts.push('⚡ '+allianceMissionNumber(r.energy).toLocaleString('tr-TR')+' Enerji');
-  if(allianceMissionNumber(r.water)>0)parts.push('💧 '+allianceMissionNumber(r.water).toLocaleString('tr-TR')+' Su');
+  if(allianceMissionNumber(r.alloy??r.water)>0)parts.push('🧱 '+allianceMissionNumber(r.alloy??r.water).toLocaleString('tr-TR')+' Alaşım');
   if(allianceMissionNumber(r.crystal)>0)parts.push('💎 '+allianceMissionNumber(r.crystal).toLocaleString('tr-TR')+' Kristal');
   return parts.join(' · ')||'Kaynak ödülü';
 }
