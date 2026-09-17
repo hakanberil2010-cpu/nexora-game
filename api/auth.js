@@ -823,12 +823,12 @@ async function ensureCurrentSession(req,res){
 }
 
 const UNIT_CONFIG = {
-  piyade: { label: "Piyade", metal: 100, energy: 20, population: 1, train: 20 },
-  savunma: { label: "Savunma Birliği", metal: 150, energy: 40, population: 1, train: 24 },
-  saldiri: { label: "Saldırı Birliği", metal: 200, energy: 75, population: 1, train: 28 },
-  okcu: { label: "Okçu", metal: 220, energy: 90, population: 1, train: 30 },
-  tank: { label: "Tank", metal: 700, energy: 220, population: 3, train: 55 },
-  hava: { label: "Hava Birliği", metal: 650, energy: 260, population: 2, train: 50 }
+  piyade: { label: "Piyade", metal: 85, energy: 0, alloy: 30, population: 1, train: 20 },
+  savunma: { label: "Savunma Birliği", metal: 130, energy: 0, alloy: 60, population: 1, train: 24 },
+  saldiri: { label: "Saldırı Birliği", metal: 170, energy: 0, alloy: 110, population: 1, train: 28 },
+  okcu: { label: "Okçu", metal: 190, energy: 0, alloy: 135, population: 1, train: 30 },
+  tank: { label: "Tank", metal: 600, energy: 275, alloy: 0, population: 3, train: 55 },
+  hava: { label: "Hava Birliği", metal: 550, energy: 325, alloy: 0, population: 2, train: 50 }
 };
 
 async function getUnitLevelStats(unitType, level) {
@@ -893,6 +893,7 @@ function buildingMaxLevel(name) {
     "Metal Madeni": 30,
     "Enerji Santrali": 30,
     "Su Arıtma": 30,
+    "Alaşım Rafinerisi": 30,
     "Kristal Madeni": 30,
     "Kışla": 30,
     "Depo": 25,
@@ -1028,21 +1029,24 @@ async function getCity(req, res) {
     : {};
   const prodMultiplier = 1 + Number(research.production_level || 0) * 0.10;
   const crystalMultiplier = 1 + Number(research.crystal_level || 0) * 0.08;
-  const metalRate = buildingTotalLevel(buildings, "Metal Madeni") * 10 * prodMultiplier;
-  const energyRate = buildingTotalLevel(buildings, "Enerji Santrali") * 10 * prodMultiplier;
-  const waterRate = buildingTotalLevel(buildings, "Su Ar\u0131tma") * 10 * prodMultiplier;
+  const metalRate = buildingTotalLevel(buildings, "Metal Madeni") * 12 * prodMultiplier;
+  const energyRate = buildingTotalLevel(buildings, "Enerji Santrali") * 6 * prodMultiplier;
+  const alloyLevel =
+    buildingTotalLevel(buildings, "Su Ar\u0131tma") +
+    buildingTotalLevel(buildings, "Alaşım Rafinerisi");
+  const alloyRate = alloyLevel * 10 * prodMultiplier;
   const crystalRate = buildingTotalLevel(buildings, "Kristal Madeni") * 5 * crystalMultiplier;
   const resourceCap = storageCapacity(buildings);
   const crystalCap = crystalStorageCapacity(buildings);
 
   return send(res, 200, {
     success: true,
-    city: { ...city, population, population_capacity: populationCap, army_capacity: armyCap, storage_capacity: resourceCap, crystal_storage_capacity: crystalCap, defense_bonus: defenseBonus(buildings) },
+    city: { ...city, population, population_capacity: populationCap, army_capacity: armyCap, storage_capacity: resourceCap, alloy_capacity: resourceCap, crystal_storage_capacity: crystalCap, defense_bonus: defenseBonus(buildings) },
     buildings,
     units,
     productionQueue,
-    production: { metalPerMinute: metalRate, energyPerMinute: energyRate, waterPerMinute: waterRate, crystalPerMinute: crystalRate },
-    capacities: { metal_capacity: resourceCap, energy_capacity: resourceCap, water_capacity: resourceCap, crystal_capacity: crystalCap, population_capacity: populationCap, army_capacity: armyCap, defense_bonus: defenseBonus(buildings) }
+    production: { metalPerMinute: metalRate, energyPerMinute: energyRate, alloyPerMinute: alloyRate, waterPerMinute: alloyRate, crystalPerMinute: crystalRate },
+    capacities: { metal_capacity: resourceCap, energy_capacity: resourceCap, alloy_capacity: resourceCap, water_capacity: resourceCap, crystal_capacity: crystalCap, population_capacity: populationCap, army_capacity: armyCap, defense_bonus: defenseBonus(buildings) }
   });
 }
 async function spendCityResources(playerId,cost={}){
@@ -1312,15 +1316,28 @@ async function upgradeUnit(req, res) {
     });
   }
 
-  const cost = {
-    metal: currentLevel * 500,
-    energy: currentLevel * 100,
-    crystal: currentLevel * 50
-  };
+  const advancedUnit =
+    unitType === "tank" ||
+    unitType === "hava";
+
+  const cost = advancedUnit
+    ? {
+        metal: currentLevel * 500,
+        energy: currentLevel * 200,
+        alloy: 0,
+        crystal: currentLevel * 75
+      }
+    : {
+        metal: currentLevel * 400,
+        energy: 0,
+        alloy: currentLevel * 150,
+        crystal: currentLevel * 50
+      };
 
   if (
     Number(city.metal) < cost.metal ||
     Number(city.energy) < cost.energy ||
+    Number(city.alloy) < cost.alloy ||
     Number(city.crystal) < cost.crystal
   ) {
     return send(res, 400, {
@@ -3341,8 +3358,21 @@ async function upgradeBuilding(req,res){
   const body=await readBody(req);
   const buildingType=String(body.building||"").trim();
   const slot=body.slot==null?1:Number(body.slot);
-  const costs={"Metal Madeni":{metal:500,energy:100,water:50,crystal:25},"Enerji Santrali":{metal:400,energy:50,water:50,crystal:20},"Su Arıtma":{metal:350,energy:75,water:50,crystal:20},"Kristal Madeni":{metal:600,energy:120,water:40,crystal:30},"Kışla":{metal:450,energy:100,water:50,crystal:25},"Merkez Bina":{metal:750,energy:150,water:100,crystal:50},"Depo":{metal:700,energy:120,water:60,crystal:40},"Kristal Deposu":{metal:800,energy:140,water:70,crystal:45},"Konut":{metal:500,energy:80,water:100,crystal:25},"Sur":{metal:900,energy:150,water:80,crystal:80},"Gözcü Kulesi":{metal:1200,energy:220,water:100,crystal:100}};
-  const slotTwoTypes=new Set(["Metal Madeni","Enerji Santrali","Su Arıtma","Kristal Madeni","Depo"]);
+  const storageType=buildingType==="Alaşım Rafinerisi"?"Su Arıtma":buildingType;
+  const costs={
+    "Metal Madeni":{metal:425,energy:0,alloy:150,crystal:25},
+    "Enerji Santrali":{metal:340,energy:0,alloy:100,crystal:20},
+    "Alaşım Rafinerisi":{metal:300,energy:0,alloy:125,crystal:20},
+    "Kristal Madeni":{metal:510,energy:0,alloy:160,crystal:30},
+    "Kışla":{metal:380,energy:0,alloy:150,crystal:25},
+    "Merkez Bina":{metal:640,energy:0,alloy:250,crystal:50},
+    "Depo":{metal:595,energy:0,alloy:180,crystal:40},
+    "Kristal Deposu":{metal:680,energy:0,alloy:210,crystal:45},
+    "Konut":{metal:425,energy:0,alloy:180,crystal:25},
+    "Sur":{metal:765,energy:0,alloy:230,crystal:80},
+    "Gözcü Kulesi":{metal:1020,energy:0,alloy:320,crystal:100}
+  };
+  const slotTwoTypes=new Set(["Metal Madeni","Enerji Santrali","Alaşım Rafinerisi","Kristal Madeni","Depo"]);
   if(!costs[buildingType])return send(res,400,{success:false,message:"Geçersiz bina."});
   if(!Number.isInteger(slot)||slot<1||slot>2)return send(res,400,{success:false,message:"Geçersiz bina yuvası."});
   if(slot===2&&!slotTwoTypes.has(buildingType))return send(res,400,{success:false,message:"Bu bina türünün ikinci kopyası olamaz."});
@@ -3351,8 +3381,9 @@ async function upgradeBuilding(req,res){
   if(!allBuildings.ok)return send(res,500,{success:false,message:"Bina verileri alınamadı."});
   const prerequisiteLevels={};
   for(const b of (allBuildings.data||[])){
-    prerequisiteLevels[b.building_type]=Math.max(
-      Number(prerequisiteLevels[b.building_type]||0),
+    const visibleType=b.building_type==="Su Arıtma"?"Alaşım Rafinerisi":b.building_type;
+    prerequisiteLevels[visibleType]=Math.max(
+      Number(prerequisiteLevels[visibleType]||0),
       Math.max(0,Number(b.level||0))
     );
   }
@@ -3361,7 +3392,7 @@ async function upgradeBuilding(req,res){
     const requiredCenter=buildingType==="Depo"?7:5;
     if(centerLevel<requiredCenter)return send(res,400,{success:false,message:buildingType+" II için Merkez Bina seviye "+requiredCenter+" gerekli.",required:{building:"Merkez Bina",level:requiredCenter}});
   }
-  const br=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id)+"&building_type=eq."+encodeURIComponent(buildingType)+"&slot=eq."+encodeURIComponent(slot)+"&limit=1");if(!br.ok)return send(res,500,{success:false,message:"Bina verisi alınamadı."});
+  const br=await supabase("buildings?select=*&city_id=eq."+encodeURIComponent(city.id)+"&building_type=eq."+encodeURIComponent(storageType)+"&slot=eq."+encodeURIComponent(slot)+"&limit=1");if(!br.ok)return send(res,500,{success:false,message:"Bina verisi alınamadı."});
   let building=br.data?.[0]; if(building) building=await finalizeBuilding(building);
   if(building?.is_under_construction)return send(res,400,{success:false,message:"Bu bina zaten inşa ediliyor.",finishAt:building.upgrade_ready_at});
   const current=building?Math.max(0,Number(building.level||0)):0;
@@ -3380,7 +3411,12 @@ async function upgradeBuilding(req,res){
   }
   if(current>=maxLevel)return send(res,400,{success:false,message:buildingType+(slot===2?" II":"")+" maksimum seviye olan "+maxLevel+" seviyeye ulaştı."});
   const multiplier=current+1;
-  const cost={metal:costs[buildingType].metal*multiplier,energy:costs[buildingType].energy*multiplier,water:costs[buildingType].water*multiplier,crystal:costs[buildingType].crystal*multiplier};
+  const cost={
+    metal:costs[buildingType].metal*multiplier,
+    energy:costs[buildingType].energy*multiplier,
+    alloy:costs[buildingType].alloy*multiplier,
+    crystal:costs[buildingType].crystal*multiplier
+  };
   const duration=45+current*45;
   const spend=await supabase("rpc/nexora_start_building_upgrade_slot",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_city_id:Number(city.id),p_type:buildingType,p_slot:slot,p_level:current,p_cost:cost,p_duration:duration})});
   if(!spend.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
@@ -3390,7 +3426,6 @@ async function upgradeBuilding(req,res){
   const label=buildingType+(slot===2?" II":"");
   return send(res,200,{success:true,message:label+" için seviye "+(current+1)+" inşaatı başlatıldı.",city:spentCity,building:spend.data.building,finishAt:spend.data.finishAt,duration,cost,nextLevel:current+1,maxLevel,slot});
 }
-
 async function getWorldPlayers(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   const citiesResult=await supabase("cities?select=id,player_id,name,level,coordinate_x,coordinate_y"); if(!citiesResult.ok)return send(res,500,{success:false,message:"Koloniler alınamadı."});
