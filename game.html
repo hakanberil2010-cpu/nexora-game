@@ -204,7 +204,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
     <li class="active">🏙️ Kolonim</li>
     <li onclick="go('world.html')">🌍 Dünya Haritası</li>
     <li onclick="go('reports.html')">⚔️ Savaş Raporları</li>
-    <li class="menuItemWithBadge" onclick="go('activity.html')"><span>🔔 Aktivite Merkezi</span><span class="activityBadge" id="activityUnreadBadge" hidden>0</span></li>
+    <li class="menuItemWithBadge" onclick="go('activity.html')"><span>🔔 Bildirim Merkezi</span><span class="activityBadge" id="activityUnreadBadge" hidden>0</span></li>
     <li class="menuItemWithBadge" onclick="go('messages.html')"><span>✉️ Özel Mesajlar</span><span class="activityBadge" id="messageUnreadBadge" hidden>0</span></li>
     <li onclick="go('army.html')">🪖 Ordu</li>
     <li onclick="go('research.html')">🔬 Araştırma</li>
@@ -230,7 +230,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   <option value="game.html">🏙️ Kolonim</option>
   <option value="world.html">🌍 Dünya Haritası</option>
   <option value="reports.html">⚔️ Savaş Raporları</option>
-  <option id="activityMobileOption" value="activity.html">🔔 Aktivite Merkezi</option>
+  <option id="activityMobileOption" value="activity.html">🔔 Bildirim Merkezi</option>
   <option id="messageMobileOption" value="messages.html">✉️ Özel Mesajlar</option>
   <option value="army.html">🪖 Ordu</option>
   <option value="research.html">🔬 Araştırma</option>
@@ -1907,10 +1907,10 @@ function setActivityUnread(count){
   if(mobile){
     mobile.textContent=
       value>0
-        ?'🔔 Aktivite Merkezi ('+
+        ?'🔔 Bildirim Merkezi ('+
           (value>99?'99+':value)+
           ')'
-        :'🔔 Aktivite Merkezi';
+        :'🔔 Bildirim Merkezi';
   }
 }
 
@@ -2007,7 +2007,11 @@ async function loadHeaderBadges(){
 
     const d=await r.json();
     if(d&&d.success===true){
-      setActivityUnread(d.activityUnread);
+      setActivityUnread(
+        (Number(d.activityUnread)||0)+
+        (Number(d.messageUnread)||0)+
+        (Number(d.friendIncoming)||0)
+      );
       setMessageUnread(d.messageUnread);
       setFriendIncoming(d.friendIncoming);
     }
