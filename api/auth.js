@@ -4078,7 +4078,7 @@ async function getPlayerProfile(req,res){
     return send(res,503,{success:false,message:"Oyuncu profili doğrulanamadı."});
   }
 
-  const [citiesR,researchR,reportsR]=await Promise.all([
+  const [citiesR,researchR,reportsR,achievementsR,unlocksR]=await Promise.all([
     supabase(
       "cities?select=id,level&player_id=eq."+
       encodeURIComponent(targetPlayerId)
@@ -4094,19 +4094,53 @@ async function getPlayerProfile(req,res){
       ",defender_player_id.eq."+
       encodeURIComponent(targetPlayerId)+
       ")"
+    ),
+    supabase(
+      "game_achievements?select=id,title,description,icon,category,tier,points&active=eq.true"
+    ),
+    supabase(
+      "player_achievements?select=achievement_id,unlocked_at&player_id=eq."+
+      encodeURIComponent(targetPlayerId)+
+      "&order=unlocked_at.desc"
     )
   ]);
 
-  if(!citiesR.ok||!researchR.ok||!reportsR.ok){
+  if(!citiesR.ok||!researchR.ok||!reportsR.ok||!achievementsR.ok||!unlocksR.ok){
     console.error("Oyuncu profil istatistik sorgu hatası:",{
       cities:citiesR.data,
       research:researchR.data,
-      reports:reportsR.data
+      reports:reportsR.data,
+      achievements:achievementsR.data,
+      unlocks:unlocksR.data
     });
     return send(res,503,{success:false,message:"Oyuncu istatistikleri şu anda alınamıyor."});
   }
 
   const cities=Array.isArray(citiesR.data)?citiesR.data:[];
+  const achievements=Array.isArray(achievementsR.data)?achievementsR.data:[];
+  const achievementById=new Map(achievements.map(item=>[item.id,item]));
+  const achievementItems=(Array.isArray(unlocksR.data)?unlocksR.data:[])
+    .filter(unlock=>achievementById.has(unlock.achievement_id))
+    .map(unlock=>{
+      const item=achievementById.get(unlock.achievement_id);
+      const points=Number(item.points);
+      return {
+        id:item.id,
+        title:item.title,
+        description:item.description,
+        icon:item.icon,
+        category:item.category,
+        tier:item.tier,
+        points:Number.isFinite(points)?Math.max(0,points):0,
+        unlockedAt:unlock.unlocked_at
+      };
+    });
+  const achievementCollection={
+    unlockedCount:achievementItems.length,
+    totalCount:achievements.length,
+    totalPoints:achievementItems.reduce((sum,item)=>sum+item.points,0),
+    items:achievementItems
+  };
   const cityIds=cities
     .map(city=>Number(city.id))
     .filter(id=>Number.isSafeInteger(id)&&id>0);
@@ -4255,6 +4289,7 @@ async function getPlayerProfile(req,res){
     success:true,
     serverTime:meta.data.serverTime||null,
     profile,
+    achievementCollection,
     stats:{
       colonyLevel,
       armyPower:Math.round(armyPower),
