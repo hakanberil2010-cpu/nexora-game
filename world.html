@@ -1031,7 +1031,7 @@ body {
             </div>
             <div class="region forest" data-region-key="forest">
               🌲 Orman Bölgesi
-              <span class="region-bonus">Bonus: Su üretimi +5%</span>
+              <span class="region-bonus">Bonus: Alaşım üretimi +5%</span>
               <span class="region-control" id="regionControl-forest">Kontrol bilgisi yükleniyor...</span>
             </div>
             <div class="region ice" data-region-key="ice">
@@ -3556,7 +3556,7 @@ function formatEspionageReport(result) {
       "Kaynaklar",
       "🔩 Metal: " + Number(result.resources.metal || 0),
       "⚡ Enerji: " + Number(result.resources.energy || 0),
-      "💧 Su: " + Number(result.resources.water || 0),
+      "🧱 Alaşım: " + Number((result.resources.alloy ?? result.resources.water) || 0),
       "💎 Kristal: " + Number(result.resources.crystal || 0)
     );
   }
@@ -4438,9 +4438,9 @@ async function attack() {
             0
           ) +
           "\n" +
-          "Su: " +
+          "Alaşım: " +
           (
-            loot.water ||
+            (loot.alloy ?? loot.water) ||
             0
           ) +
           "\n" +
@@ -4664,7 +4664,7 @@ function renderSelectedNpcCampDetails() {
   const rewardText =
     "🔩 Metal " + Math.max(0, Number(reward.metal || 0)) +
     " · ⚡ Enerji " + Math.max(0, Number(reward.energy || 0)) +
-    "<br>💧 Su " + Math.max(0, Number(reward.water || 0)) +
+    "<br>🧱 Alaşım " + Math.max(0, Number((reward.alloy ?? reward.water) || 0)) +
     " · 💎 Kristal " + Math.max(0, Number(reward.crystal || 0));
 
   const activeMission = activeNpcMission();
