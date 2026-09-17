@@ -38,14 +38,14 @@
       <div class="grid">
         <div class="card"><div class="label">Metal / kapasite</div><div class="value" id="metal">—</div><div class="resource-detail" id="metalRate">0%</div><div class="bar"><span id="metalBar"></span></div></div>
         <div class="card"><div class="label">Enerji / kapasite</div><div class="value" id="energy">—</div><div class="resource-detail" id="energyRate">0%</div><div class="bar"><span id="energyBar"></span></div></div>
-        <div class="card"><div class="label">Su / kapasite</div><div class="value" id="water">—</div><div class="resource-detail" id="waterRate">0%</div><div class="bar"><span id="waterBar"></span></div></div>
+        <div class="card"><div class="label">Alaşım / kapasite</div><div class="value" id="alloy">—</div><div class="resource-detail" id="alloyRate">0%</div><div class="bar"><span id="alloyBar"></span></div></div>
         <div class="card"><div class="label">Kristal / kapasite</div><div class="value" id="crystal">—</div><div class="resource-detail" id="crystalRate">0%</div><div class="bar"><span id="crystalBar"></span></div></div>
         <div class="card"><div class="label">Nüfus / kapasite</div><div class="value" id="population">—</div></div>
         <div class="card"><div class="label">Ordu kapasitesi</div><div class="value" id="armyCapacity">—</div></div>
         <div class="card"><div class="label">Savunma bonusu</div><div class="value" id="defenseBonus">—</div></div>
         <div class="card"><div class="label">Metal/dk</div><div class="value" id="metalPerMinute">—</div></div>
         <div class="card"><div class="label">Enerji/dk</div><div class="value" id="energyPerMinute">—</div></div>
-        <div class="card"><div class="label">Su/dk</div><div class="value" id="waterPerMinute">—</div></div>
+        <div class="card"><div class="label">Alaşım/dk</div><div class="value" id="alloyPerMinute">—</div></div>
         <div class="card"><div class="label">Kristal/dk</div><div class="value" id="crystalPerMinute">—</div></div>
       </div>
     </section>
@@ -109,14 +109,14 @@ function render(rankings,data){
   const crystalStorage=number(city.crystal_storage_capacity!==undefined?city.crystal_storage_capacity:city.crystal_capacity);
   renderResource('metal',city.metal,capacity(data,'metal_capacity',city.metal_capacity!==undefined?city.metal_capacity:storage));
   renderResource('energy',city.energy,capacity(data,'energy_capacity',city.energy_capacity!==undefined?city.energy_capacity:storage));
-  renderResource('water',city.water,capacity(data,'water_capacity',city.water_capacity!==undefined?city.water_capacity:storage));
+  renderResource('alloy',city.alloy,capacity(data,'alloy_capacity',city.alloy_capacity!==undefined?city.alloy_capacity:storage));
   renderResource('crystal',city.crystal,capacity(data,'crystal_capacity',crystalStorage));
   setText('population',format(city.population)+' / '+format(capacity(data,'population_capacity',city.population_capacity)));
   setText('armyCapacity',format(capacity(data,'army_capacity',city.army_capacity)));
   setText('defenseBonus','x'+number(capacities.defense_bonus!==undefined?capacities.defense_bonus:city.defense_bonus).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}));
   setText('metalPerMinute',format(production.metalPerMinute));
   setText('energyPerMinute',format(production.energyPerMinute));
-  setText('waterPerMinute',format(production.waterPerMinute));
+  setText('alloyPerMinute',format(production.alloyPerMinute));
   setText('crystalPerMinute',format(production.crystalPerMinute));
 }
 
