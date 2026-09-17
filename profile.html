@@ -51,6 +51,7 @@ h1{margin:5px 0 8px;font-size:31px}
 .tier-silver{border-color:#8394a5!important;color:#c5d3df!important}
 .tier-gold{border-color:#b9953c!important;color:#f2d176!important}
 .tier-legendary{border-color:#9566bd!important;color:#d7adff!important}
+.collectionSubheading{margin:18px 0 10px;font-size:15px}
 .status{display:none;margin-top:14px;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff}
 .loading{padding:24px;text-align:center;color:#7196b8}
 .hidden{display:none!important}
@@ -132,8 +133,12 @@ h1{margin:5px 0 8px;font-size:31px}
       <div class="achievementSummary">
         <span class="pill" id="achievementCount">0 / 0 Başarım</span>
         <span class="pill" id="achievementPoints">0 Başarım Puanı</span>
+        <span class="pill" id="trophyCount">0 Nadir Kupa</span>
       </div>
       <div id="achievementGrid" class="achievementGrid"></div>
+
+      <h3 class="collectionSubheading">👑 Boss Kupaları</h3>
+      <div id="trophyGrid" class="achievementGrid"></div>
     </section>
   </main>
 
@@ -170,6 +175,17 @@ function formatDate(value){
   const date=new Date(value);
   if(Number.isNaN(date.getTime()))return 'Üyelik tarihi bilinmiyor';
   return 'Üye: '+date.toLocaleDateString('tr-TR',{
+    day:'2-digit',
+    month:'long',
+    year:'numeric'
+  });
+}
+
+function formatCollectionDate(value){
+  if(!value)return 'Tarih bilinmiyor';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return 'Tarih bilinmiyor';
+  return date.toLocaleDateString('tr-TR',{
     day:'2-digit',
     month:'long',
     year:'numeric'
@@ -227,6 +243,53 @@ function renderAchievementCollection(collection){
     points.textContent=formatNumber(item?.points)+' puan';
     meta.append(tier,category,points);
     card.append(title,description,meta);
+    grid.appendChild(card);
+  }
+}
+
+function renderTrophyCollection(collection){
+  const items=Array.isArray(collection?.items)?collection.items:[];
+  document.getElementById('trophyCount').textContent=
+    formatNumber(collection?.uniqueTrophies)+' Nadir Kupa';
+
+  const grid=document.getElementById('trophyGrid');
+  grid.replaceChildren();
+
+  if(!items.length){
+    const empty=document.createElement('div');
+    empty.className='bioEmpty';
+    empty.textContent='Henüz nadir boss kupası bulunamadı.';
+    grid.appendChild(empty);
+    return;
+  }
+
+  for(const item of items){
+    const card=document.createElement('div');
+    card.className='achievementCard';
+
+    const title=document.createElement('div');
+    title.className='achievementTitle';
+
+    const icon=document.createElement('span');
+    icon.className='achievementIcon';
+    icon.textContent=String(item?.icon||'🏆');
+
+    const name=document.createElement('span');
+    name.textContent=String(item?.name||'Boss Kupası');
+
+    title.append(icon,name);
+
+    const meta=document.createElement('div');
+    meta.className='achievementMeta';
+
+    const count=document.createElement('span');
+    count.textContent='×'+formatNumber(item?.count);
+
+    const found=document.createElement('span');
+    found.textContent='İlk bulundu: '+formatCollectionDate(item?.firstFoundAt);
+
+    meta.append(count,found);
+    card.append(title,meta);
     grid.appendChild(card);
   }
 }
@@ -405,6 +468,7 @@ function render(data){
     formatNumber(stats.buildingsLevel);
 
   renderAchievementCollection(data.achievementCollection);
+  renderTrophyCollection(data.trophyCollection);
 
   const bio=String(profile.bio||'');
   const bioView=document.getElementById('bioView');
