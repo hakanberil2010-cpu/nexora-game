@@ -3556,7 +3556,7 @@ function formatEspionageReport(result) {
       "Kaynaklar",
       "🔩 Metal: " + Number(result.resources.metal || 0),
       "⚡ Enerji: " + Number(result.resources.energy || 0),
-      "🧱 Alaşım: " + Number((result.resources.alloy ?? result.resources.water) || 0),
+      "🧱 Alaşım: " + Number((result.resources.alloy) || 0),
       "💎 Kristal: " + Number(result.resources.crystal || 0)
     );
   }
@@ -4440,7 +4440,7 @@ async function attack() {
           "\n" +
           "Alaşım: " +
           (
-            (loot.alloy ?? loot.water) ||
+            (loot.alloy) ||
             0
           ) +
           "\n" +
@@ -4664,7 +4664,7 @@ function renderSelectedNpcCampDetails() {
   const rewardText =
     "🔩 Metal " + Math.max(0, Number(reward.metal || 0)) +
     " · ⚡ Enerji " + Math.max(0, Number(reward.energy || 0)) +
-    "<br>🧱 Alaşım " + Math.max(0, Number((reward.alloy ?? reward.water) || 0)) +
+    "<br>🧱 Alaşım " + Math.max(0, Number((reward.alloy) || 0)) +
     " · 💎 Kristal " + Math.max(0, Number(reward.crystal || 0));
 
   const activeMission = activeNpcMission();
@@ -5201,8 +5201,8 @@ function formatNpcBattleAlert(mission, statusData) {
     Number(reward.metal || 0) +
     "\nEnerji: " +
     Number(reward.energy || 0) +
-    "\nSu: " +
-    Number(reward.water || 0) +
+    "\nAlaşım: " +
+    Number(reward.alloy || 0) +
     "\nKristal: " +
     Number(reward.crystal || 0) +
     "\n\nHayatta kalan birlikler üsse dönüyor."
@@ -6366,9 +6366,9 @@ async function pollWorldExploration(id) {
               reward.energy ||
               0
             ) +
-            "\nSu: " +
+            "\nAlaşım: " +
             (
-              reward.water ||
+              reward.alloy ||
               0
             ) +
             "\nKristal: " +
