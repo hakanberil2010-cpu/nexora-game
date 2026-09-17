@@ -60,12 +60,32 @@ body {
   cursor: grabbing;
 }
 
+.return-city-button {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 72;
+  padding: 10px 14px;
+  border: 1px solid #2b7ea8;
+  border-radius: 10px;
+  background: rgba(7,31,52,.94);
+  color: #dff5ff;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(0,0,0,.35);
+  backdrop-filter: blur(8px);
+}
+
+.return-city-button:hover {
+  background: rgba(15,67,101,.97);
+}
+
 .world-canvas {
   position: absolute;
   left: 0;
   top: 0;
-  width: 1900px;
-  height: 1150px;
+  width: 3600px;
+  height: 2200px;
   transform: translate3d(0,0,0);
   transform-origin: 0 0;
   background:
@@ -243,6 +263,13 @@ body {
 }
 
 @media (max-width:800px) {
+  .return-city-button {
+    top: 12px;
+    left: 12px;
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+
   .mission-panel {
     top: 16px;
     right: 16px;
@@ -982,6 +1009,16 @@ body {
 
 <div class="container map-only-layout">
   <div class="world" id="worldViewport">
+    <button
+      class="return-city-button"
+      id="returnCityButton"
+      type="button"
+      onclick="returnToMyCity()"
+      title="Haritayı kendi koloninin konumuna getir"
+    >
+      🏰 Kolonime Dön
+    </button>
+
     <div class="world-canvas" id="worldCanvas">
             <div class="grid"></div>
             <div id="worldSites"></div>
@@ -1298,6 +1335,44 @@ function centerWorldOnCoordinates(x,y) {
   applyWorldPan(
     targetX,
     targetY
+  );
+}
+
+function returnToMyCity() {
+  closeOwnColonyMenu();
+  closeFloatingPanels();
+
+  document.querySelectorAll(
+    ".colony.selected,.world-site.selected"
+  ).forEach(
+    function(item) {
+      item.classList.remove(
+        "selected"
+      );
+    }
+  );
+
+  selectedWorldSite =
+    null;
+  selectedNpcCamp =
+    null;
+  selectedPlayer =
+    null;
+  selectedPlayerId =
+    null;
+  selectedPlayerX =
+    null;
+  selectedPlayerY =
+    null;
+  selectedPlayerProtection =
+    null;
+
+  hideNpcCampDetails();
+  updateWorldClaimButton();
+
+  centerWorldOnCoordinates(
+    myCoordinateX,
+    myCoordinateY
   );
 }
 
