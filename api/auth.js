@@ -892,7 +892,6 @@ function buildingMaxLevel(name) {
     "Merkez Bina": 30,
     "Metal Madeni": 30,
     "Enerji Santrali": 30,
-    "Su Arıtma": 30,
     "Alaşım Rafinerisi": 30,
     "Kristal Madeni": 30,
     "Kışla": 30,
@@ -1032,7 +1031,6 @@ async function getCity(req, res) {
   const metalRate = buildingTotalLevel(buildings, "Metal Madeni") * 12 * prodMultiplier;
   const energyRate = buildingTotalLevel(buildings, "Enerji Santrali") * 6 * prodMultiplier;
   const alloyLevel =
-    buildingTotalLevel(buildings, "Su Ar\u0131tma") +
     buildingTotalLevel(buildings, "Alaşım Rafinerisi");
   const alloyRate = alloyLevel * 10 * prodMultiplier;
   const crystalRate = buildingTotalLevel(buildings, "Kristal Madeni") * 5 * crystalMultiplier;
@@ -3366,14 +3364,9 @@ async function upgradeBuilding(req,res){
   const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});const city=cityResult.data[0];
   const allBuildings=await supabase("buildings?select=building_type,level,slot&city_id=eq."+encodeURIComponent(city.id));
   if(!allBuildings.ok)return send(res,500,{success:false,message:"Bina verileri alınamadı."});
-  if(
-    buildingType==="Alaşım Rafinerisi" &&
-    !(allBuildings.data||[]).some(b=>b.building_type==="Alaşım Rafinerisi") &&
-    (allBuildings.data||[]).some(b=>b.building_type==="Su Arıtma")
-  ) storageType="Su Arıtma";
   const prerequisiteLevels={};
   for(const b of (allBuildings.data||[])){
-    const visibleType=b.building_type==="Su Arıtma"?"Alaşım Rafinerisi":b.building_type;
+    const visibleType=b.building_type;
     prerequisiteLevels[visibleType]=Math.max(
       Number(prerequisiteLevels[visibleType]||0),
       Math.max(0,Number(b.level||0))
