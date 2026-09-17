@@ -179,7 +179,7 @@ h1{margin-bottom:6px}
     grid-template-columns:repeat(2,1fr)
   }
 }
-  
+
 </style>
 </head>
 
@@ -219,8 +219,8 @@ h1{margin-bottom:6px}
     </div>
 
     <div class="res">
-      💧 Su:
-      <b id="water">0</b>
+      🧱 Alaşım:
+      <b id="alloy">0</b>
     </div>
 
     <div class="res">
@@ -305,8 +305,9 @@ const defaults={
   piyade:[
     '🪖',
     'Piyade',
-    100,
-    20,
+    85,
+    0,
+    30,
     1,
     'Dengeli temel birlik'
   ],
@@ -314,8 +315,9 @@ const defaults={
   savunma:[
     '🛡️',
     'Savunma Birliği',
-    150,
-    40,
+    130,
+    0,
+    60,
     1,
     'Savunma uzmanı • daha az kayıp'
   ],
@@ -323,8 +325,9 @@ const defaults={
   saldiri:[
     '🚀',
     'Saldırı Birliği',
-    200,
-    75,
+    170,
+    0,
+    110,
     1,
     'Yüksek saldırı • daha kırılgan'
   ],
@@ -332,8 +335,9 @@ const defaults={
   okcu:[
     '🏹',
     'Okçu',
-    220,
-    90,
+    190,
+    0,
+    135,
     1,
     'Menzilli saldırı • yüksek saldırı'
   ],
@@ -341,8 +345,9 @@ const defaults={
   tank:[
     '🛡️',
     'Tank',
-    700,
-    220,
+    600,
+    275,
+    0,
     3,
     'Ağır birlik • yüksek dayanıklılık'
   ],
@@ -350,8 +355,9 @@ const defaults={
   hava:[
     '✈️',
     'Hava Birliği',
-    650,
-    260,
+    550,
+    325,
+    0,
     2,
     'Hızlı birlik • dengeli saldırı'
   ]
@@ -423,6 +429,53 @@ function selectedQuantity(type){
 }
 
 
+function unitResourceCostText(
+  d,
+  quantity=1
+){
+
+  const parts=[
+    '⛏️ '+
+    fmt(
+      d[2]*quantity
+    )+
+    ' Metal'
+  ];
+
+
+  if(
+    Number(d[3]||0)>0
+  ){
+    parts.push(
+      '⚡ '+
+      fmt(
+        d[3]*quantity
+      )+
+      ' Enerji'
+    );
+  }
+
+
+  if(
+    Number(d[4]||0)>0
+  ){
+    parts.push(
+      '🧱 '+
+      fmt(
+        d[4]*quantity
+      )+
+      ' Alaşım'
+    );
+  }
+
+
+  return parts.join(
+    ' + '
+  );
+
+}
+
+
 function updateSelectionCost(type){
 
   const d=
@@ -475,17 +528,14 @@ function updateSelectionCost(type){
   el.textContent=
     'Seçim: ×'+
     fmt(quantity)+
-    ' • ⛏️ '+
-    fmt(
-      d[2]*quantity
-    )+
-    ' • ⚡ '+
-    fmt(
-      d[3]*quantity
+    ' • '+
+    unitResourceCostText(
+      d,
+      quantity
     )+
     ' • 👥 '+
     fmt(
-      d[4]*quantity
+      d[5]*quantity
     );
 
 }
@@ -553,9 +603,10 @@ function render(data){
 
 
   document.getElementById(
-    'water'
+    'alloy'
   ).textContent=
     fmt(
+      data.city.alloy??
       data.city.water
     );
 
@@ -655,7 +706,7 @@ function render(data){
             </div>
 
             <div style="color:#7196b8;margin:-4px 0 12px">
-              ${d[5]}
+              ${d[6]}
             </div>
 
             <div class="stats">
@@ -704,9 +755,8 @@ function render(data){
 
             <div class="cost">
               Üretim:
-              ${d[2]} Metal +
-              ${d[3]} Enerji •
-              Nüfus ${d[4]}
+              ${unitResourceCostText(d)} •
+              Nüfus ${d[5]}
             </div>
 
             <div class="trainBox">
