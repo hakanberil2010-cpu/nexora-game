@@ -39,6 +39,18 @@ h1{margin:5px 0 8px;font-size:31px}
 .stat{padding:14px;border-radius:11px;background:#071526;border:1px solid #173b5d}
 .statLabel{font-size:11px;text-transform:uppercase;color:#7196b8}
 .statValue{margin-top:5px;font-size:21px;font-weight:bold;color:#dff4ff}
+.achievementSummary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:13px}
+.achievementGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.achievementCard{padding:14px;border:1px solid #173b5d;border-radius:11px;background:#071526}
+.achievementTitle{display:flex;align-items:center;gap:8px;font-weight:bold}
+.achievementIcon{font-size:24px}
+.achievementDescription{margin:9px 0;color:#b9d4eb;line-height:1.4;overflow-wrap:anywhere}
+.achievementMeta{display:flex;gap:7px;flex-wrap:wrap;font-size:12px;color:#9bbbd4}
+.achievementMeta span{padding:4px 7px;border-radius:6px;background:#102a44}
+.tier-bronze{border-color:#9a704e!important;color:#dbac80!important}
+.tier-silver{border-color:#8394a5!important;color:#c5d3df!important}
+.tier-gold{border-color:#b9953c!important;color:#f2d176!important}
+.tier-legendary{border-color:#9566bd!important;color:#d7adff!important}
 .status{display:none;margin-top:14px;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff}
 .loading{padding:24px;text-align:center;color:#7196b8}
 .hidden{display:none!important}
@@ -114,6 +126,15 @@ h1{margin:5px 0 8px;font-size:31px}
         <div class="stat"><div class="statLabel">Bina Seviyesi Toplamı</div><div class="statValue" id="buildingsLevel">0</div></div>
       </div>
     </section>
+
+    <section class="section">
+      <h2>🏅 Başarım Koleksiyonu</h2>
+      <div class="achievementSummary">
+        <span class="pill" id="achievementCount">0 / 0 Başarım</span>
+        <span class="pill" id="achievementPoints">0 Başarım Puanı</span>
+      </div>
+      <div id="achievementGrid" class="achievementGrid"></div>
+    </section>
   </main>
 
   <div id="status" class="status"></div>
@@ -153,6 +174,61 @@ function formatDate(value){
     month:'long',
     year:'numeric'
   });
+}
+
+function renderAchievementCollection(collection){
+  const items=Array.isArray(collection?.items)?collection.items:[];
+  document.getElementById('achievementCount').textContent=
+    formatNumber(collection?.unlockedCount)+' / '+
+    formatNumber(collection?.totalCount)+' Başarım';
+  document.getElementById('achievementPoints').textContent=
+    formatNumber(collection?.totalPoints)+' Başarım Puanı';
+
+  const grid=document.getElementById('achievementGrid');
+  grid.replaceChildren();
+
+  if(!items.length){
+    const empty=document.createElement('div');
+    empty.className='bioEmpty';
+    empty.textContent='Henüz açılmış başarım yok.';
+    grid.appendChild(empty);
+    return;
+  }
+
+  for(const item of items){
+    const card=document.createElement('div');
+    card.className='achievementCard';
+    const title=document.createElement('div');
+    title.className='achievementTitle';
+    const icon=document.createElement('span');
+    icon.className='achievementIcon';
+    icon.textContent=String(item?.icon||'🏅');
+    const name=document.createElement('span');
+    name.textContent=String(item?.title||'Başarım');
+    title.append(icon,name);
+
+    const description=document.createElement('div');
+    description.className='achievementDescription';
+    description.textContent=String(item?.description||'Açılmış başarım.');
+
+    const meta=document.createElement('div');
+    meta.className='achievementMeta';
+    const tier=document.createElement('span');
+    const tierName=String(item?.tier||'bronze').toLowerCase();
+    tier.className='tier-'+(
+      ['bronze','silver','gold','legendary'].includes(tierName)
+        ?tierName
+        :'bronze'
+    );
+    tier.textContent=tierName;
+    const category=document.createElement('span');
+    category.textContent=String(item?.category||'general');
+    const points=document.createElement('span');
+    points.textContent=formatNumber(item?.points)+' puan';
+    meta.append(tier,category,points);
+    card.append(title,description,meta);
+    grid.appendChild(card);
+  }
 }
 
 function showStatus(message){
@@ -327,6 +403,8 @@ function render(data){
     formatNumber(stats.draws);
   document.getElementById('buildingsLevel').textContent=
     formatNumber(stats.buildingsLevel);
+
+  renderAchievementCollection(data.achievementCollection);
 
   const bio=String(profile.bio||'');
   const bioView=document.getElementById('bioView');
