@@ -3495,10 +3495,10 @@ function renderAttackUnitSelector() {
 
         list.innerHTML =
           '<div style="color:#ffb0b0">Birlikler yüklenemedi: ' +
-          String(
+          escapeHtml(String(
             error.message ||
             error
-          ) +
+          )) +
           '</div>';
 
         if (attackButton) {
