@@ -4078,7 +4078,7 @@ async function getPlayerProfile(req,res){
     return send(res,503,{success:false,message:"Oyuncu profili doğrulanamadı."});
   }
 
-  const [citiesR,researchR,reportsR,achievementsR,unlocksR]=await Promise.all([
+  const [citiesR,researchR,reportsR,achievementsR,unlocksR,trophiesR]=await Promise.all([
     supabase(
       "cities?select=id,level&player_id=eq."+
       encodeURIComponent(targetPlayerId)
@@ -4102,16 +4102,22 @@ async function getPlayerProfile(req,res){
       "player_achievements?select=achievement_id,unlocked_at&player_id=eq."+
       encodeURIComponent(targetPlayerId)+
       "&order=unlocked_at.desc"
+    ),
+    supabase(
+      "player_boss_kills?select=rare_drop_key,rare_drop_name,rare_drop_icon,killed_at&player_id=eq."+
+      encodeURIComponent(targetPlayerId)+
+      "&rare_drop_key=not.is.null&order=killed_at.desc"
     )
   ]);
 
-  if(!citiesR.ok||!researchR.ok||!reportsR.ok||!achievementsR.ok||!unlocksR.ok){
+  if(!citiesR.ok||!researchR.ok||!reportsR.ok||!achievementsR.ok||!unlocksR.ok||!trophiesR.ok){
     console.error("Oyuncu profil istatistik sorgu hatası:",{
       cities:citiesR.data,
       research:researchR.data,
       reports:reportsR.data,
       achievements:achievementsR.data,
-      unlocks:unlocksR.data
+      unlocks:unlocksR.data,
+      trophies:trophiesR.data
     });
     return send(res,503,{success:false,message:"Oyuncu istatistikleri şu anda alınamıyor."});
   }
@@ -4140,6 +4146,35 @@ async function getPlayerProfile(req,res){
     totalCount:achievements.length,
     totalPoints:achievementItems.reduce((sum,item)=>sum+item.points,0),
     items:achievementItems
+  };
+  const trophyMap=new Map();
+  for(const row of (Array.isArray(trophiesR.data)?trophiesR.data:[])){
+    const key=String(row.rare_drop_key||"").trim();
+    if(!key)continue;
+
+    const foundAt=row.killed_at||null;
+    const existing=trophyMap.get(key);
+
+    if(existing){
+      existing.count+=1;
+      if(foundAt)existing.firstFoundAt=foundAt;
+      continue;
+    }
+
+    trophyMap.set(key,{
+      key,
+      name:String(row.rare_drop_name||"Boss Kupası"),
+      icon:String(row.rare_drop_icon||"🏆"),
+      count:1,
+      firstFoundAt:foundAt,
+      lastFoundAt:foundAt
+    });
+  }
+  const trophyItems=Array.from(trophyMap.values());
+  const trophyCollection={
+    uniqueTrophies:trophyItems.length,
+    totalDrops:trophyItems.reduce((sum,item)=>sum+item.count,0),
+    items:trophyItems
   };
   const cityIds=cities
     .map(city=>Number(city.id))
@@ -4290,6 +4325,7 @@ async function getPlayerProfile(req,res){
     serverTime:meta.data.serverTime||null,
     profile,
     achievementCollection,
+    trophyCollection,
     stats:{
       colonyLevel,
       armyPower:Math.round(armyPower),
