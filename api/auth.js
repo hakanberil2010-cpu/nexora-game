@@ -3785,6 +3785,27 @@ async function getHeaderBadges(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getNotifications(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_notifications_snapshot",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:playerId,
+      p_activity_limit:30,
+      p_social_limit:5
+    })
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    console.error("Bildirim merkezi snapshot RPC hatası:",result.data);
+    return send(res,503,{success:false,message:"Bildirim merkezi şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function getActivity(req,res){
   const playerId=authPlayerId(req);
   if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
@@ -5101,6 +5122,9 @@ if (action === "claimweeklybossreward") {
 }
 if (action === "headerbadges") {
   return await getHeaderBadges(req, res);
+}
+if (action === "notifications") {
+  return await getNotifications(req, res);
 }
 if (action === "activity") {
   return await getActivity(req, res);
