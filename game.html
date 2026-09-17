@@ -569,7 +569,7 @@ function loginRewardSummary(reward){
     ([icon,key,label])=>{
       const rawValue=
         key==='alloy'
-          ?(r.alloy??r.water)
+          ?r.alloy
           :r[key];
 
       const value=Math.max(
@@ -966,12 +966,9 @@ function buildingLabel(name,slot=1){
 }
 
 function buildingRecord(name,slot=1){
-  const storageName=
-    storageBuildingType(name);
-
   return latestBuildings.find(
     x=>
-      x.building_type===storageName&&
+      visibleBuildingType(x.building_type)===name&&
       Math.max(1,Number(x.slot)||1)===slot
   );
 }
@@ -1173,7 +1170,7 @@ async function loadCity(){
           document.getElementById(k).textContent=
             fmt(
               k==='alloy'
-                ?(c.alloy??c.water)
+                ?c.alloy
                 :c[k]
             );
         }
@@ -1216,7 +1213,7 @@ async function loadCity(){
         ' metal/dk  •  ⚡ '+
         fmt(p.energyPerMinute)+
         ' enerji/dk  •  🧱 '+
-        fmt(p.alloyPerMinute??p.waterPerMinute)+
+        fmt(p.alloyPerMinute)+
         ' alaşım/dk  •  💎 '+
         fmt(p.crystalPerMinute)+
         ' kristal/dk';
@@ -1245,8 +1242,7 @@ async function loadCity(){
                 (
                   k==='alloy'
                     ?(
-                      c.alloy_capacity||
-                      c.water_capacity
+                      c.alloy_capacity
                     )
                     :c[capacityKey]
                 )||
