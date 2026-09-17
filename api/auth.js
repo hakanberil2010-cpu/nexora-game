@@ -1477,7 +1477,7 @@ function calculateBattlePoints(result, attackPower, defensePower){
 function regionForCoordinates(x,y){
   const regions=[
     {name:'Çöl Bölgesi',x:10,y:18,bonus:'Metal üretimi +5%'},
-    {name:'Orman Bölgesi',x:42,y:12,bonus:'Su üretimi +5%'},
+    {name:'Orman Bölgesi',x:42,y:12,bonus:'Alaşım üretimi +5%'},
     {name:'Buz Bölgesi',x:91,y:17,bonus:'Enerji üretimi +5%'},
     {name:'Dağ Bölgesi',x:30,y:83,bonus:'Savunma +5%'},
     {name:'Volkanik Bölge',x:72,y:85,bonus:'Kristal üretimi +5%'},
@@ -3345,7 +3345,7 @@ async function upgradeBuilding(req,res){
   const body=await readBody(req);
   const buildingType=String(body.building||"").trim();
   const slot=body.slot==null?1:Number(body.slot);
-  const storageType=buildingType==="Alaşım Rafinerisi"?"Su Arıtma":buildingType;
+  let storageType=buildingType;
   const costs={
     "Metal Madeni":{metal:425,energy:0,alloy:150,crystal:25},
     "Enerji Santrali":{metal:340,energy:0,alloy:100,crystal:20},
@@ -3366,6 +3366,11 @@ async function upgradeBuilding(req,res){
   const cityResult=await supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");if(!cityResult.ok||!cityResult.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});const city=cityResult.data[0];
   const allBuildings=await supabase("buildings?select=building_type,level,slot&city_id=eq."+encodeURIComponent(city.id));
   if(!allBuildings.ok)return send(res,500,{success:false,message:"Bina verileri alınamadı."});
+  if(
+    buildingType==="Alaşım Rafinerisi" &&
+    !(allBuildings.data||[]).some(b=>b.building_type==="Alaşım Rafinerisi") &&
+    (allBuildings.data||[]).some(b=>b.building_type==="Su Arıtma")
+  ) storageType="Su Arıtma";
   const prerequisiteLevels={};
   for(const b of (allBuildings.data||[])){
     const visibleType=b.building_type==="Su Arıtma"?"Alaşım Rafinerisi":b.building_type;
@@ -3477,7 +3482,7 @@ async function getWorldPlayers(req,res){
     :{success:false,playerAllianceId:null,regions:[]};
 
   return send(res,200,{success:true,players,viewerPvpProtection:protectionFor(playerId),sites:sitesResult.ok?(sitesResult.data||[]):[],regions:[
-    {name:"Çöl Bölgesi",bonus:"Metal üretimi +5%"},{name:"Orman Bölgesi",bonus:"Su üretimi +5%"},{name:"Buz Bölgesi",bonus:"Enerji üretimi +5%"},{name:"Dağ Bölgesi",bonus:"Savunma +5%"},{name:"Volkanik Bölge",bonus:"Kristal üretimi +5%"},{name:"Okyanus",bonus:"Seyahat süresi -5%"}
+    {name:"Çöl Bölgesi",bonus:"Metal üretimi +5%"},{name:"Orman Bölgesi",bonus:"Alaşım üretimi +5%"},{name:"Buz Bölgesi",bonus:"Enerji üretimi +5%"},{name:"Dağ Bölgesi",bonus:"Savunma +5%"},{name:"Volkanik Bölge",bonus:"Kristal üretimi +5%"},{name:"Okyanus",bonus:"Seyahat süresi -5%"}
   ],regionControl});
 }
 
