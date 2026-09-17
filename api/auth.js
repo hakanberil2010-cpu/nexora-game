@@ -4520,8 +4520,8 @@ async function changePassword(req,res){
   const updated=await supabase(
     "players?id=eq."+
     encodeURIComponent(playerId)+
-    "&password_hash=eq."+
-    encodeURIComponent(player.password_hash)+
+    "&session_version=eq."+
+    encodeURIComponent(Math.max(1,Number(player.session_version)||1))+
     "&select=id,session_version",
     {
       method:"PATCH",
