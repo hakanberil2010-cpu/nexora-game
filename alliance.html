@@ -61,6 +61,29 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .allianceContributionTable th,.allianceContributionTable td{padding:8px;border-bottom:1px solid #17344f;text-align:left}
 .allianceContributionTable th{color:#8db0cf;font-weight:normal}
 .allianceContributionTable td:not(:first-child),.allianceContributionTable th:not(:first-child){text-align:right}
+.allianceProgressionPanel{margin:18px 0;padding:16px;border:1px solid #624a87;border-radius:12px;background:#100b1b}
+.allianceProgressionHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.allianceLevelBadge{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#38234f;color:#e7c8ff;font-weight:bold}
+.allianceProgressionMeta{text-align:right;color:#bda8d0;font-size:12px;line-height:1.6}
+.allianceXpTrack{height:12px;margin-top:12px;border-radius:999px;overflow:hidden;background:#07040d;border:1px solid #342345}
+.allianceXpBar{height:100%;width:0;background:#b26fff}
+.allianceXpText{display:flex;justify-content:space-between;gap:12px;margin-top:6px;color:#c8b3d8;font-size:12px}
+.allianceXpSources{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.allianceXpSource{padding:10px;border:1px solid #3e2d55;border-radius:9px;background:#0a0710;text-align:center}
+.allianceXpSource strong{display:block;margin-top:4px;color:#e9d4ff}
+.allianceLevelGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
+.allianceLevelCard{padding:12px;border:1px solid #342845;border-radius:10px;background:#0b0810}
+.allianceLevelCard.reached{border-color:#4c725d;background:#0b1c15}
+.allianceLevelCard.current{box-shadow:0 0 0 1px #b26fff inset}
+.allianceLevelCard.claimable{border-color:#a67c28;background:#241b08}
+.allianceLevelCard.claimed{border-color:#2f7657;background:#0a211a}
+.allianceLevelCard h4{margin:0 0 6px}
+.allianceLevelReward{margin-top:7px;color:#c9b9d6;font-size:12px;line-height:1.45}
+.allianceLevelState{margin-top:8px;font-size:12px;color:#a994ba}
+.allianceLevelCard button{margin-top:9px}
+.allianceXpHistory{margin-top:14px}
+.allianceXpHistoryItem{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #30243f;font-size:12px}
+.allianceXpHistoryItem:last-child{border-bottom:0}
 @media(max-width:700px){
   .top{padding:0 14px}.logo{font-size:23px;letter-spacing:4px}
   .container{padding:0 12px;margin-top:20px}
@@ -68,6 +91,9 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   .itemActions{justify-content:flex-start}
   .allianceMissionGrid{grid-template-columns:1fr}
   .allianceMissionMeta{text-align:left}
+  .allianceProgressionMeta{text-align:left}
+  .allianceXpSources{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .allianceLevelGrid{grid-template-columns:1fr}
   .allianceContribution{overflow-x:auto}
   .allianceContributionTable{min-width:620px}
 }
@@ -97,6 +123,35 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   <div id="mine" class="panel hidden">
     <h2 id="myTitle"></h2>
     <div id="myStats" class="muted"></div>
+
+    <div id="allianceProgression" class="allianceProgressionPanel">
+      <div class="allianceProgressionHead">
+        <div>
+          <div id="allianceLevelBadge" class="allianceLevelBadge">⭐ Seviye 1 · Kuruluş</div>
+          <h3 style="margin:9px 0 4px">🏛️ İttifak İlerlemesi</h3>
+          <div class="muted">Savaşlar, bölgeler ve ortak görevlerle kalıcı ittifak XP'si kazanılır.</div>
+        </div>
+        <div class="allianceProgressionMeta">
+          <div>Toplam XP: <strong id="allianceTotalXp">0</strong></div>
+          <div>Sonraki seviye: <strong id="allianceNextLevel">-</strong></div>
+          <div>Kalan XP: <strong id="allianceXpNeeded">-</strong></div>
+        </div>
+      </div>
+      <div class="allianceXpTrack"><div id="allianceXpBar" class="allianceXpBar"></div></div>
+      <div class="allianceXpText">
+        <span id="allianceXpCurrentText">0 XP</span>
+        <span id="allianceXpNextText">-</span>
+      </div>
+      <div id="allianceXpSources" class="allianceXpSources"></div>
+      <h4 style="margin:16px 0 7px">🏅 Seviye Yol Haritası</h4>
+      <div id="allianceLevelGrid" class="allianceLevelGrid">
+        <div class="empty">İttifak ilerlemesi yükleniyor...</div>
+      </div>
+      <div class="allianceXpHistory">
+        <h4 style="margin:16px 0 7px">📜 Son XP Kazanımları</h4>
+        <div id="allianceXpHistory" class="empty">XP geçmişi yükleniyor...</div>
+      </div>
+    </div>
 
     <div id="allianceMissions" class="allianceMissionPanel">
       <div class="allianceMissionHead">
@@ -161,6 +216,7 @@ let currentMember=null;
 let allianceMissionsSnapshot=null;
 let allianceMissionServerOffsetMs=0;
 let allianceMissionNextResetMs=0;
+let allianceProgressionSnapshot=null;
 
 const esc=s=>{
   const d=document.createElement('div');
@@ -353,6 +409,155 @@ async function loadTerritories(allianceId){
   }catch(e){
     console.error(e);
     el.innerHTML='<div class="empty">İttifak bölgeleri alınamadı.</div>';
+  }
+}
+
+function allianceProgressionNumber(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(0,n):0;
+}
+
+function allianceProgressionRewardText(reward){
+  const r=reward&&typeof reward==='object'?reward:{};
+  const parts=[];
+  if(allianceProgressionNumber(r.metal)>0)parts.push('⛏️ '+allianceProgressionNumber(r.metal).toLocaleString('tr-TR')+' Metal');
+  if(allianceProgressionNumber(r.energy)>0)parts.push('⚡ '+allianceProgressionNumber(r.energy).toLocaleString('tr-TR')+' Enerji');
+  if(allianceProgressionNumber(r.water)>0)parts.push('💧 '+allianceProgressionNumber(r.water).toLocaleString('tr-TR')+' Su');
+  if(allianceProgressionNumber(r.crystal)>0)parts.push('💎 '+allianceProgressionNumber(r.crystal).toLocaleString('tr-TR')+' Kristal');
+  return parts.join(' · ')||'Ödül yok';
+}
+
+function allianceXpSourceLabel(source){
+  return ({
+    mission_week:'🎯 Ortak Görev',
+    war_battle_win:'⚔️ Savaş Raundu',
+    war_win:'🏆 Savaş Zaferi',
+    territory_claim:'🗺️ Bölge'
+  })[source]||'⭐ İttifak XP';
+}
+
+function renderAllianceProgression(data){
+  allianceProgressionSnapshot=data&&typeof data==='object'?data:null;
+
+  const levelGrid=document.getElementById('allianceLevelGrid');
+  const sourcesEl=document.getElementById('allianceXpSources');
+  const historyEl=document.getElementById('allianceXpHistory');
+  if(!levelGrid||!sourcesEl||!historyEl)return;
+
+  if(!data||data.success!==true||data.inAlliance!==true){
+    document.getElementById('allianceLevelBadge').textContent='⭐ İttifak seviyesi yok';
+    document.getElementById('allianceTotalXp').textContent='0';
+    document.getElementById('allianceNextLevel').textContent='-';
+    document.getElementById('allianceXpNeeded').textContent='-';
+    document.getElementById('allianceXpBar').style.width='0%';
+    document.getElementById('allianceXpCurrentText').textContent='0 XP';
+    document.getElementById('allianceXpNextText').textContent='-';
+    sourcesEl.innerHTML='';
+    levelGrid.innerHTML='<div class="empty">Bir ittifaka katıldıktan sonra kalıcı ilerleme burada görünür.</div>';
+    historyEl.innerHTML='<div class="empty">Henüz XP geçmişi yok.</div>';
+    return;
+  }
+
+  const p=data.progression&&typeof data.progression==='object'?data.progression:{};
+  const totalXp=allianceProgressionNumber(p.totalXp);
+  const level=Math.max(1,Math.round(allianceProgressionNumber(p.level)||1));
+  const currentXp=allianceProgressionNumber(p.currentLevelXp);
+  const nextXp=allianceProgressionNumber(p.nextLevelXp);
+  const maxLevel=p.maxLevel===true||!p.nextLevel;
+  const span=maxLevel?1:Math.max(1,nextXp-currentXp);
+  const progress=maxLevel?100:Math.max(0,Math.min(100,((totalXp-currentXp)/span)*100));
+
+  document.getElementById('allianceLevelBadge').textContent=
+    '⭐ Seviye '+level+' · '+String(p.title||'Kuruluş');
+  document.getElementById('allianceTotalXp').textContent=totalXp.toLocaleString('tr-TR');
+  document.getElementById('allianceNextLevel').textContent=
+    maxLevel?'Maksimum':('Sv.'+Number(p.nextLevel||level+1)+' · '+String(p.nextTitle||''));
+  document.getElementById('allianceXpNeeded').textContent=
+    maxLevel?'0':allianceProgressionNumber(p.xpNeededForNext).toLocaleString('tr-TR');
+  document.getElementById('allianceXpBar').style.width=progress+'%';
+  document.getElementById('allianceXpCurrentText').textContent=
+    totalXp.toLocaleString('tr-TR')+' XP';
+  document.getElementById('allianceXpNextText').textContent=
+    maxLevel?'🏆 Maksimum seviye':nextXp.toLocaleString('tr-TR')+' XP';
+
+  const xpSources=data.xpSources&&typeof data.xpSources==='object'?data.xpSources:{};
+  const sourceKeys=['mission_week','war_battle_win','war_win','territory_claim'];
+  sourcesEl.innerHTML=sourceKeys.map(key=>`
+    <div class="allianceXpSource">
+      <span>${allianceXpSourceLabel(key)}</span>
+      <strong>${allianceProgressionNumber(xpSources[key]).toLocaleString('tr-TR')} XP</strong>
+    </div>
+  `).join('');
+
+  const levels=Array.isArray(data.levels)?data.levels:[];
+  levelGrid.innerHTML=levels.map(item=>{
+    const itemLevel=Math.max(1,Number(item.level)||1);
+    const reached=itemLevel===1||item.reached===true;
+    const claimed=item.claimed===true;
+    const claimable=item.claimable===true;
+    const eligible=item.eligible===true||itemLevel===1;
+    const isCurrent=itemLevel===level;
+    const classes=[
+      'allianceLevelCard',
+      reached?'reached':'',
+      isCurrent?'current':'',
+      claimable?'claimable':'',
+      claimed?'claimed':''
+    ].filter(Boolean).join(' ');
+    let state='🔒 '+allianceProgressionNumber(item.xpRequired).toLocaleString('tr-TR')+' XP gerekli';
+    if(itemLevel===1)state='✅ Başlangıç seviyesi';
+    else if(claimed)state='✅ Ödül alındı';
+    else if(claimable)state='🎁 Ödül hazır';
+    else if(reached&&!eligible)state='⛔ Bu seviye sen katılmadan önce kazanıldı';
+    else if(reached)state='✅ Seviye açıldı';
+    const button=claimable
+      ?`<button class="button smallButton" onclick="claimAllianceLevelReward(${itemLevel})">Ödülü Al</button>`
+      :'';
+    return `<div class="${classes}">
+      <h4>Sv.${itemLevel} · ${esc(item.title||'İttifak Seviyesi')}</h4>
+      <div class="muted">${allianceProgressionNumber(item.xpRequired).toLocaleString('tr-TR')} XP</div>
+      ${itemLevel>=2?`<div class="allianceLevelReward">🎁 ${esc(allianceProgressionRewardText(item.reward))}</div>`:''}
+      <div class="allianceLevelState">${state}</div>
+      ${button}
+    </div>`;
+  }).join('')||'<div class="empty">Seviye bilgisi bulunamadı.</div>';
+
+  const recent=Array.isArray(data.recentXp)?data.recentXp:[];
+  historyEl.innerHTML=recent.map(x=>`
+    <div class="allianceXpHistoryItem">
+      <span>${allianceXpSourceLabel(String(x.sourceType||''))}<br><small class="muted">${esc(formatDate(x.occurredAt))}</small></span>
+      <strong>+${allianceProgressionNumber(x.xp).toLocaleString('tr-TR')} XP</strong>
+    </div>
+  `).join('')||'<div class="empty">Henüz XP kazanımı yok.</div>';
+}
+
+async function loadAllianceProgression(){
+  try{
+    const r=await fetch('/api/auth?action=allianceprogression',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const d=await readResponse(r);
+    if(!r.ok||!d.success){
+      console.error('İttifak ilerlemesi alınamadı:',d);
+      return;
+    }
+    renderAllianceProgression(d);
+  }catch(e){
+    console.error(e);
+  }
+}
+
+async function claimAllianceLevelReward(level){
+  const r=await fetch('/api/auth?action=claimalliancelevelreward',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({level:Number(level)})
+  });
+  const d=await readResponse(r);
+  msg(d.message||'');
+  if(r.ok&&d.success){
+    renderAllianceProgression(d.snapshot||allianceProgressionSnapshot);
   }
 }
 
@@ -550,6 +755,8 @@ function activityText(x){
       return `🏁 İttifak savaşı tamamlandı. Skor: ${Number(meta.ownScore||0)} - ${Number(meta.opponentScore||0)}.`;
     case 'alliance_mission_chest_claimed':
       return `${actor} haftalık ittifak sandığını aldı.`;
+    case 'alliance_level_reward_claimed':
+      return `${actor} Sv.${Number(meta.level||0)} ittifak ödülünü aldı.`;
     default: return 'İttifak aktivitesi güncellendi.';
   }
 }
@@ -590,6 +797,8 @@ function showNoAlliance(){
   allianceMissionsSnapshot=null;
   allianceMissionServerOffsetMs=0;
   allianceMissionNextResetMs=0;
+  allianceProgressionSnapshot=null;
+  renderAllianceProgression({success:true,inAlliance:false});
   renderAllianceMissions({success:true,inAlliance:false});
 }
 
@@ -608,6 +817,7 @@ async function loadMine(){
       showMine(d.alliance,d.member,d.members,d.announcements,d.activity);
       await Promise.all([
         loadTerritories(d.alliance.id),
+        loadAllianceProgression(),
         loadAllianceMissions()
       ]);
     }else{
