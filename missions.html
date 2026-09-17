@@ -233,7 +233,7 @@ function rewardText(reward){
   const values=[
     ['⛏️',r.metal,'Metal'],
     ['⚡',r.energy,'Enerji'],
-    ['💧',r.water,'Su'],
+    ['🧱',(r.alloy??r.water),'Alaşım'],
     ['💎',r.crystal,'Kristal']
   ];
   values.forEach(([icon,value,label])=>{
