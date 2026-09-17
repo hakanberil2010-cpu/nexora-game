@@ -37,7 +37,8 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .empty{color:#7799b8;padding:8px 0}
 .notice{border-color:#33506b}
 @media(max-width:700px){
-  .top{padding:0 14px}.logo{font-size:23px;letter-spacing:4px}
+  .top{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:23px;letter-spacing:4px}
+  .top>div:last-child{min-width:0;font-size:13px;overflow-wrap:anywhere}
   .container{padding:0 12px;margin-top:20px}
   .itemHead{flex-direction:column}
   .itemActions{justify-content:flex-start}
