@@ -145,6 +145,32 @@
         grid-template-columns: repeat(2, 1fr);
       }
     }
+
+    @media (max-width: 600px) {
+      .top {
+        height: auto;
+        min-height: 70px;
+        padding: 12px 14px;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .logo {
+        font-size: 24px;
+        letter-spacing: 4px;
+      }
+
+      .top > div:last-child {
+        min-width: 0;
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .container {
+        margin: 20px auto;
+        padding: 0 12px;
+      }
+    }
   </style>
 </head>
 
