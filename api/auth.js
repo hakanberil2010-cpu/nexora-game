@@ -388,7 +388,7 @@ async function supabase(path, options = {}) {
         timedOut
           ? "Supabase istek zaman aşımı:"
           : "Supabase bağlantı hatası:",
-        path,
+        String(path).split("?")[0],
         error
       );
 
