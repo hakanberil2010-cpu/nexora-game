@@ -83,7 +83,8 @@ h1{margin:0 0 8px}
 .back{display:inline-block;margin-top:28px;color:#18bfff;text-decoration:none}
 .back:hover{text-decoration:underline}
 @media(max-width:800px){
-  .top{padding:0 15px}
+  .top{height:auto;min-height:76px;padding:12px 15px;gap:10px;flex-wrap:wrap}
+  .top>div:last-child{min-width:0;overflow-wrap:anywhere}
   .logo{font-size:22px;letter-spacing:4px}
   .container{padding:0 12px;margin-top:20px}
   .summary{grid-template-columns:repeat(2,1fr)}
