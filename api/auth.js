@@ -1045,23 +1045,10 @@ async function getCity(req, res) {
     buildings,
     units,
     productionQueue,
-    production: { metalPerMinute: metalRate, energyPerMinute: energyRate, alloyPerMinute: alloyRate, waterPerMinute: alloyRate, crystalPerMinute: crystalRate },
-    capacities: { metal_capacity: resourceCap, energy_capacity: resourceCap, alloy_capacity: resourceCap, water_capacity: resourceCap, crystal_capacity: crystalCap, population_capacity: populationCap, army_capacity: armyCap, defense_bonus: defenseBonus(buildings) }
+    production: { metalPerMinute: metalRate, energyPerMinute: energyRate, alloyPerMinute: alloyRate, crystalPerMinute: crystalRate },
+    capacities: { metal_capacity: resourceCap, energy_capacity: resourceCap, alloy_capacity: resourceCap, crystal_capacity: crystalCap, population_capacity: populationCap, army_capacity: armyCap, defense_bonus: defenseBonus(buildings) }
   });
 }
-async function spendCityResources(playerId,cost={}){
-  return await supabase("rpc/nexora_spend_city_resources",{
-    method:"POST",
-    body:JSON.stringify({
-      p_player_id:Number(playerId),
-      p_metal:Number(cost.metal||0),
-      p_energy:Number(cost.energy||0),
-      p_water:Number(cost.water||0),
-      p_crystal:Number(cost.crystal||0)
-    })
-  });
-}
-
 async function produceArmy(req, res) {
   const playerId = authPlayerId(req);
 
@@ -2625,7 +2612,7 @@ async function upgradeResearch(req,res){
   if(!city)return send(res,503,{success:false,message:"Koloni üretimi senkronize edilemedi."});
   if(research.upgrade_ready_at)return send(res,400,{success:false,message:"Başka bir araştırma zaten sürüyor.",finishAt:research.upgrade_ready_at});
   const level=Math.max(0,Number(research[column]||0)); if(level>=15)return send(res,400,{success:false,message:"Bu araştırma zaten 15. seviyede."});
-  const mult=level+1; const cost={metal:base[type].metal*mult,energy:base[type].energy*mult,water:0,crystal:base[type].crystal*mult};
+  const mult=level+1; const cost={metal:base[type].metal*mult,energy:base[type].energy*mult,alloy:0,crystal:base[type].crystal*mult};
   const duration=60+level*45;
   const spend=await supabase("rpc/nexora_start_research_upgrade",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_city_id:Number(city.id),p_column:column,p_level:level,p_cost:cost,p_duration:duration})});
   if(!spend.ok)return send(res,500,{success:false,message:"Kaynaklar güncellenemedi."});
@@ -3121,7 +3108,7 @@ async function getResearch(req,res){
   city=await syncResearchCityResources(playerId,city,buildings,research);
   if(!city)return send(res,503,{success:false,message:"Koloni üretimi senkronize edilemedi."});
   const remaining=research.upgrade_ready_at?Math.max(0,Math.ceil((new Date(research.upgrade_ready_at).getTime()-Date.now())/1000)):0;
-  return send(res,200,{success:true,research,city:{metal:Number(city.metal||0),energy:Number(city.energy||0),water:Number(city.water||0),crystal:Number(city.crystal||0),metal_capacity:storageCapacity(buildings),energy_capacity:storageCapacity(buildings),water_capacity:storageCapacity(buildings),crystal_capacity:crystalStorageCapacity(buildings)},serverTime:new Date().toISOString(),remainingSeconds:remaining});
+  return send(res,200,{success:true,research,city:{metal:Number(city.metal||0),energy:Number(city.energy||0),alloy:Number(city.alloy||0),crystal:Number(city.crystal||0),metal_capacity:storageCapacity(buildings),energy_capacity:storageCapacity(buildings),alloy_capacity:storageCapacity(buildings),crystal_capacity:crystalStorageCapacity(buildings)},serverTime:new Date().toISOString(),remainingSeconds:remaining});
 }
 
 async function getBattleReports(req, res) {
@@ -4655,7 +4642,7 @@ async function getRankings(req,res){
 }
 
 
-const TRADE_RESOURCES = new Set(["metal","energy","water","crystal"]);
+const TRADE_RESOURCES = new Set(["metal","energy","alloy","crystal"]);
 const TRADE_MIN_AMOUNT = 10;
 const TRADE_MAX_AMOUNT = 100000000;
 
