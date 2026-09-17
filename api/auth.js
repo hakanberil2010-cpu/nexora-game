@@ -3633,6 +3633,22 @@ async function claimAllianceMissionChest(req,res){
   return send(res,result.data.success?200:400,result.data);
 }
 
+async function getPveStatistics(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const result=await supabase("rpc/nexora_pve_statistics_snapshot",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+
+  if(!result.ok||typeof result.data?.success!=="boolean"){
+    return send(res,503,{success:false,message:"PvE istatistikleri şu anda kullanılamıyor."});
+  }
+
+  return send(res,result.data.success?200:400,result.data);
+}
+
 async function getAllianceProgression(req,res){
   const playerId=authPlayerId(req);
   if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
@@ -4973,6 +4989,9 @@ if (action === "alliancemissions") {
 }
 if (action === "claimalliancemissionchest") {
   return await claimAllianceMissionChest(req, res);
+}
+if (action === "pvestatistics") {
+  return await getPveStatistics(req, res);
 }
 if (action === "allianceprogression") {
   return await getAllianceProgression(req, res);
