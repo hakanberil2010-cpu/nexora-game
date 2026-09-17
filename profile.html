@@ -56,8 +56,9 @@ h1{margin:5px 0 8px;font-size:31px}
 .loading{padding:24px;text-align:center;color:#7196b8}
 .hidden{display:none!important}
 @media(max-width:760px){
-  .top{padding:0 15px}
+  .top{height:auto;min-height:70px;padding:12px 15px;gap:10px;flex-wrap:wrap}
   .logo{font-size:22px;letter-spacing:4px}
+  .top>div:last-child{min-width:0;font-size:13px;overflow-wrap:anywhere}
   .container{padding:0 12px;margin-top:20px}
   .hero{grid-template-columns:1fr}
   .scoreBox{width:100%}
