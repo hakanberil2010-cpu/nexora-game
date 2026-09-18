@@ -80,6 +80,42 @@ body {
   background: rgba(15,67,101,.97);
 }
 
+.city-direction-indicator {
+  position: absolute;
+  z-index: 74;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 92px;
+  padding: 8px 10px;
+  border: 1px solid rgba(104,210,255,.7);
+  border-radius: 999px;
+  background: rgba(5,24,42,.94);
+  color: #e9f8ff;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(0,0,0,.4);
+  backdrop-filter: blur(8px);
+  transform: translate(-50%,-50%);
+}
+
+.city-direction-indicator[hidden] {
+  display: none;
+}
+
+.city-direction-arrow {
+  display: inline-block;
+  color: #67d8ff;
+  font-size: 20px;
+  line-height: 1;
+  transform-origin: 50% 50%;
+}
+
+.city-direction-distance {
+  white-space: nowrap;
+}
+
 .world-canvas {
   position: absolute;
   left: 0;
@@ -1019,6 +1055,18 @@ body {
       🏰 Kolonime Dön
     </button>
 
+    <button
+      class="city-direction-indicator"
+      id="cityDirectionIndicator"
+      type="button"
+      onclick="returnToMyCity()"
+      title="Koloninin yönü ve harita merkezine uzaklığı"
+      hidden
+    >
+      <span class="city-direction-arrow" id="cityDirectionArrow">➤</span>
+      <span class="city-direction-distance" id="cityDirectionDistance">🏰 0 km</span>
+    </button>
+
     <div class="world-canvas" id="worldCanvas">
             <div class="grid"></div>
             <div id="worldSites"></div>
@@ -1310,6 +1358,81 @@ function applyWorldPan(x,y) {
     "px," +
     worldPanY +
     "px,0)";
+
+  updateCityDirectionIndicator();
+}
+
+function updateCityDirectionIndicator() {
+  const viewport = document.getElementById("worldViewport");
+  const canvas = document.getElementById("worldCanvas");
+  const indicator = document.getElementById("cityDirectionIndicator");
+  const arrow = document.getElementById("cityDirectionArrow");
+  const distanceLabel = document.getElementById("cityDirectionDistance");
+
+  if (!viewport || !canvas || !indicator || !arrow || !distanceLabel) {
+    return;
+  }
+
+  const cityScreenX =
+    worldPanX +
+    canvas.offsetWidth * Number(myCoordinateX) / 100;
+  const cityScreenY =
+    worldPanY +
+    canvas.offsetHeight * Number(myCoordinateY) / 100;
+
+  const visible =
+    cityScreenX >= 0 &&
+    cityScreenX <= viewport.clientWidth &&
+    cityScreenY >= 0 &&
+    cityScreenY <= viewport.clientHeight;
+
+  if (visible) {
+    indicator.hidden = true;
+    return;
+  }
+
+  const centerX = viewport.clientWidth / 2;
+  const centerY = viewport.clientHeight / 2;
+  const dx = cityScreenX - centerX;
+  const dy = cityScreenY - centerY;
+
+  if (!Number.isFinite(dx) || !Number.isFinite(dy) || (dx === 0 && dy === 0)) {
+    indicator.hidden = true;
+    return;
+  }
+
+  const edgeX = Math.max(24, centerX - 72);
+  const edgeY = Math.max(24, centerY - 72);
+  const scaleX = dx === 0 ? Number.POSITIVE_INFINITY : edgeX / Math.abs(dx);
+  const scaleY = dy === 0 ? Number.POSITIVE_INFINITY : edgeY / Math.abs(dy);
+  const scale = Math.min(scaleX, scaleY);
+
+  indicator.style.left = (centerX + dx * scale) + "px";
+  indicator.style.top = (centerY + dy * scale) + "px";
+
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  arrow.style.transform = "rotate(" + angle + "deg)";
+
+  const viewCenterX =
+    (centerX - worldPanX) /
+    Math.max(1, canvas.offsetWidth) *
+    100;
+  const viewCenterY =
+    (centerY - worldPanY) /
+    Math.max(1, canvas.offsetHeight) *
+    100;
+  const distance = Math.max(
+    1,
+    Math.round(
+      Math.sqrt(
+        Math.pow(viewCenterX - myCoordinateX, 2) +
+        Math.pow(viewCenterY - myCoordinateY, 2)
+      )
+    )
+  );
+
+  distanceLabel.textContent = "🏰 " + distance + " km";
+  indicator.hidden = false;
 }
 
 function centerWorldOnCoordinates(x,y) {
@@ -5349,12 +5472,17 @@ async function pollNpcMission(missionId, notifyResult = false) {
 
       if (
         normalized.status === "returning" &&
-        previousStatus !== "returning" &&
-        notifyResult &&
-        !resultAnnounced
+        previousStatus !== "returning"
       ) {
-        resultAnnounced = true;
-        alert(formatNpcBattleAlert(normalized, data));
+        await loadNpcCamps();
+
+        if (
+          notifyResult &&
+          !resultAnnounced
+        ) {
+          resultAnnounced = true;
+          alert(formatNpcBattleAlert(normalized, data));
+        }
       }
 
       if (normalized.status === "completed") {
@@ -5408,6 +5536,10 @@ function startNpcMissionTracking() {
   }, 15000);
 
   setInterval(refreshSelectedNpcCampUi, 1000);
+
+  setInterval(function() {
+    loadNpcCamps();
+  }, 10000);
 }
 
 async function attackNpcCamp() {
