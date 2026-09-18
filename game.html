@@ -461,13 +461,13 @@ const BUILDING_RULES={
 
   "Depo":{
     max:25,
-    effect:"Her seviyede +2.500 kaynak kapasitesi. İki deponun kapasitesi birlikte hesaplanır."
+    effect:"Her seviyede +5.000 kaynak kapasitesi. İki deponun kapasitesi birlikte hesaplanır."
   },
 
   "Kristal Deposu":{
     max:25,
     req:{"Merkez Bina":2},
-    effect:"Her seviyede +1.500 kristal kapasitesi."
+    effect:"Her seviyede +5.000 kristal kapasitesi."
   },
 
   "Konut":{
@@ -2104,16 +2104,6 @@ async function upgrade(name,slot=1){
 
       return;
     }
-
-    alert(
-      d.message+
-      '\nTamamlanma: '+
-      new Date(
-        d.finishAt
-      ).toLocaleTimeString(
-        'tr-TR'
-      )
-    );
 
     await loadCity();
 

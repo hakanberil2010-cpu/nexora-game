@@ -1960,12 +1960,12 @@ function buildingTotalLevel(buildings, name) {
 
 function storageCapacity(buildings) {
   const level = buildingTotalLevel(buildings, "Depo");
-  return 5000 + level * 2500;
+  return 10000 + level * 5000;
 }
 
 function crystalStorageCapacity(buildings) {
   const level = buildingLevel(buildings, "Kristal Deposu");
-  return 3000 + level * 1500;
+  return 10000 + level * 5000;
 }
 
 function housingCapacity(buildings) {
