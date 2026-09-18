@@ -809,6 +809,26 @@ body {
   outline-offset:3px;
 }
 
+.resource-map-timer {
+  position:absolute;
+  left:50%;
+  top:-20px;
+  transform:translateX(-50%);
+  min-width:46px;
+  padding:2px 6px;
+  border-radius:999px;
+  background:rgba(4,15,27,.92);
+  border:1px solid rgba(126,205,255,.72);
+  color:#eaf6ff;
+  font-size:10px;
+  font-weight:bold;
+  line-height:1.3;
+  text-align:center;
+  white-space:nowrap;
+  pointer-events:none;
+  box-shadow:0 0 9px rgba(0,0,0,.45);
+}
+
 @keyframes resourceElitePulse {
   0%,100% {
     filter:brightness(1);
@@ -6213,6 +6233,28 @@ function renderWorldSites() {
           allianceTag +
           '</span>';
 
+        if (
+          site.site_type ===
+          "resource"
+        ) {
+          el.dataset.resourceSiteId =
+            String(
+              site.id
+            );
+
+          const timer =
+            document.createElement(
+              "span"
+            );
+
+          timer.className =
+            "resource-map-timer";
+
+          el.appendChild(
+            timer
+          );
+        }
+
         el.addEventListener(
           "click",
           function(e) {
@@ -6234,6 +6276,114 @@ function renderWorldSites() {
       }
     );
 
+  refreshResourceMapTimers();
+
+}
+
+function resourceMapTimerInfo(site) {
+  if (
+    site?.resource_under_attack ===
+      true &&
+    site?.resource_attack_arrive_at
+  ) {
+    return {
+      icon: "⚔",
+      target:
+        site.resource_attack_arrive_at
+    };
+  }
+
+  if (
+    site?.resource_collector_mission_id &&
+    site?.resource_gather_complete_at
+  ) {
+    return {
+      icon: "⛏",
+      target:
+        site.resource_gather_complete_at
+    };
+  }
+
+  return null;
+}
+
+function refreshResourceMapTimers() {
+  document.querySelectorAll(
+    ".world-site.resource[data-resource-site-id]"
+  ).forEach(
+    function(el) {
+      const id =
+        Number(
+          el.dataset.resourceSiteId ||
+          0
+        );
+
+      const site =
+        (worldSites || [])
+          .find(
+            function(item) {
+              return Number(
+                item.id
+              ) === id;
+            }
+          );
+
+      const timer =
+        el.querySelector(
+          ".resource-map-timer"
+        );
+
+      if (!timer) {
+        return;
+      }
+
+      const info =
+        resourceMapTimerInfo(
+          site
+        );
+
+      if (!info) {
+        timer.style.display =
+          "none";
+        return;
+      }
+
+      const targetMs =
+        new Date(
+          info.target
+        ).getTime();
+
+      if (
+        !Number.isFinite(
+          targetMs
+        )
+      ) {
+        timer.style.display =
+          "none";
+        return;
+      }
+
+      const seconds =
+        Math.max(
+          0,
+          Math.ceil(
+            (
+              targetMs -
+              Date.now()
+            ) / 1000
+          )
+        );
+
+      timer.style.display =
+        "";
+
+      timer.textContent =
+        info.icon +
+        " " +
+        seconds +
+        " sn";
+    }
+  );
 }
 
 
@@ -6385,7 +6535,33 @@ function renderResourceGatherStatus(mission,underAttack=false) {
       "⛏️ Kaynak toplanıyor · "+remaining+" sn"+
       (underAttack?" · ⚔️ Saldırı altında":"");
   }else if(status==="returning"){
-    box.textContent="🏰 "+Number(mission.gathered_amount||0)+" "+resourceTypeLabel(mission.resource_type)+" ile dönüyor · "+remaining+" sn";
+    const eliteBonus=
+      Number(
+        mission.elite_bonus_amount ||
+        0
+      );
+
+    box.textContent=
+      "🏰 "+
+      Number(
+        mission.gathered_amount ||
+        0
+      )+
+      " "+
+      resourceTypeLabel(
+        mission.resource_type
+      )+
+      " ile dönüyor"+
+      (
+        eliteBonus>0
+          ? " · 👑 +"+
+            eliteBonus+
+            " Elit bonus"
+          : ""
+      )+
+      " · "+
+      remaining+
+      " sn";
   }else{
     box.textContent="Kaynak seferi tamamlandı.";
   }
@@ -6598,12 +6774,25 @@ function ensureResourceGatherPolling(missionId) {
           data.completed===true ||
           String(mission?.status||"")==="completed"
         ){
+          const eliteBonus=
+            Number(
+              mission?.elite_bonus_amount ||
+              data.eliteBonusAmount ||
+              0
+            );
+
           alert(
             "✅ Kaynak seferi tamamlandı. "+
             Number(mission?.gathered_amount||data.gatheredAmount||0)+
             " "+
             resourceTypeLabel(mission?.resource_type||data.resourceType)+
-            " koloniye ulaştı."
+            " koloniye ulaştı."+
+            (
+              eliteBonus>0
+                ? " 👑 Elit bonus: +"+
+                  eliteBonus+"."
+                : ""
+            )
           );
           resourceGatherMission=null;
           await loadResourceGatherInfo();
@@ -7750,6 +7939,11 @@ loadMyCoordinates()
       setInterval(
         loadWorldPlayers,
         10000
+      );
+
+      setInterval(
+        refreshResourceMapTimers,
+        1000
       );
 
     }
