@@ -48,6 +48,18 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .guide-action{min-width:165px;padding:10px 13px;border:1px solid #1aa9ee;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
 .guide-action:hover:not(:disabled){filter:brightness(1.08)}
 .guide-action:disabled{opacity:.5;cursor:not-allowed}
+.nexa-target{outline:2px solid #20c6ff;outline-offset:3px;animation:nexaPulse 1.35s ease-in-out infinite}
+@keyframes nexaPulse{0%,100%{box-shadow:0 0 0 0 rgba(32,198,255,.18),0 0 18px rgba(32,198,255,.12)}50%{box-shadow:0 0 0 7px rgba(32,198,255,.08),0 0 28px rgba(32,198,255,.32)}}
+.nexa-intro{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(2,8,15,.78);backdrop-filter:blur(7px)}
+.nexa-intro[hidden]{display:none}
+.nexa-intro-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;width:min(560px,100%);padding:22px;border:1px solid #2c739b;border-radius:18px;background:linear-gradient(145deg,#0a2238,#071522);box-shadow:0 25px 70px rgba(0,0,0,.55),0 0 35px rgba(32,198,255,.12)}
+.nexa-intro-avatar{display:flex;align-items:center;justify-content:center;width:74px;height:74px;border:1px solid #2c739b;border-radius:18px;background:#102e49;font-size:38px;box-shadow:inset 0 0 24px rgba(32,198,255,.10)}
+.nexa-intro-kicker{color:#66d9ff;font-size:11px;font-weight:bold;letter-spacing:1.2px}
+.nexa-intro-card h2{margin:5px 0 7px;font-size:27px}
+.nexa-intro-card p{margin:0;color:#9fc0d8;font-size:13px;line-height:1.55}
+.nexa-intro-action{margin-top:15px;padding:10px 15px;border:1px solid #20c6ff;border-radius:9px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
+.nexa-intro-action:hover{filter:brightness(1.08)}
+@media(max-width:600px){.nexa-intro-card{grid-template-columns:1fr;text-align:center}.nexa-intro-avatar{margin:auto}.nexa-intro-action{width:100%}}
 
 .colony-layout{display:block}
 .colony-panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:12px;min-width:0}
@@ -252,12 +264,24 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   </div>
 </section>
 
+<div class="nexa-intro" id="nexaIntro" hidden>
+  <div class="nexa-intro-card" role="dialog" aria-modal="true" aria-labelledby="nexaIntroTitle">
+    <div class="nexa-intro-avatar" aria-hidden="true">🤖</div>
+    <div>
+      <div class="nexa-intro-kicker">NEXORA KOMUTA ASİSTANI</div>
+      <h2 id="nexaIntroTitle">Ben NEXA.</h2>
+      <p>Koloninin ilk gelişim adımlarında sana eşlik edeceğim. Aktif hedefi gösterecek ve doğru ekrana yönlendireceğim.</p>
+      <button class="nexa-intro-action" type="button" onclick="closeNexaIntro()">İlk Göreve Başla</button>
+    </div>
+  </div>
+</div>
+
 <section class="beginner-guide" id="beginnerGuide" hidden aria-live="polite">
   <div class="guide-top">
     <div class="guide-kicker">🤖 NEXA Asistan</div>
     <div class="guide-step" id="beginnerGuideStep">Adım 1 / 6</div>
   </div>
-  <div class="guide-assistant-message">Merhaba! Ben NEXA. Kolonini geliştirirken ilk adımlarda sana rehberlik edeceğim.</div>
+  <div class="guide-assistant-message" id="nexaAssistantMessage">Merhaba! Ben NEXA. Kolonini geliştirirken ilk adımlarda sana rehberlik edeceğim.</div>
   <div class="guide-body">
     <div class="guide-icon" id="beginnerGuideIcon">🚀</div>
     <div>
@@ -336,6 +360,9 @@ if(savedUser?.username){
 let beginnerGuideSnapshot=null;
 let beginnerGuideLoadPromise=null;
 let loginRewardClaimPromise=null;
+const NEXA_INTRO_KEY=
+  'nexora_nexa_intro_v2_'+
+  String(savedUser?.id||savedUser?.username||'player');
 
 const BEGINNER_GUIDE_ALLOWED_ACTIONS=new Set([
   'game.html',
@@ -621,6 +648,203 @@ function esc(s){
   );
 }
 
+function nexaIntroSeen(){
+  try{
+    return localStorage.getItem(
+      NEXA_INTRO_KEY
+    )==='1';
+  }catch{
+    return true;
+  }
+}
+
+function maybeShowNexaIntro(){
+  const intro=document.getElementById(
+    'nexaIntro'
+  );
+
+  if(
+    !intro||
+    nexaIntroSeen()
+  ){
+    return;
+  }
+
+  intro.hidden=false;
+}
+
+function closeNexaIntro(){
+  try{
+    localStorage.setItem(
+      NEXA_INTRO_KEY,
+      '1'
+    );
+  }catch{}
+
+  const intro=document.getElementById(
+    'nexaIntro'
+  );
+
+  if(intro){
+    intro.hidden=true;
+  }
+
+  document.getElementById(
+    'beginnerGuide'
+  )?.scrollIntoView({
+    behavior:'smooth',
+    block:'start'
+  });
+}
+
+function nexaGuideBuildingTarget(step){
+  const key=String(
+    step?.key||''
+  );
+
+  if(key==='hq_level_2'){
+    return {
+      name:'Merkez Bina',
+      slot:1
+    };
+  }
+
+  const levels=getBuildingLevels(
+    latestBuildings
+  );
+
+  if(key==='production_level_2'){
+    return {
+      name:[
+        'Metal Madeni',
+        'Enerji Santrali',
+        'Alaşım Rafinerisi',
+        'Kristal Madeni'
+      ].find(
+        name=>
+          Number(levels[name]||0)<2
+      )||'Metal Madeni',
+      slot:1
+    };
+  }
+
+  if(key==='army_infrastructure'){
+    return {
+      name:
+        Number(levels['Kışla']||0)<1
+          ?'Kışla'
+          :'Konut',
+      slot:1
+    };
+  }
+
+  return null;
+}
+
+function nexaMessageForStep(step){
+  const key=String(
+    step?.key||''
+  );
+
+  if(key==='hq_level_2'){
+    return 'Önce Merkez Bina’yı güçlendirelim. Haritada ışıklı olarak işaretlediğim yapıya tıkla.';
+  }
+
+  if(key==='production_level_2'){
+    return 'Kaynak üretimini büyütme zamanı. Seviye 2’ye ulaşması gereken üretim binasını işaretledim.';
+  }
+
+  if(key==='army_infrastructure'){
+    return 'Ordu kurmadan önce altyapıyı hazırlayalım. Şu anda geliştirmen gereken yapıyı işaretledim.';
+  }
+
+  const action=String(
+    step?.action||''
+  );
+
+  if(action==='army.html'){
+    return 'Koloni altyapın hazır. Sıradaki adım Ordu ekranında; aşağıdaki yönlendirme düğmesini kullan.';
+  }
+
+  if(action==='research.html'){
+    return 'Şimdi teknoloji avantajı kazanacağız. Araştırma ekranına geçmek için yönlendirme düğmesini kullan.';
+  }
+
+  if(action==='world.html'){
+    return 'Son adımda çevreni tanıyacağız. Dünya Haritası’na geçip keşfe başlayalım.';
+  }
+
+  return 'Aktif görevi tamamla; ilerlemeni takip edip bir sonraki adımı sana göstereceğim.';
+}
+
+function clearNexaTargets(){
+  document.querySelectorAll(
+    '.nexa-target'
+  ).forEach(
+    element=>
+      element.classList.remove(
+        'nexa-target'
+      )
+  );
+}
+
+function updateNexaTarget(step){
+  clearNexaTargets();
+
+  if(
+    !step||
+    typeof step!=='object'
+  ){
+    return;
+  }
+
+  const building=
+    nexaGuideBuildingTarget(
+      step
+    );
+
+  if(building){
+    const label=
+      buildingLabel(
+        building.name,
+        building.slot
+      )+' ';
+
+    const node=Array.from(
+      document.querySelectorAll(
+        '.building-node'
+      )
+    ).find(
+      element=>
+        String(
+          element.getAttribute(
+            'aria-label'
+          )||''
+        ).startsWith(label)
+    );
+
+    if(node){
+      node.classList.add(
+        'nexa-target'
+      );
+      return;
+    }
+
+    document.getElementById(
+      'beginnerGuide'
+    )?.classList.add(
+      'nexa-target'
+    );
+    return;
+  }
+
+  document.getElementById(
+    'beginnerGuideAction'
+  )?.classList.add(
+    'nexa-target'
+  );
+}
+
 function renderBeginnerGuide(guide){
   beginnerGuideSnapshot=
     guide&&typeof guide==='object'
@@ -644,6 +868,16 @@ function renderBeginnerGuide(guide){
     typeof step!=='object'
   ){
     card.hidden=true;
+    clearNexaTargets();
+
+    const intro=document.getElementById(
+      'nexaIntro'
+    );
+
+    if(intro){
+      intro.hidden=true;
+    }
+
     return;
   }
 
@@ -747,7 +981,16 @@ function renderBeginnerGuide(guide){
       action
     );
 
+  document.getElementById(
+    'nexaAssistantMessage'
+  ).textContent=
+    nexaMessageForStep(
+      step
+    );
+
   card.hidden=false;
+  updateNexaTarget(step);
+  maybeShowNexaIntro();
 }
 
 
@@ -1575,6 +1818,10 @@ function renderBuildings(buildings){
   }else if(popup){
     popup.classList.remove('open');
   }
+
+  updateNexaTarget(
+    beginnerGuideSnapshot?.currentStep
+  );
 }
 
 
