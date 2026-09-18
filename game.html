@@ -771,7 +771,7 @@ function nexaMessageForStep(step){
   }
 
   if(action==='world.html'){
-    return 'Son adımda çevreni tanıyacağız. Dünya Haritası’na geçip keşfe başlayalım.';
+    return 'Son adımda ilk PvE zaferini alacağız. Dünya Haritası’nda sana uygun Kolay Seviye 1 hedefini otomatik işaretleyeceğim.';
   }
 
   return 'Aktif görevi tamamla; ilerlemeni takip edip bir sonraki adımı sana göstereceğim.';
@@ -1156,6 +1156,14 @@ function runBeginnerGuideAction(){
   const action=String(
     step.action||''
   );
+
+  if(
+    key==='npc_victory_1'&&
+    action==='world.html'
+  ){
+    go('world.html?nexa=first-pve');
+    return;
+  }
 
   if(
     BEGINNER_GUIDE_ALLOWED_ACTIONS.has(
