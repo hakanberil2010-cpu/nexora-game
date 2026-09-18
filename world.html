@@ -1640,6 +1640,9 @@ let pvpAttackBusy = false;
 
 let npcCamps = [];
 let selectedNpcCamp = null;
+const nexaFirstPveMode =
+  new URLSearchParams(window.location.search).get("nexa") === "first-pve";
+let nexaFirstPvePending = nexaFirstPveMode;
 let npcMissionCache = [];
 let npcCampsLoadInFlight = false;
 let npcMissionsLoadInFlight = false;
@@ -4973,6 +4976,8 @@ function renderNpcCamps() {
       escapeHtml(camp.name || "NPC Kampı") +
       "</span>";
 
+    el.dataset.npcCampId = String(camp.id || "");
+
     el.addEventListener("click", function(event) {
       event.stopPropagation();
       selectNpcCamp(camp, el);
@@ -5040,6 +5045,99 @@ function selectNpcCamp(camp, element) {
   renderAttackUnitSelector();
 }
 
+function npcCampArmySize(camp) {
+  const army = Array.isArray(camp?.armyTemplate)
+    ? camp.armyTemplate
+    : [];
+
+  return army.reduce(function(total, unit) {
+    return total + Math.max(0, Number(unit?.quantity || 0));
+  }, 0);
+}
+
+function npcCampDistanceFromPlayer(camp) {
+  const x = Number(camp?.coordinateX);
+  const y = Number(camp?.coordinateY);
+
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.sqrt(
+    Math.pow(x - myCoordinateX, 2) +
+    Math.pow(y - myCoordinateY, 2)
+  );
+}
+
+function selectNexaFirstPveTarget() {
+  if (!nexaFirstPvePending || !Array.isArray(npcCamps) || !npcCamps.length) {
+    return;
+  }
+
+  const tierOneEasy = npcCamps.filter(function(camp) {
+    return (
+      Number(camp?.tier || camp?.level || 1) === 1 &&
+      String(camp?.difficulty || "").toLowerCase() === "easy" &&
+      npcCampRemainingSeconds(camp) <= 0 &&
+      camp?.activeMissionId == null
+    );
+  });
+
+  const smallTargets = tierOneEasy.filter(function(camp) {
+    return npcEncounterClass(camp) === "small";
+  });
+
+  const candidates = smallTargets.length ? smallTargets : tierOneEasy;
+  if (!candidates.length) {
+    return;
+  }
+
+  const target = candidates.slice().sort(function(a, b) {
+    const armyDiff = npcCampArmySize(a) - npcCampArmySize(b);
+    if (armyDiff !== 0) return armyDiff;
+
+    const distanceDiff =
+      npcCampDistanceFromPlayer(a) -
+      npcCampDistanceFromPlayer(b);
+    if (distanceDiff !== 0) return distanceDiff;
+
+    return Number(a?.id || 0) - Number(b?.id || 0);
+  })[0];
+
+  if (!target) {
+    return;
+  }
+
+  nexaFirstPvePending = false;
+
+  const element = document.querySelector(
+    '.npc-camp[data-npc-camp-id="' +
+      String(target.id || "") +
+      '"]'
+  );
+
+  selectNpcCamp(target, element);
+  centerWorldOnCoordinates(
+    Number(target.coordinateX || myCoordinateX),
+    Number(target.coordinateY || myCoordinateY)
+  );
+
+  const selectedText = document.getElementById("selectedText");
+  if (selectedText) {
+    selectedText.textContent =
+      "NEXA: Kolay Seviye 1 hedefini işaretledim. " +
+      "Birliklerini seç, savaş taktiğini belirle ve saldır.";
+  }
+
+  if (window.history && typeof window.history.replaceState === "function") {
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.hash
+    );
+  }
+}
+
 async function loadNpcCamps() {
   const token = localStorage.getItem("nexora_token");
   if (!token || npcCampsLoadInFlight) return;
@@ -5068,6 +5166,10 @@ async function loadNpcCamps() {
 
     npcCamps = Array.isArray(data.camps) ? data.camps : [];
     renderNpcCamps();
+
+    if (nexaFirstPvePending && !selectedNpcCamp) {
+      selectNexaFirstPveTarget();
+    }
 
     if (selectedNpcCamp) {
       const refreshed = npcCamps.find(function(camp) {
