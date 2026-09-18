@@ -3,6 +3,16 @@ const crypto = require("crypto");
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const EMAIL_VERIFICATION_CODE_TTL_SECONDS = 15 * 60;
+const EMAIL_VERIFICATION_ATTEMPT_LIMIT = 10;
+const EMAIL_VERIFICATION_RATE_WINDOW_SECONDS = 15 * 60;
+const EMAIL_VERIFICATION_RESEND_LIMIT = 5;
+const EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS = 60 * 60;
+const EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = 60;
+const EMAIL_VERIFICATION_FROM = "TERYNDIS <no-reply@teryndis.com>";
+const EMAIL_VERIFICATION_RESEND_MESSAGE =
+  "Hesap doğrulanmamışsa yeni kod e-posta adresine gönderilecektir.";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
 const LOGIN_RATE_WINDOW_SECONDS = 10 * 60;
 const LOGIN_IDENTITY_LIMIT = 5;
@@ -476,6 +486,148 @@ async function clearAuthRateLimit(scope, keyHash) {
   }
 }
 
+function emailVerificationCodeHash(playerId, email, code) {
+  return crypto
+    .createHmac("sha256", JWT_SECRET)
+    .update(
+      "email-verification\n" +
+        String(playerId) +
+        "\n" +
+        String(email || "").trim().toLowerCase() +
+        "\n" +
+        String(code || "")
+    )
+    .digest("hex");
+}
+
+function createEmailVerificationCode() {
+  return String(
+    crypto.randomInt(100000, 1000000)
+  );
+}
+
+async function saveEmailVerificationCode(player, code) {
+  const playerId = Number(player?.id);
+  const email = String(player?.email || "").trim().toLowerCase();
+
+  if (
+    !Number.isSafeInteger(playerId) ||
+    playerId <= 0 ||
+    !email
+  ) {
+    return { ok: false };
+  }
+
+  const now = new Date();
+
+  const result = await supabase(
+    "email_verification_codes?on_conflict=player_id",
+    {
+      method: "POST",
+      headers: {
+        Prefer:
+          "resolution=merge-duplicates,return=representation"
+      },
+      body: JSON.stringify({
+        player_id: playerId,
+        code_hash: emailVerificationCodeHash(
+          playerId,
+          email,
+          code
+        ),
+        expires_at: new Date(
+          now.getTime() +
+            EMAIL_VERIFICATION_CODE_TTL_SECONDS * 1000
+        ).toISOString(),
+        attempts: 0,
+        last_sent_at: now.toISOString()
+      })
+    }
+  );
+
+  if (!result.ok) {
+    console.error(
+      "E-posta doğrulama kodu kaydetme hatası:",
+      result.data
+    );
+
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
+async function sendEmailVerificationCode(player, code) {
+  const email = String(player?.email || "").trim().toLowerCase();
+
+  if (!RESEND_API_KEY || !email) {
+    console.error(
+      !RESEND_API_KEY
+        ? "RESEND_API_KEY eksik."
+        : "Doğrulama e-posta adresi eksik."
+    );
+
+    return false;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    10000
+  );
+
+  try {
+    const response = await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: "Bearer " + RESEND_API_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: EMAIL_VERIFICATION_FROM,
+          to: [email],
+          subject: "TERYNDIS e-posta doğrulama kodu",
+          html:
+            '<div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a">' +
+            "<h2>TERYNDIS e-posta doğrulaması</h2>" +
+            "<p>Doğrulama kodun:</p>" +
+            '<p style="font-size:30px;font-weight:700;letter-spacing:6px">' +
+            code +
+            "</p>" +
+            "<p>Bu kod 15 dakika geçerlidir.</p>" +
+            "<p>Bu işlemi sen başlatmadıysan bu e-postayı yok sayabilirsin.</p>" +
+            "</div>"
+        })
+      }
+    );
+
+    if (!response.ok) {
+      console.error(
+        "Resend doğrulama e-postası hatası:",
+        response.status
+      );
+
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error(
+      "Resend bağlantı hatası:",
+      error?.name === "AbortError"
+        ? "zaman aşımı"
+        : error
+    );
+
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function register(req, res) {
   const body = await readBody(req);
 
@@ -598,7 +750,8 @@ async function register(req, res) {
     body: JSON.stringify({
       username,
       email,
-      password_hash: passwordHash
+      password_hash: passwordHash,
+      email_verified_at: null
     })
   });
 
@@ -615,6 +768,27 @@ async function register(req, res) {
   }
 
   const player = playerResult.data[0];
+
+  const verificationCode =
+    createEmailVerificationCode();
+
+  const verificationState =
+    await saveEmailVerificationCode(
+      player,
+      verificationCode
+    );
+
+  if (!verificationState.ok) {
+    await supabase(
+      "players?id=eq." + encodeURIComponent(player.id),
+      { method: "DELETE" }
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "E-posta doğrulama kaydı oluşturulamadı."
+    });
+  }
 
   const cityResult = await supabase("rpc/nexora_create_starting_city", {
     method: "POST",
@@ -642,17 +816,29 @@ async function register(req, res) {
     });
   }
 
-  const token = createToken(player);
+  const verificationSent =
+    await sendEmailVerificationCode(
+      player,
+      verificationCode
+    );
+
+  if (!verificationSent) {
+    return send(res, 503, {
+      success: false,
+      code: "EMAIL_SEND_FAILED",
+      requiresEmailVerification: true,
+      email: player.email,
+      message:
+        "Hesabın oluşturuldu ancak doğrulama e-postası gönderilemedi. Kod gönderimini tekrar deneyin."
+    });
+  }
 
   return send(res, 201, {
     success: true,
-    message: "Hesabın başarıyla oluşturuldu.",
-    token,
-    player: {
-      id: player.id,
-      username: player.username,
-      email: player.email
-    }
+    requiresEmailVerification: true,
+    email: player.email,
+    message:
+      "Hesabın oluşturuldu. E-postana gönderilen 6 haneli kodu gir."
   });
 }
 
@@ -720,7 +906,7 @@ async function login(req, res) {
   }
 
   const result = await supabase(
-    "players?select=id,username,email,password_hash,session_version&email=eq." +
+    "players?select=id,username,email,password_hash,session_version,email_verified_at&email=eq." +
       encodeURIComponent(email) +
       "&limit=1"
   );
@@ -753,6 +939,16 @@ async function login(req, res) {
     loginIdentityKey
   );
 
+  if (!player.email_verified_at) {
+    return send(res, 403, {
+      success: false,
+      code: "EMAIL_NOT_VERIFIED",
+      requiresEmailVerification: true,
+      email: player.email,
+      message: "E-posta adresini doğrulaman gerekiyor."
+    });
+  }
+
   const token = createToken(player);
 
   return send(res, 200, {
@@ -764,6 +960,367 @@ async function login(req, res) {
       username: player.username,
       email: player.email
     }
+  });
+}
+
+async function verifyEmailAddress(req, res) {
+  const body = await readBody(req);
+  const email = String(body.email || "").trim().toLowerCase();
+  const code = String(body.code || "").trim();
+
+  if (!email || !/^\d{6}$/.test(code)) {
+    return send(res, 400, {
+      success: false,
+      message: "E-posta ve 6 haneli doğrulama kodu gerekli."
+    });
+  }
+
+  const verificationKey = rateLimitKeyHash(
+    "email_verify\n" +
+      clientIp(req) +
+      "\n" +
+      email
+  );
+
+  const verificationLimit =
+    await consumeAuthRateLimit(
+      "login_identity",
+      verificationKey,
+      EMAIL_VERIFICATION_ATTEMPT_LIMIT,
+      EMAIL_VERIFICATION_RATE_WINDOW_SECONDS
+    );
+
+  if (!verificationLimit.ok) {
+    return send(res, 503, {
+      success: false,
+      message:
+        "Doğrulama güvenlik kontrolü şu anda kullanılamıyor."
+    });
+  }
+
+  if (!verificationLimit.allowed) {
+    return sendRateLimited(
+      res,
+      "Çok fazla doğrulama denemesi. Lütfen daha sonra tekrar deneyin.",
+      verificationLimit.retryAfterSeconds
+    );
+  }
+
+  const playerResult = await supabase(
+    "players?select=id,email,email_verified_at&email=eq." +
+      encodeURIComponent(email) +
+      "&limit=1"
+  );
+
+  if (!playerResult.ok) {
+    console.error(
+      "E-posta doğrulama oyuncu sorgu hatası:",
+      playerResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Doğrulama işlemi tamamlanamadı."
+    });
+  }
+
+  const player = playerResult.data?.[0] || null;
+
+  if (!player) {
+    return send(res, 400, {
+      success: false,
+      message: "Kod geçersiz veya süresi dolmuş."
+    });
+  }
+
+  if (player.email_verified_at) {
+    await clearAuthRateLimit(
+      "login_identity",
+      verificationKey
+    );
+
+    return send(res, 200, {
+      success: true,
+      message:
+        "E-posta adresin zaten doğrulanmış. Giriş yapabilirsin."
+    });
+  }
+
+  const stateResult = await supabase(
+    "email_verification_codes?select=code_hash,expires_at,attempts&player_id=eq." +
+      encodeURIComponent(player.id) +
+      "&limit=1"
+  );
+
+  if (!stateResult.ok) {
+    console.error(
+      "E-posta doğrulama kodu sorgu hatası:",
+      stateResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Doğrulama işlemi tamamlanamadı."
+    });
+  }
+
+  const state = stateResult.data?.[0] || null;
+  const attempts = Math.max(
+    0,
+    Number(state?.attempts) || 0
+  );
+  const expiresAt = Date.parse(
+    String(state?.expires_at || "")
+  );
+
+  if (
+    !state ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt <= Date.now() ||
+    attempts >= EMAIL_VERIFICATION_ATTEMPT_LIMIT
+  ) {
+    if (state) {
+      await supabase(
+        "email_verification_codes?player_id=eq." +
+          encodeURIComponent(player.id),
+        { method: "DELETE" }
+      );
+    }
+
+    return send(res, 400, {
+      success: false,
+      message: "Kod geçersiz veya süresi dolmuş."
+    });
+  }
+
+  const storedHash = String(
+    state.code_hash || ""
+  ).toLowerCase();
+
+  const providedHash = emailVerificationCodeHash(
+    player.id,
+    player.email,
+    code
+  );
+
+  const validHash =
+    /^[0-9a-f]{64}$/.test(storedHash) &&
+    crypto.timingSafeEqual(
+      Buffer.from(storedHash, "hex"),
+      Buffer.from(providedHash, "hex")
+    );
+
+  if (!validHash) {
+    const attemptResult = await supabase(
+      "email_verification_codes?player_id=eq." +
+        encodeURIComponent(player.id),
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          attempts: Math.min(
+            20,
+            attempts + 1
+          )
+        })
+      }
+    );
+
+    if (!attemptResult.ok) {
+      console.error(
+        "E-posta doğrulama deneme sayacı hatası:",
+        attemptResult.data
+      );
+    }
+
+    return send(res, 400, {
+      success: false,
+      message: "Kod geçersiz veya süresi dolmuş."
+    });
+  }
+
+  const verified = await supabase(
+    "players?id=eq." +
+      encodeURIComponent(player.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        email_verified_at: new Date().toISOString()
+      })
+    }
+  );
+
+  if (!verified.ok) {
+    console.error(
+      "E-posta doğrulama güncelleme hatası:",
+      verified.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "E-posta doğrulanamadı."
+    });
+  }
+
+  const cleanup = await supabase(
+    "email_verification_codes?player_id=eq." +
+      encodeURIComponent(player.id),
+    { method: "DELETE" }
+  );
+
+  if (!cleanup.ok) {
+    console.error(
+      "E-posta doğrulama kodu temizleme hatası:",
+      cleanup.data
+    );
+  }
+
+  await clearAuthRateLimit(
+    "login_identity",
+    verificationKey
+  );
+
+  return send(res, 200, {
+    success: true,
+    message:
+      "E-posta adresin doğrulandı. Şimdi giriş yapabilirsin."
+  });
+}
+
+async function resendEmailVerification(req, res) {
+  const body = await readBody(req);
+  const email = String(body.email || "").trim().toLowerCase();
+
+  if (!email) {
+    return send(res, 400, {
+      success: false,
+      message: "E-posta adresi gerekli."
+    });
+  }
+
+  const resendKey = rateLimitKeyHash(
+    "email_resend\n" +
+      clientIp(req) +
+      "\n" +
+      email
+  );
+
+  const resendLimit = await consumeAuthRateLimit(
+    "login_identity",
+    resendKey,
+    EMAIL_VERIFICATION_RESEND_LIMIT,
+    EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS
+  );
+
+  if (!resendLimit.ok) {
+    return send(res, 503, {
+      success: false,
+      message:
+        "Kod gönderme güvenlik kontrolü şu anda kullanılamıyor."
+    });
+  }
+
+  if (!resendLimit.allowed) {
+    return sendRateLimited(
+      res,
+      "Çok fazla kod gönderme isteği. Lütfen daha sonra tekrar deneyin.",
+      resendLimit.retryAfterSeconds
+    );
+  }
+
+  const playerResult = await supabase(
+    "players?select=id,email,email_verified_at&email=eq." +
+      encodeURIComponent(email) +
+      "&limit=1"
+  );
+
+  if (!playerResult.ok) {
+    console.error(
+      "Kod yeniden gönderme oyuncu sorgu hatası:",
+      playerResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Kod gönderme işlemi tamamlanamadı."
+    });
+  }
+
+  const player = playerResult.data?.[0] || null;
+
+  if (!player || player.email_verified_at) {
+    return send(res, 200, {
+      success: true,
+      message: EMAIL_VERIFICATION_RESEND_MESSAGE
+    });
+  }
+
+  const stateResult = await supabase(
+    "email_verification_codes?select=last_sent_at&player_id=eq." +
+      encodeURIComponent(player.id) +
+      "&limit=1"
+  );
+
+  if (!stateResult.ok) {
+    console.error(
+      "Kod yeniden gönderme durum sorgu hatası:",
+      stateResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Kod gönderme işlemi tamamlanamadı."
+    });
+  }
+
+  const lastSentAt = Date.parse(
+    String(
+      stateResult.data?.[0]?.last_sent_at ||
+        ""
+    )
+  );
+
+  if (
+    Number.isFinite(lastSentAt) &&
+    Date.now() - lastSentAt <
+      EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS * 1000
+  ) {
+    return send(res, 200, {
+      success: true,
+      message: EMAIL_VERIFICATION_RESEND_MESSAGE
+    });
+  }
+
+  const code = createEmailVerificationCode();
+  const saved = await saveEmailVerificationCode(
+    player,
+    code
+  );
+
+  if (!saved.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Kod gönderme işlemi tamamlanamadı."
+    });
+  }
+
+  const sent = await sendEmailVerificationCode(
+    player,
+    code
+  );
+
+  if (!sent) {
+    console.error(
+      "Doğrulama e-postası yeniden gönderilemedi:",
+      player.id
+    );
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: EMAIL_VERIFICATION_RESEND_MESSAGE
   });
 }
 
@@ -795,7 +1352,7 @@ async function ensureCurrentSession(req,res){
   }
 
   const result=await supabase(
-    "players?select=session_version&id=eq."+
+    "players?select=session_version,email_verified_at&id=eq."+
     encodeURIComponent(playerId)+
     "&limit=1"
   );
@@ -806,8 +1363,10 @@ async function ensureCurrentSession(req,res){
     return false;
   }
 
+  const currentPlayer=result.data?.[0]||null;
+
   const currentSessionVersion=Number(
-    result.data?.[0]?.session_version
+    currentPlayer?.session_version
   );
 
   if(
@@ -816,6 +1375,15 @@ async function ensureCurrentSession(req,res){
     currentSessionVersion!==tokenSessionVersion
   ){
     send(res,401,{success:false,message:"Oturumun sona erdi. Lütfen tekrar giriş yap."});
+    return false;
+  }
+
+  if(!currentPlayer?.email_verified_at){
+    send(res,401,{
+      success:false,
+      code:"EMAIL_NOT_VERIFIED",
+      message:"E-posta adresini doğrulaman gerekiyor."
+    });
     return false;
   }
 
@@ -5061,6 +5629,14 @@ module.exports = async function handler(req, res) {
 
     if (action === "login") {
       return await login(req, res);
+    }
+
+    if (action === "verifyemail") {
+      return await verifyEmailAddress(req, res);
+    }
+
+    if (action === "resendverification") {
+      return await resendEmailVerification(req, res);
     }
 
     if(!(await ensureCurrentSession(req,res))){
