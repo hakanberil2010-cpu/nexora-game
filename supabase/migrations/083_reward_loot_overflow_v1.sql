@@ -188,7 +188,7 @@ BEGIN
     'snapshot', public.nexora_login_rewards_snapshot(p_player_id)
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_claim_mission(p_player_id bigint, p_mission_id text)
@@ -422,7 +422,7 @@ BEGIN
     'snapshot', public.nexora_missions_snapshot(p_player_id)
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_claim_daily_mission(p_player_id bigint, p_mission_id text)
@@ -632,7 +632,7 @@ BEGIN
     'snapshot', public.nexora_daily_missions_snapshot(p_player_id)
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_claim_progression_mission(p_player_id bigint, p_mission_id text)
@@ -864,7 +864,7 @@ BEGIN
     'snapshot', public.nexora_progression_snapshot(p_player_id)
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_claim_weekly_mission(p_player_id bigint, p_mission_id text)
@@ -1074,7 +1074,7 @@ BEGIN
     'snapshot', public.nexora_weekly_missions_snapshot(p_player_id)
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_claim_alliance_mission_chest(p_player_id bigint)
@@ -1298,7 +1298,7 @@ BEGIN
     'snapshot', public.nexora_alliance_missions_snapshot(p_player_id)
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_claim_boss_first_kill(p_player_id bigint, p_camp_id bigint)
@@ -1509,7 +1509,7 @@ BEGIN
     'snapshot', public.nexora_boss_rewards_snapshot(p_player_id)
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_claim_weekly_boss_reward(p_player_id bigint)
@@ -1717,7 +1717,7 @@ BEGIN
     'snapshot', public.nexora_boss_rewards_snapshot(p_player_id)
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_claim_alliance_level_reward(p_player_id bigint, p_level integer)
@@ -1962,7 +1962,7 @@ BEGIN
     'snapshot', public.nexora_alliance_progression_snapshot(p_player_id)
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_resolve_military_mission(p_player_id bigint, p_mission_id bigint, p_defender_snapshot jsonb, p_defender_losses jsonb, p_report_base jsonb, p_attack_power integer, p_defense_power integer, p_loot_rate numeric, p_battle_points integer, p_winner_player_id bigint, p_return_seconds integer)
@@ -2303,7 +2303,7 @@ BEGIN
     'loot', loot
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_settle_mission_loot(p_player_id bigint, p_mission_id bigint, p_loot_rate numeric)
@@ -2343,7 +2343,7 @@ BEGIN
   UPDATE public.military_missions SET settled_loot=loot WHERE id=m.id;
   RETURN jsonb_build_object('success',true,'loot',loot);
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_resolve_npc_mission(p_player_id bigint, p_mission_id bigint, p_npc_losses jsonb, p_report_base jsonb, p_attack_power integer, p_defense_power integer, p_return_seconds integer)
@@ -2952,7 +2952,7 @@ BEGIN
     'campAvailableAt', v_available_at
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_resolve_world_exploration(p_player_id bigint, p_mission_id bigint)
@@ -3134,7 +3134,7 @@ BEGIN
     )
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.nexora_sync_city_production(p_player_id bigint)
@@ -3264,7 +3264,7 @@ BEGIN
     'allianceRegionBonus', v_region_bonus
   );
 END;
-$function$
+$function$;
 
 
 COMMIT;
