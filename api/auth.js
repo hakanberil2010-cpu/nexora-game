@@ -2578,6 +2578,109 @@ function calculateBattlePoints(result, attackPower, defensePower){
   if(result==='Beraberlik') return 10;
   return 0;
 }
+
+function normalizedResourceArmy(army){
+  return (Array.isArray(army)?army:[])
+    .map(u=>({
+      unit_type:String(u.unit_type||""),
+      quantity:Math.max(0,Number(u.quantity)||0),
+      level:Math.max(1,Number(u.level)||1),
+      population_cost:Math.max(1,Number(u.population_cost||UNIT_CONFIG[u.unit_type]?.population||1))
+    }))
+    .filter(u=>u.unit_type&&u.quantity>0);
+}
+
+async function buildResourceBattlePlan(attackerArmy,defenderArmy,attackerResearch={},defenderResearch={},battleTactic="balanced",defenseMultiplier=1,defenderSnapshot=null){
+  const tactic=battleTacticConfig(battleTactic);
+  if(!tactic)return null;
+
+  const attackerBase=normalizedResourceArmy(attackerArmy);
+  const defenderBase=normalizedResourceArmy(defenderArmy);
+  if(!attackerBase.length||!defenderBase.length)return null;
+
+  const attackers=await hydrateArmyStats(attackerBase);
+  const defenders=await hydrateArmyStats(defenderBase);
+  if(attackers.length!==attackerBase.length||defenders.length!==defenderBase.length)return null;
+
+  const roleOf=type=>COMBAT_ROLE_V2[type]||COMBAT_ROLE_V2.piyade;
+  const researchMul=r=>({
+    general:1+Number(r?.general_power_level||0)*0.05,
+    combat:1+Number(r?.combat_level||0)*0.05,
+    attack:1+Number(r?.unit_attack_level||0)*0.05,
+    defense:1+Number(r?.unit_defense_level||0)*0.05,
+    hp:1+Number(r?.unit_hp_level||0)*0.05
+  });
+  const am=researchMul(attackerResearch);
+  const dm=researchMul(defenderResearch);
+  const defenderTotal=Math.max(1,defenders.reduce((sum,u)=>sum+Number(u.quantity||0),0));
+  const attackerTotal=Math.max(1,attackers.reduce((sum,u)=>sum+Number(u.quantity||0),0));
+
+  const attackerBreakdown=attackers.map(u=>{
+    const role=roleOf(u.unit_type),q=Number(u.quantity||0),level=Math.max(1,Number(u.level||1));
+    const levelMul=1+(level-1)*0.04;
+    const base=(q*Number(u.attack||0)*role.attack*am.general*am.combat*am.attack+
+      q*Number(u.hp||0)*0.15*role.hp*am.hp)*levelMul;
+    const matchup=defenders.length
+      ?defenders.reduce((sum,d)=>sum+Number(d.quantity||0)*matchupMultiplier(u.unit_type,d.unit_type),0)/defenderTotal
+      :1;
+    return {unit_type:u.unit_type,quantity:q,level,power:Math.round(base*matchup)};
+  });
+
+  const defenderBreakdown=defenders.map(u=>{
+    const role=roleOf(u.unit_type),q=Number(u.quantity||0),level=Math.max(1,Number(u.level||1));
+    const levelMul=1+(level-1)*0.04;
+    const base=(q*Number(u.defense||0)*role.defense*dm.general*dm.combat*dm.defense+
+      q*Number(u.hp||0)*0.15*role.hp*dm.hp)*levelMul;
+    const matchup=attackers.length
+      ?attackers.reduce((sum,a)=>sum+Number(a.quantity||0)*(2-matchupMultiplier(a.unit_type,u.unit_type)),0)/attackerTotal
+      :1;
+    return {unit_type:u.unit_type,quantity:q,level,power:Math.round(base*Math.max(0.75,matchup))};
+  });
+
+  const attackPower=Math.max(0,Math.round(attackerBreakdown.reduce((sum,u)=>sum+u.power,0)*tactic.attackMultiplier));
+  const defensePower=Math.max(0,Math.round(defenderBreakdown.reduce((sum,u)=>sum+u.power,0)*Math.max(0.5,Number(defenseMultiplier)||1)));
+  const powerResult=attackPower>defensePower?"Zafer":attackPower===defensePower?"Beraberlik":"Yenilgi";
+  const ratio=attackPower+defensePower>0?Math.abs(attackPower-defensePower)/(attackPower+defensePower):0;
+  const attackerLossBase=powerResult==="Zafer"?0.18:powerResult==="Beraberlik"?0.38:0.68;
+  const defenderLossBase=powerResult==="Zafer"?0.62:powerResult==="Beraberlik"?0.38:0.18;
+
+  const attackerLosses={},defenderLosses={};
+  const attackerSurvivorArmy=attackerBase.map(u=>{
+    const role=roleOf(u.unit_type),q=Number(u.quantity||0);
+    const mod=Math.max(0.55,Math.min(1.45,1+(role.loss-1)*0.7));
+    const loss=Math.min(q,Math.max(0,Math.ceil(q*attackerLossBase*tactic.lossMultiplier*mod*(1-0.12*ratio))));
+    attackerLosses[u.unit_type]=(attackerLosses[u.unit_type]||0)+loss;
+    return {...u,quantity:q-loss};
+  }).filter(u=>u.quantity>0);
+
+  const defenderSurvivorArmy=defenderBase.map(u=>{
+    const role=roleOf(u.unit_type),q=Number(u.quantity||0);
+    const mod=Math.max(0.55,Math.min(1.45,1+(role.loss-1)*0.7));
+    const loss=Math.min(q,Math.max(0,Math.ceil(q*defenderLossBase*mod*(1-0.12*ratio))));
+    defenderLosses[u.unit_type]=(defenderLosses[u.unit_type]||0)+loss;
+    return {...u,quantity:q-loss};
+  }).filter(u=>u.quantity>0);
+
+  const attackerSurvivors=attackerSurvivorArmy.reduce((sum,u)=>sum+Number(u.quantity||0),0);
+  const annihilatedVictory=powerResult==="Zafer"&&attackerSurvivors===0;
+  const result=annihilatedVictory?"Beraberlik":powerResult;
+
+  return {
+    version:1,
+    result,
+    attackPower,
+    defensePower,
+    attackerLosses,
+    defenderLosses,
+    attackerArmy:attackerBase,
+    defenderArmy:defenderSnapshot??defenderArmy,
+    attackerSurvivorArmy,
+    defenderSurvivorArmy,
+    battleTactic:String(battleTactic||"balanced"),
+    battleTacticLabel:tactic.label
+  };
+}
+
 function regionForCoordinates(x,y){
   const regions=[
     {name:'Çöl Bölgesi',x:20,y:36,bonus:'Metal üretimi +5%'},
@@ -5723,44 +5826,80 @@ async function getWorldExploration(req,res){
 
 
 async function getResourceGatherInfo(req,res){
-  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const active=await supabase("resource_gather_missions?select=*&player_id=eq."+encodeURIComponent(playerId)+"&status=in.(traveling,returning)&order=id.desc&limit=1");
-  if(!active.ok)return send(res,503,{success:false,message:"Kaynak seferi bilgisi alınamadı."});
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const [active,conflicts]=await Promise.all([
+    supabase("resource_gather_missions?select=*&player_id=eq."+encodeURIComponent(playerId)+"&status=in.(traveling,gathering,returning)&order=id.desc&limit=1"),
+    supabase("resource_conflict_missions?select=*&attacker_player_id=eq."+encodeURIComponent(playerId)+"&status=in.(traveling,returning)&order=id.desc&limit=1")
+  ]);
+  if(!active.ok||!conflicts.ok)return send(res,503,{success:false,message:"Kaynak seferi bilgisi alınamadı."});
+
   let mission=active.data?.[0]||null;
   if(mission){
-    const synced=await supabase("rpc/nexora_sync_resource_gather_mission",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_mission_id:Number(mission.id)})});
+    const synced=await supabase("rpc/nexora_sync_resource_gather_mission",{
+      method:"POST",
+      body:JSON.stringify({p_player_id:Number(playerId),p_mission_id:Number(mission.id)})
+    });
     if(synced.ok&&synced.data?.success===true){
       mission=synced.data.mission||mission;
       if(String(mission.status)==="completed")mission=null;
     }
   }
+
+  let conflict=conflicts.data?.[0]||null;
+  if(conflict){
+    const synced=await supabase("rpc/nexora_sync_resource_conflict",{
+      method:"POST",
+      body:JSON.stringify({p_player_id:Number(playerId),p_conflict_id:Number(conflict.id)})
+    });
+    if(synced.ok&&synced.data?.success===true){
+      conflict=synced.data.conflict||conflict;
+      if(String(conflict.status)==="completed")conflict=null;
+    }
+  }
+
   const city=await supabase("cities?select=id&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
   if(!city.ok||!city.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
+
   const units=await supabase("units?select=id,unit_type,quantity,level,speed,population_cost&city_id=eq."+encodeURIComponent(city.data[0].id)+"&order=id.asc");
   if(!units.ok)return send(res,503,{success:false,message:"Birlik bilgileri alınamadı."});
-  return send(res,200,{success:true,mission,units:units.data||[],carryPerPopulation:100});
+
+  return send(res,200,{success:true,mission,conflict,units:units.data||[],carryPerPopulation:100});
 }
 
 async function startResourceGather(req,res){
-  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  let body; try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
+
   const siteId=Number(body?.siteId);
+  const battleTactic=String(body?.battleTactic||"balanced").trim().toLowerCase();
+  const tactic=battleTacticConfig(battleTactic);
   const requested=body?.units&&typeof body.units==="object"&&!Array.isArray(body.units)?body.units:null;
+
   if(!Number.isSafeInteger(siteId)||siteId<=0)return send(res,400,{success:false,message:"Geçersiz kaynak noktası."});
+  if(!tactic)return send(res,400,{success:false,message:"Geçersiz savaş taktiği."});
   if(!requested)return send(res,400,{success:false,message:"Geçersiz birlik seçimi."});
+
   let any=false;
   for(const [type,raw] of Object.entries(requested)){
     if(!Object.prototype.hasOwnProperty.call(UNIT_CONFIG,type))return send(res,400,{success:false,message:"Geçersiz birlik türü: "+type});
-    const q=Number(raw); if(!Number.isSafeInteger(q)||q<0||q>2147483647)return send(res,400,{success:false,message:type+" için geçersiz birlik miktarı."});
+    const q=Number(raw);
+    if(!Number.isSafeInteger(q)||q<0||q>2147483647)return send(res,400,{success:false,message:type+" için geçersiz birlik miktarı."});
     if(q>0)any=true;
   }
   if(!any)return send(res,400,{success:false,message:"En az bir birlik göndermelisin."});
 
   const [cityR,siteR,researchSync,regionBonus]=await Promise.all([
     supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
-    supabase("world_sites?select=id,site_type,resource_type,resource_stock,coordinate_x,coordinate_y,active&id=eq."+encodeURIComponent(siteId)+"&limit=1"),
-    syncResearchUpgrade(playerId),getPlayerAllianceRegionBonus(playerId)
+    supabase("world_sites?select=id,site_type,resource_type,resource_stock,resource_rarity,resource_guard_army,resource_guard_active,resource_gather_seconds,coordinate_x,coordinate_y,active&id=eq."+encodeURIComponent(siteId)+"&limit=1"),
+    syncResearchUpgrade(playerId),
+    getPlayerAllianceRegionBonus(playerId)
   ]);
+
   if(!cityR.ok||!cityR.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
   if(!siteR.ok||!siteR.data?.[0]||siteR.data[0].active!==true||siteR.data[0].site_type!=="resource")return send(res,404,{success:false,message:"Kaynak noktası artık kullanılamıyor."});
   if(!researchSync.ok)return send(res,503,{success:false,message:"Araştırma durumu senkronize edilemedi."});
@@ -5769,38 +5908,222 @@ async function startResourceGather(req,res){
   const city=cityR.data[0],site=siteR.data[0];
   const unitsR=await supabase("units?select=*&city_id=eq."+encodeURIComponent(city.id)+"&order=id.asc");
   if(!unitsR.ok)return send(res,503,{success:false,message:"Birlik bilgileri alınamadı."});
-  const map=new Map(); for(const u of unitsR.data||[])if(!map.has(String(u.unit_type)))map.set(String(u.unit_type),u);
+
+  const unitRows=new Map();
+  for(const u of unitsR.data||[])if(!unitRows.has(String(u.unit_type)))unitRows.set(String(u.unit_type),u);
+
   const army=[];
   for(const [type,raw] of Object.entries(requested)){
-    const q=Number(raw); if(q===0)continue; const row=map.get(type);
+    const q=Number(raw);
+    if(q===0)continue;
+    const row=unitRows.get(type);
     if(!row||Number(row.quantity||0)<q)return send(res,400,{success:false,message:type+" için yeterli birlik yok."});
-    army.push({unit_type:type,quantity:q,level:Number(row.level||1),population_cost:Number(row.population_cost||UNIT_CONFIG[type]?.population||1)});
+    army.push({
+      unit_type:type,
+      quantity:q,
+      level:Number(row.level||1),
+      population_cost:Number(row.population_cost||UNIT_CONFIG[type]?.population||1)
+    });
   }
+
   const distance=Math.hypot(Number(site.coordinate_x)-Number(city.coordinate_x),Number(site.coordinate_y)-Number(city.coordinate_y));
   const research=researchSync.research||{};
   const speedResearch=Math.max(.25,1-Number(research.travel_speed_level||0)*.05);
   const travelMultiplier=hasActiveAllianceRegionBonus(regionBonus.data||{},"travel_speed")?.95:1;
-  const fleetSpeed=Math.max(25,Math.min(...army.map(a=>Number(map.get(a.unit_type)?.speed||100))));
+  const fleetSpeed=Math.max(25,Math.min(...army.map(a=>Number(unitRows.get(a.unit_type)?.speed||100))));
   const speedFactor=Math.max(.35,100/fleetSpeed);
   const travelSeconds=Math.max(1,Math.ceil((Math.max(0,distance)/2)*speedResearch*travelMultiplier*speedFactor));
 
-  const started=await supabase("rpc/nexora_start_resource_gather",{method:"POST",body:JSON.stringify({
-    p_player_id:Number(playerId),p_city_id:Number(city.id),p_site_id:siteId,p_army:army,
-    p_depart_x:Number(city.coordinate_x),p_depart_y:Number(city.coordinate_y),p_travel_seconds:travelSeconds
-  })});
-  if(!started.ok){console.error("Kaynak seferi RPC hatası:",started.data);return send(res,503,{success:false,message:"Kaynak seferi başlatılamadı."});}
-  const result=started.data||{}; if(result.success!==true){
-    const code=String(result.code||""); return send(res,code==="ACTIVE_RESOURCE_MISSION"?409:(code==="RESOURCE_SITE_NOT_FOUND"||code==="CITY_NOT_FOUND")?404:400,result);
+  let guardPlan=null;
+  if(site.resource_guard_active===true&&Array.isArray(site.resource_guard_army)&&site.resource_guard_army.length){
+    guardPlan=await buildResourceBattlePlan(
+      army,
+      site.resource_guard_army,
+      research,
+      {},
+      battleTactic,
+      1,
+      site.resource_guard_army
+    );
+    if(!guardPlan)return send(res,503,{success:false,message:"Kaynak muhafızı savaş planı hazırlanamadı."});
   }
-  return send(res,200,result);
+
+  const started=await supabase("rpc/nexora_start_resource_gather_v2",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_city_id:Number(city.id),
+      p_site_id:siteId,
+      p_army:army,
+      p_depart_x:Number(city.coordinate_x),
+      p_depart_y:Number(city.coordinate_y),
+      p_travel_seconds:travelSeconds,
+      p_battle_tactic:battleTactic,
+      p_guard_plan:guardPlan
+    })
+  });
+
+  if(!started.ok){
+    console.error("Kaynak seferi RPC hatası:",started.data);
+    return send(res,503,{success:false,message:"Kaynak seferi başlatılamadı."});
+  }
+
+  const result=started.data||{};
+  if(result.success!==true){
+    const code=String(result.code||"");
+    const status=["ACTIVE_RESOURCE_MISSION","RESOURCE_SITE_BUSY","GUARD_PLAN_STALE"].includes(code)?409:
+      ["RESOURCE_SITE_NOT_FOUND","CITY_NOT_FOUND"].includes(code)?404:400;
+    return send(res,status,result);
+  }
+
+  return send(res,200,{...result,guardPlan:guardPlan?{
+    result:guardPlan.result,
+    attackPower:guardPlan.attackPower,
+    defensePower:guardPlan.defensePower
+  }:null});
 }
 
 async function getResourceGatherStatus(req,res){
-  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const id=Number(req.query.id); if(!Number.isSafeInteger(id)||id<=0)return send(res,400,{success:false,message:"Geçersiz kaynak seferi."});
-  const synced=await supabase("rpc/nexora_sync_resource_gather_mission",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_mission_id:id})});
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const id=Number(req.query.id);
+  if(!Number.isSafeInteger(id)||id<=0)return send(res,400,{success:false,message:"Geçersiz kaynak seferi."});
+
+  const synced=await supabase("rpc/nexora_sync_resource_gather_mission",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:Number(playerId),p_mission_id:id})
+  });
   if(!synced.ok)return send(res,503,{success:false,message:"Kaynak seferi durumu alınamadı."});
-  const result=synced.data||{}; if(result.success!==true)return send(res,String(result.code||"")==="MISSION_NOT_FOUND"?404:400,result);
+
+  const result=synced.data||{};
+  if(result.success!==true)return send(res,String(result.code||"")==="MISSION_NOT_FOUND"?404:400,result);
+  return send(res,200,result);
+}
+
+async function startResourceConflict(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  let body;
+  try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
+
+  const defenderGatherMissionId=Number(body?.defenderGatherMissionId);
+  const battleTactic=String(body?.battleTactic||"balanced").trim().toLowerCase();
+  const tactic=battleTacticConfig(battleTactic);
+  const requested=body?.units&&typeof body.units==="object"&&!Array.isArray(body.units)?body.units:null;
+
+  if(!Number.isSafeInteger(defenderGatherMissionId)||defenderGatherMissionId<=0)return send(res,400,{success:false,message:"Geçersiz kaynak ordusu hedefi."});
+  if(!tactic)return send(res,400,{success:false,message:"Geçersiz savaş taktiği."});
+  if(!requested)return send(res,400,{success:false,message:"Geçersiz birlik seçimi."});
+
+  const targetR=await supabase("resource_gather_missions?select=*&id=eq."+encodeURIComponent(defenderGatherMissionId)+"&status=eq.gathering&limit=1");
+  if(!targetR.ok||!targetR.data?.[0])return send(res,404,{success:false,message:"Kaynak ordusu artık bu noktada değil."});
+  const target=targetR.data[0];
+
+  const [cityR,siteR,attackerResearchSync,defenderResearchSync,attackerRegion,defenderRegion]=await Promise.all([
+    supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
+    supabase("world_sites?select=id,resource_type,resource_rarity,resource_gather_seconds,coordinate_x,coordinate_y,active&id=eq."+encodeURIComponent(target.site_id)+"&limit=1"),
+    syncResearchUpgrade(playerId),
+    syncResearchUpgrade(Number(target.player_id)),
+    getPlayerAllianceRegionBonus(playerId),
+    getPlayerAllianceRegionBonus(Number(target.player_id))
+  ]);
+
+  if(!cityR.ok||!cityR.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
+  if(!siteR.ok||!siteR.data?.[0]||siteR.data[0].active!==true)return send(res,404,{success:false,message:"Kaynak noktası bulunamadı."});
+  if(!attackerResearchSync.ok||!defenderResearchSync.ok)return send(res,503,{success:false,message:"Araştırma durumu senkronize edilemedi."});
+  if(!attackerRegion.ok||!defenderRegion.ok)return send(res,503,{success:false,message:"Bölge bonusu hesaplanamadı."});
+
+  const city=cityR.data[0],site=siteR.data[0];
+  const unitsR=await supabase("units?select=*&city_id=eq."+encodeURIComponent(city.id)+"&order=id.asc");
+  if(!unitsR.ok)return send(res,503,{success:false,message:"Birlik bilgileri alınamadı."});
+
+  const unitRows=new Map();
+  for(const u of unitsR.data||[])if(!unitRows.has(String(u.unit_type)))unitRows.set(String(u.unit_type),u);
+
+  const army=[];
+  let any=false;
+  for(const [type,raw] of Object.entries(requested)){
+    if(!Object.prototype.hasOwnProperty.call(UNIT_CONFIG,type))return send(res,400,{success:false,message:"Geçersiz birlik türü: "+type});
+    const q=Number(raw);
+    if(!Number.isSafeInteger(q)||q<0||q>2147483647)return send(res,400,{success:false,message:type+" için geçersiz birlik miktarı."});
+    if(q===0)continue;
+    any=true;
+    const row=unitRows.get(type);
+    if(!row||Number(row.quantity||0)<q)return send(res,400,{success:false,message:type+" için yeterli birlik yok."});
+    army.push({unit_type:type,quantity:q,level:Number(row.level||1),population_cost:Number(row.population_cost||UNIT_CONFIG[type]?.population||1)});
+  }
+  if(!any)return send(res,400,{success:false,message:"En az bir birlik göndermelisin."});
+
+  const distance=Math.hypot(Number(site.coordinate_x)-Number(city.coordinate_x),Number(site.coordinate_y)-Number(city.coordinate_y));
+  const attackerResearch=attackerResearchSync.research||{};
+  const defenderResearch=defenderResearchSync.research||{};
+  const speedResearch=Math.max(.25,1-Number(attackerResearch.travel_speed_level||0)*.05);
+  const travelMultiplier=hasActiveAllianceRegionBonus(attackerRegion.data||{},"travel_speed")?.95:1;
+  const fleetSpeed=Math.max(25,Math.min(...army.map(a=>Number(unitRows.get(a.unit_type)?.speed||100))));
+  const speedFactor=Math.max(.35,100/fleetSpeed);
+  const travelSeconds=Math.max(1,Math.ceil((Math.max(0,distance)/2)*speedResearch*travelMultiplier*speedFactor));
+  const defenderDefenseMultiplier=hasActiveAllianceRegionBonus(defenderRegion.data||{},"defense")?1.05:1;
+
+  const battlePlan=await buildResourceBattlePlan(
+    army,
+    target.army,
+    attackerResearch,
+    defenderResearch,
+    battleTactic,
+    defenderDefenseMultiplier,
+    target.army
+  );
+  if(!battlePlan)return send(res,503,{success:false,message:"Kaynak çatışması savaş planı hazırlanamadı."});
+
+  const started=await supabase("rpc/nexora_start_resource_conflict",{
+    method:"POST",
+    body:JSON.stringify({
+      p_attacker_player_id:Number(playerId),
+      p_attacker_city_id:Number(city.id),
+      p_defender_gather_mission_id:defenderGatherMissionId,
+      p_army:army,
+      p_battle_tactic:battleTactic,
+      p_battle_plan:battlePlan,
+      p_travel_seconds:travelSeconds
+    })
+  });
+
+  if(!started.ok){
+    console.error("Kaynak çatışması RPC hatası:",started.data);
+    return send(res,503,{success:false,message:"Kaynak ordusuna saldırı başlatılamadı."});
+  }
+
+  const result=started.data||{};
+  if(result.success!==true){
+    const code=String(result.code||"");
+    const status=["ACTIVE_RESOURCE_CONFLICT","ACTIVE_RESOURCE_MISSION","RESOURCE_UNDER_ATTACK","TARGET_LEAVING","DEFENDER_CHANGED"].includes(code)?409:
+      ["TARGET_LEFT","RESOURCE_SITE_NOT_FOUND","CITY_NOT_FOUND"].includes(code)?404:
+      ["SAME_ALLIANCE","ATTACKER_PROTECTED","DEFENDER_PROTECTED"].includes(code)?403:400;
+    return send(res,status,result);
+  }
+
+  return send(res,200,{...result,battlePreview:{
+    result:battlePlan.result,
+    attackPower:battlePlan.attackPower,
+    defensePower:battlePlan.defensePower
+  }});
+}
+
+async function getResourceConflictStatus(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const id=Number(req.query.id);
+  if(!Number.isSafeInteger(id)||id<=0)return send(res,400,{success:false,message:"Geçersiz kaynak çatışması."});
+
+  const synced=await supabase("rpc/nexora_sync_resource_conflict",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:Number(playerId),p_conflict_id:id})
+  });
+  if(!synced.ok)return send(res,503,{success:false,message:"Kaynak çatışması durumu alınamadı."});
+
+  const result=synced.data||{};
+  if(result.success!==true)return send(res,String(result.code||"")==="CONFLICT_NOT_FOUND"?404:400,result);
   return send(res,200,result);
 }
 
@@ -6382,6 +6705,12 @@ if (action === "startresourcegather") {
 }
 if (action === "resourcegatherstatus") {
   return await getResourceGatherStatus(req, res);
+}
+if (action === "startresourceconflict") {
+  return await startResourceConflict(req, res);
+}
+if (action === "resourceconflictstatus") {
+  return await getResourceConflictStatus(req, res);
 }
 if (action === "spy") {
   return await startEspionage(req, res);
