@@ -4375,6 +4375,35 @@ async function getBattleReports(req, res) {
     );
   }
 
+  const resourceConflictResult = await supabase(
+    "resource_conflict_missions?select=id,attacker_player_id,defender_player_id,site_id,status,battle_plan,battle_tactic,result,takeover_mission_id,completed_at,created_at" +
+      "&or=(attacker_player_id.eq." +
+      encodeURIComponent(playerId) +
+      ",defender_player_id.eq." +
+      encodeURIComponent(playerId) +
+      ")" +
+      "&status=eq.completed&result=in.(Zafer,Yenilgi,Beraberlik)" +
+      "&order=completed_at.desc,id.desc&limit=100"
+  );
+
+  if (!resourceConflictResult.ok) {
+    console.error(
+      "Kaynak çatışması raporları alınamadı:",
+      resourceConflictResult.data
+    );
+  }
+
+  const resourceSitesResult = await supabase(
+    "world_sites?select=id,name,resource_type,resource_rarity,coordinate_x,coordinate_y&site_type=eq.resource"
+  );
+
+  if (!resourceSitesResult.ok) {
+    console.error(
+      "Kaynak noktaları rapor bilgisi alınamadı:",
+      resourceSitesResult.data
+    );
+  }
+
   const playersResult = await supabase(
     "players?select=id,username"
   );
@@ -4539,9 +4568,79 @@ async function getBattleReports(req, res) {
     };
   });
 
+  const resourceSiteMap = {};
+
+  if (resourceSitesResult.ok) {
+    (resourceSitesResult.data || []).forEach(function(site) {
+      resourceSiteMap[Number(site.id)] = site;
+    });
+  }
+
+  const resourceConflictReports =
+    (resourceConflictResult.ok
+      ? (resourceConflictResult.data || [])
+      : []
+    ).map(function(report) {
+      const battlePlan =
+        report.battle_plan &&
+        typeof report.battle_plan === "object" &&
+        !Array.isArray(report.battle_plan)
+          ? report.battle_plan
+          : {};
+
+      const site =
+        resourceSiteMap[Number(report.site_id)] ||
+        {};
+
+      const isAttacker =
+        Number(report.attacker_player_id) ===
+        Number(playerId);
+
+      const viewerResult =
+        report.result === "Beraberlik"
+          ? "Beraberlik"
+          : isAttacker
+            ? String(report.result || "")
+            : report.result === "Zafer"
+              ? "Yenilgi"
+              : "Zafer";
+
+      return {
+        ...report,
+        battle_plan: battlePlan,
+        viewer_result: viewerResult,
+        viewer_role:
+          isAttacker
+            ? "attacker"
+            : "defender",
+        attacker_username:
+          playerMap[report.attacker_player_id] ||
+          "Bilinmeyen Oyuncu",
+        defender_username:
+          playerMap[report.defender_player_id] ||
+          "Bilinmeyen Oyuncu",
+        site_name:
+          site.name ||
+          "Kaynak Noktası",
+        resource_type:
+          site.resource_type ||
+          "",
+        resource_rarity:
+          site.resource_rarity ||
+          "normal",
+        target_x:
+          site.coordinate_x ??
+          null,
+        target_y:
+          site.coordinate_y ??
+          null
+      };
+    });
+
   return send(res, 200, {
     success: true,
     reports: reports,
+    resourceConflictReports: resourceConflictReports,
     espionageReports: espionageReports
   });
 }
