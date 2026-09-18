@@ -455,7 +455,7 @@ BEGIN
 
   IF m.return_at IS NULL OR m.return_at>now_at THEN
     remaining:=CASE WHEN m.return_at IS NULL THEN GREATEST(1,m.travel_seconds)
-      ELSE GREATEST(1,CEIL(EXTRACT(EPOCH FROM(m.return_at-now_at)))::integer END;
+      ELSE GREATEST(1,CEIL(EXTRACT(EPOCH FROM(m.return_at-now_at)))::integer) END;
     RETURN jsonb_build_object('success',true,'completed',false,'mission',to_jsonb(m),'remainingSeconds',remaining);
   END IF;
 
@@ -642,7 +642,7 @@ BEGIN
   IF x.status='returning' THEN
     IF x.return_at IS NULL OR x.return_at>now_at THEN
       remaining:=CASE WHEN x.return_at IS NULL THEN GREATEST(1,x.travel_seconds)
-        ELSE GREATEST(1,CEIL(EXTRACT(EPOCH FROM(x.return_at-now_at)))::integer END;
+        ELSE GREATEST(1,CEIL(EXTRACT(EPOCH FROM(x.return_at-now_at)))::integer) END;
       RETURN jsonb_build_object('success',true,'completed',false,'conflict',to_jsonb(x),'remainingSeconds',remaining);
     END IF;
 
