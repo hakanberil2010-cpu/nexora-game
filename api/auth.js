@@ -5855,6 +5855,24 @@ async function getResourceGatherInfo(req,res){
     });
     if(synced.ok&&synced.data?.success===true){
       conflict=synced.data.conflict||conflict;
+
+      if(
+        !mission &&
+        Number(synced.data?.takeoverMissionId)>0
+      ){
+        const takeover=await supabase(
+          "resource_gather_missions?select=*&id=eq."+
+          encodeURIComponent(Number(synced.data.takeoverMissionId))+
+          "&player_id=eq."+
+          encodeURIComponent(playerId)+
+          "&limit=1"
+        );
+
+        if(takeover.ok&&takeover.data?.[0]){
+          mission=takeover.data[0];
+        }
+      }
+
       if(String(conflict.status)==="completed")conflict=null;
     }
   }
