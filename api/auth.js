@@ -2032,18 +2032,33 @@ async function finalizeBuilding(building) {
   return current.ok && current.data?.[0] ? current.data[0] : building;
 }
 
+async function syncResearchUpgrade(playerId) {
+  const id = Number(playerId);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return { ok: false, research: null, data: null };
+  }
+
+  const result = await supabase("rpc/nexora_sync_research_upgrade", {
+    method: "POST",
+    body: JSON.stringify({ p_player_id: id })
+  });
+
+  if (!result.ok || result.data?.success !== true) {
+    console.error("Araştırma otomatik tamamlama senkronizasyonu hatası:", result.data);
+    return { ok: false, research: null, data: result.data || null };
+  }
+
+  return {
+    ok: true,
+    research: result.data?.research || null,
+    data: result.data
+  };
+}
+
 async function finalizeResearch(research) {
   if (!research || !research.upgrade_ready_at) return research;
-  if (new Date(research.upgrade_ready_at).getTime() > Date.now()) return research;
-  const column = research.pending_column;
-  if (!column) return research;
-  const updated = await supabase("research?id=eq." + encodeURIComponent(research.id) + "&upgrade_ready_at=eq." + encodeURIComponent(research.upgrade_ready_at) + "&pending_column=eq." + encodeURIComponent(column), {
-    method: "PATCH", headers: { Prefer: "return=representation" },
-    body: JSON.stringify({ [column]: Number(research[column] || 0) + 1, upgrade_ready_at: null, pending_column: null })
-  });
-  if (updated.ok && updated.data?.[0]) return updated.data[0];
-  const current = await supabase("research?select=*&id=eq." + encodeURIComponent(research.id));
-  return current.ok && current.data?.[0] ? current.data[0] : research;
+  const synced = await syncResearchUpgrade(research.player_id);
+  return synced.ok && synced.research ? synced.research : research;
 }
 
 function capResource(value, cap) { return Math.max(0, Math.min(Number(value || 0), cap)); }
@@ -2689,16 +2704,14 @@ async function createMilitaryMission(req, res) {
     Math.pow(Number(targetCity.coordinate_y || 0) - Number(attackerCity.coordinate_y || 0), 2)
   );
 
-  const [researchResult,regionBonusResult] = await Promise.all([
-    supabase(
-      "research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level&player_id=eq."+
-      encodeURIComponent(playerId)+"&limit=1"
-    ),
+  const [researchSync,regionBonusResult] = await Promise.all([
+    syncResearchUpgrade(playerId),
     getPlayerAllianceRegionBonus(playerId)
   ]);
-  const research = researchResult.ok && researchResult.data?.[0]
-    ? researchResult.data[0]
-    : {};
+  if(!researchSync.ok){
+    return send(res,503,{success:false,message:"Araştırma durumu senkronize edilemedi."});
+  }
+  const research = researchSync.research || {};
 
   if(!regionBonusResult.ok){
     console.error("İttifak bölge bonusu alınamadı:",regionBonusResult.data);
@@ -3153,16 +3166,14 @@ async function createNpcMission(req,res){
     Math.pow(targetY-departY,2)
   );
 
-  const [researchResult,regionBonusResult]=await Promise.all([
-    supabase(
-      "research?select=travel_speed_level,general_power_level,unit_attack_level,unit_defense_level,unit_hp_level&player_id=eq."+
-      encodeURIComponent(playerId)+"&limit=1"
-    ),
+  const [researchSync,regionBonusResult]=await Promise.all([
+    syncResearchUpgrade(playerId),
     getPlayerAllianceRegionBonus(playerId)
   ]);
-  const research=researchResult.ok&&researchResult.data?.[0]
-    ?researchResult.data[0]
-    :{};
+  if(!researchSync.ok){
+    return send(res,503,{success:false,message:"Araştırma durumu senkronize edilemedi."});
+  }
+  const research=researchSync.research||{};
 
   if(!regionBonusResult.ok){
     console.error("NPC sefer bölge bonusu alınamadı:",regionBonusResult.data);
