@@ -13,6 +13,14 @@ const EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = 60;
 const EMAIL_VERIFICATION_FROM = "TERYNDIS <no-reply@teryndis.com>";
 const EMAIL_VERIFICATION_RESEND_MESSAGE =
   "Hesap doğrulanmamışsa yeni kod e-posta adresine gönderilecektir.";
+const PASSWORD_RESET_CODE_TTL_SECONDS = 15 * 60;
+const PASSWORD_RESET_ATTEMPT_LIMIT = 10;
+const PASSWORD_RESET_RATE_WINDOW_SECONDS = 15 * 60;
+const PASSWORD_RESET_REQUEST_LIMIT = 5;
+const PASSWORD_RESET_REQUEST_WINDOW_SECONDS = 60 * 60;
+const PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS = 60;
+const PASSWORD_RESET_REQUEST_MESSAGE =
+  "E-posta adresi kayıtlıysa şifre sıfırlama kodu gönderilecektir.";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
 const LOGIN_RATE_WINDOW_SECONDS = 10 * 60;
 const LOGIN_IDENTITY_LIMIT = 5;
@@ -626,6 +634,521 @@ async function sendEmailVerificationCode(player, code) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function passwordResetCodeHash(playerId, email, code) {
+  return crypto
+    .createHmac("sha256", JWT_SECRET)
+    .update(
+      "password-reset\n" +
+        String(playerId) +
+        "\n" +
+        String(email || "").trim().toLowerCase() +
+        "\n" +
+        String(code || "")
+    )
+    .digest("hex");
+}
+
+function createPasswordResetCode() {
+  return String(
+    crypto.randomInt(100000, 1000000)
+  );
+}
+
+async function savePasswordResetCode(player, code) {
+  const playerId = Number(player?.id);
+  const email = String(player?.email || "").trim().toLowerCase();
+
+  if (
+    !Number.isSafeInteger(playerId) ||
+    playerId <= 0 ||
+    !email
+  ) {
+    return { ok: false };
+  }
+
+  const now = new Date();
+
+  const result = await supabase(
+    "password_reset_codes?on_conflict=player_id",
+    {
+      method: "POST",
+      headers: {
+        Prefer:
+          "resolution=merge-duplicates,return=representation"
+      },
+      body: JSON.stringify({
+        player_id: playerId,
+        code_hash: passwordResetCodeHash(
+          playerId,
+          email,
+          code
+        ),
+        expires_at: new Date(
+          now.getTime() +
+            PASSWORD_RESET_CODE_TTL_SECONDS * 1000
+        ).toISOString(),
+        attempts: 0,
+        last_sent_at: now.toISOString()
+      })
+    }
+  );
+
+  if (!result.ok) {
+    console.error(
+      "Şifre sıfırlama kodu kaydetme hatası:",
+      result.data
+    );
+
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
+async function sendPasswordResetCode(player, code) {
+  const email = String(player?.email || "").trim().toLowerCase();
+
+  if (!RESEND_API_KEY || !email) {
+    console.error(
+      !RESEND_API_KEY
+        ? "RESEND_API_KEY eksik."
+        : "Şifre sıfırlama e-posta adresi eksik."
+    );
+
+    return false;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    10000
+  );
+
+  try {
+    const response = await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: "Bearer " + RESEND_API_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: EMAIL_VERIFICATION_FROM,
+          to: [email],
+          subject: "TERYNDIS şifre sıfırlama kodu",
+          html:
+            '<div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a">' +
+            "<h2>TERYNDIS şifre sıfırlama</h2>" +
+            "<p>Şifre sıfırlama kodun:</p>" +
+            '<p style="font-size:30px;font-weight:700;letter-spacing:6px">' +
+            code +
+            "</p>" +
+            "<p>Bu kod 15 dakika geçerlidir.</p>" +
+            "<p>Bu işlemi sen başlatmadıysan bu e-postayı yok sayabilirsin.</p>" +
+            "</div>"
+        })
+      }
+    );
+
+    if (!response.ok) {
+      console.error(
+        "Resend şifre sıfırlama e-postası hatası:",
+        response.status
+      );
+
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error(
+      "Resend şifre sıfırlama bağlantı hatası:",
+      error?.name === "AbortError"
+        ? "zaman aşımı"
+        : error
+    );
+
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function requestPasswordReset(req, res) {
+  const body = await readBody(req);
+  const email = String(body.email || "").trim().toLowerCase();
+
+  if (!email) {
+    return send(res, 400, {
+      success: false,
+      message: "E-posta adresi gerekli."
+    });
+  }
+
+  const requestKey = rateLimitKeyHash(
+    "password_reset_request\n" +
+      clientIp(req) +
+      "\n" +
+      email
+  );
+
+  const requestLimit = await consumeAuthRateLimit(
+    "login_identity",
+    requestKey,
+    PASSWORD_RESET_REQUEST_LIMIT,
+    PASSWORD_RESET_REQUEST_WINDOW_SECONDS
+  );
+
+  if (!requestLimit.ok) {
+    return send(res, 503, {
+      success: false,
+      message:
+        "Şifre sıfırlama güvenlik kontrolü şu anda kullanılamıyor."
+    });
+  }
+
+  if (!requestLimit.allowed) {
+    return sendRateLimited(
+      res,
+      "Çok fazla şifre sıfırlama isteği. Lütfen daha sonra tekrar deneyin.",
+      requestLimit.retryAfterSeconds
+    );
+  }
+
+  const playerResult = await supabase(
+    "players?select=id,email&email=eq." +
+      encodeURIComponent(email) +
+      "&limit=1"
+  );
+
+  if (!playerResult.ok) {
+    console.error(
+      "Şifre sıfırlama oyuncu sorgu hatası:",
+      playerResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Şifre sıfırlama işlemi tamamlanamadı."
+    });
+  }
+
+  const player = playerResult.data?.[0] || null;
+
+  if (!player) {
+    return send(res, 200, {
+      success: true,
+      message: PASSWORD_RESET_REQUEST_MESSAGE
+    });
+  }
+
+  const stateResult = await supabase(
+    "password_reset_codes?select=last_sent_at&player_id=eq." +
+      encodeURIComponent(player.id) +
+      "&limit=1"
+  );
+
+  if (!stateResult.ok) {
+    console.error(
+      "Şifre sıfırlama durum sorgu hatası:",
+      stateResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Şifre sıfırlama işlemi tamamlanamadı."
+    });
+  }
+
+  const lastSentAt = Date.parse(
+    String(
+      stateResult.data?.[0]?.last_sent_at ||
+        ""
+    )
+  );
+
+  if (
+    Number.isFinite(lastSentAt) &&
+    Date.now() - lastSentAt <
+      PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS * 1000
+  ) {
+    return send(res, 200, {
+      success: true,
+      message: PASSWORD_RESET_REQUEST_MESSAGE
+    });
+  }
+
+  const code = createPasswordResetCode();
+
+  const saved = await savePasswordResetCode(
+    player,
+    code
+  );
+
+  if (!saved.ok) {
+    return send(res, 500, {
+      success: false,
+      message: "Şifre sıfırlama işlemi tamamlanamadı."
+    });
+  }
+
+  const sent = await sendPasswordResetCode(
+    player,
+    code
+  );
+
+  if (!sent) {
+    const cleanup = await supabase(
+      "password_reset_codes?player_id=eq." +
+        encodeURIComponent(player.id),
+      { method: "DELETE" }
+    );
+
+    if (!cleanup.ok) {
+      console.error(
+        "Gönderilemeyen şifre sıfırlama kodu temizleme hatası:",
+        cleanup.data
+      );
+    }
+  }
+
+  return send(res, 200, {
+    success: true,
+    message: PASSWORD_RESET_REQUEST_MESSAGE
+  });
+}
+
+async function resetPassword(req, res) {
+  const body = await readBody(req);
+  const email = String(body.email || "").trim().toLowerCase();
+  const code = String(body.code || "").trim();
+  const newPassword = String(body.newPassword || "");
+
+  if (
+    !email ||
+    !/^\d{6}$/.test(code) ||
+    newPassword.length < 6
+  ) {
+    return send(res, 400, {
+      success: false,
+      message:
+        "E-posta, 6 haneli kod ve en az 6 karakterlik yeni şifre gerekli."
+    });
+  }
+
+  const resetKey = rateLimitKeyHash(
+    "password_reset_verify\n" +
+      clientIp(req) +
+      "\n" +
+      email
+  );
+
+  const resetLimit = await consumeAuthRateLimit(
+    "login_identity",
+    resetKey,
+    PASSWORD_RESET_ATTEMPT_LIMIT,
+    PASSWORD_RESET_RATE_WINDOW_SECONDS
+  );
+
+  if (!resetLimit.ok) {
+    return send(res, 503, {
+      success: false,
+      message:
+        "Şifre sıfırlama güvenlik kontrolü şu anda kullanılamıyor."
+    });
+  }
+
+  if (!resetLimit.allowed) {
+    return sendRateLimited(
+      res,
+      "Çok fazla kod denemesi. Lütfen daha sonra tekrar deneyin.",
+      resetLimit.retryAfterSeconds
+    );
+  }
+
+  const playerResult = await supabase(
+    "players?select=id,email,session_version&email=eq." +
+      encodeURIComponent(email) +
+      "&limit=1"
+  );
+
+  if (!playerResult.ok) {
+    console.error(
+      "Şifre sıfırlama oyuncu sorgu hatası:",
+      playerResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Şifre sıfırlama işlemi tamamlanamadı."
+    });
+  }
+
+  const player = playerResult.data?.[0] || null;
+
+  if (!player) {
+    return send(res, 400, {
+      success: false,
+      message: "Kod geçersiz veya süresi dolmuş."
+    });
+  }
+
+  const stateResult = await supabase(
+    "password_reset_codes?select=code_hash,expires_at,attempts&player_id=eq." +
+      encodeURIComponent(player.id) +
+      "&limit=1"
+  );
+
+  if (!stateResult.ok) {
+    console.error(
+      "Şifre sıfırlama kodu sorgu hatası:",
+      stateResult.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Şifre sıfırlama işlemi tamamlanamadı."
+    });
+  }
+
+  const state = stateResult.data?.[0] || null;
+  const attempts = Math.max(
+    0,
+    Number(state?.attempts) || 0
+  );
+  const expiresAt = Date.parse(
+    String(state?.expires_at || "")
+  );
+
+  if (
+    !state ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt <= Date.now() ||
+    attempts >= PASSWORD_RESET_ATTEMPT_LIMIT
+  ) {
+    if (state) {
+      await supabase(
+        "password_reset_codes?player_id=eq." +
+          encodeURIComponent(player.id),
+        { method: "DELETE" }
+      );
+    }
+
+    return send(res, 400, {
+      success: false,
+      message: "Kod geçersiz veya süresi dolmuş."
+    });
+  }
+
+  const storedHash = String(
+    state.code_hash || ""
+  ).toLowerCase();
+
+  const providedHash = passwordResetCodeHash(
+    player.id,
+    player.email,
+    code
+  );
+
+  const validHash =
+    /^[0-9a-f]{64}$/.test(storedHash) &&
+    crypto.timingSafeEqual(
+      Buffer.from(storedHash, "hex"),
+      Buffer.from(providedHash, "hex")
+    );
+
+  if (!validHash) {
+    const attemptResult = await supabase(
+      "password_reset_codes?player_id=eq." +
+        encodeURIComponent(player.id),
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          attempts: Math.min(
+            20,
+            attempts + 1
+          )
+        })
+      }
+    );
+
+    if (!attemptResult.ok) {
+      console.error(
+        "Şifre sıfırlama deneme sayacı hatası:",
+        attemptResult.data
+      );
+    }
+
+    return send(res, 400, {
+      success: false,
+      message: "Kod geçersiz veya süresi dolmuş."
+    });
+  }
+
+  const passwordHash = await hashPassword(
+    newPassword
+  );
+
+  const nextSessionVersion =
+    Math.max(
+      1,
+      Number(player.session_version) || 1
+    ) + 1;
+
+  const updated = await supabase(
+    "players?id=eq." +
+      encodeURIComponent(player.id),
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        password_hash: passwordHash,
+        session_version: nextSessionVersion
+      })
+    }
+  );
+
+  if (!updated.ok) {
+    console.error(
+      "Şifre sıfırlama güncelleme hatası:",
+      updated.data
+    );
+
+    return send(res, 500, {
+      success: false,
+      message: "Şifre güncellenemedi."
+    });
+  }
+
+  const cleanup = await supabase(
+    "password_reset_codes?player_id=eq." +
+      encodeURIComponent(player.id),
+    { method: "DELETE" }
+  );
+
+  if (!cleanup.ok) {
+    console.error(
+      "Şifre sıfırlama kodu temizleme hatası:",
+      cleanup.data
+    );
+  }
+
+  await clearAuthRateLimit(
+    "login_identity",
+    resetKey
+  );
+
+  return send(res, 200, {
+    success: true,
+    message:
+      "Şifren güncellendi. Yeni şifrenle giriş yapabilirsin."
+  });
 }
 
 async function register(req, res) {
@@ -5637,6 +6160,14 @@ module.exports = async function handler(req, res) {
 
     if (action === "resendverification") {
       return await resendEmailVerification(req, res);
+    }
+
+    if (action === "forgotpassword") {
+      return await requestPasswordReset(req, res);
+    }
+
+    if (action === "resetpassword") {
+      return await resetPassword(req, res);
     }
 
     if(!(await ensureCurrentSession(req,res))){

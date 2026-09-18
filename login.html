@@ -152,6 +152,20 @@
       transform: none;
     }
 
+    .forgot-btn {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #38bdf8;
+      padding: 12px 0 0;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .forgot-btn:hover {
+      text-decoration: underline;
+    }
+
     .message {
       display: none;
       padding: 12px;
@@ -261,6 +275,64 @@
 
         <button class="submit-btn" id="loginButton" type="submit">
           GİRİŞ YAP
+        </button>
+
+        <button class="forgot-btn" id="forgotPasswordButton" type="button">
+          Şifremi unuttum
+        </button>
+
+      </form>
+
+      <!-- ŞİFRE SIFIRLAMA -->
+      <form id="resetForm" class="form">
+
+        <h2>Şifreni Sıfırla</h2>
+
+        <p class="form-description">
+          E-postana 6 haneli bir sıfırlama kodu gönderelim.
+        </p>
+
+        <div class="field">
+          <label for="resetEmail">E-posta</label>
+          <input
+            type="email"
+            id="resetEmail"
+            placeholder="ornek@email.com"
+            required
+          >
+        </div>
+
+        <button class="submit-btn" id="resetSendButton" type="button">
+          SIFIRLAMA KODU GÖNDER
+        </button>
+
+        <div class="field" style="margin-top:17px;">
+          <label for="resetCode">Sıfırlama kodu</label>
+          <input
+            type="text"
+            id="resetCode"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            pattern="[0-9]{6}"
+            maxlength="6"
+            placeholder="123456"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="resetNewPassword">Yeni şifre</label>
+          <input
+            type="password"
+            id="resetNewPassword"
+            minlength="6"
+            placeholder="En az 6 karakter"
+            required
+          >
+        </div>
+
+        <button class="submit-btn" id="resetPasswordButton" type="submit">
+          ŞİFREYİ YENİLE
         </button>
 
       </form>
@@ -375,11 +447,22 @@
     const loginForm = document.getElementById("loginForm");
     const registerForm = document.getElementById("registerForm");
     const verifyForm = document.getElementById("verifyForm");
+    const resetForm = document.getElementById("resetForm");
 
     const message = document.getElementById("message");
 
     const loginButton = document.getElementById("loginButton");
     const registerButton = document.getElementById("registerButton");
+    const forgotPasswordButton =
+      document.getElementById("forgotPasswordButton");
+    const resetSendButton =
+      document.getElementById("resetSendButton");
+    const resetPasswordButton =
+      document.getElementById("resetPasswordButton");
+    const resetEmail = document.getElementById("resetEmail");
+    const resetCode = document.getElementById("resetCode");
+    const resetNewPassword =
+      document.getElementById("resetNewPassword");
     const verifyButton = document.getElementById("verifyButton");
     const resendButton = document.getElementById("resendButton");
     const verifyEmail = document.getElementById("verifyEmail");
@@ -404,6 +487,7 @@
 
       loginForm.classList.remove("active");
       registerForm.classList.remove("active");
+      resetForm.classList.remove("active");
       verifyForm.classList.add("active");
 
       verifyEmail.value = String(email || "");
@@ -425,6 +509,7 @@
       loginForm.classList.add("active");
       registerForm.classList.remove("active");
       verifyForm.classList.remove("active");
+      resetForm.classList.remove("active");
 
       clearMessage();
     });
@@ -438,8 +523,184 @@
       registerForm.classList.add("active");
       loginForm.classList.remove("active");
       verifyForm.classList.remove("active");
+      resetForm.classList.remove("active");
 
       clearMessage();
+    });
+
+
+    forgotPasswordButton.addEventListener("click", function () {
+
+      loginTab.classList.remove("active");
+      registerTab.classList.remove("active");
+
+      loginForm.classList.remove("active");
+      registerForm.classList.remove("active");
+      verifyForm.classList.remove("active");
+      resetForm.classList.add("active");
+
+      resetEmail.value =
+        document.getElementById("loginEmail").value.trim();
+
+      resetCode.value = "";
+      resetNewPassword.value = "";
+
+      clearMessage();
+    });
+
+
+    resetSendButton.addEventListener("click", async function () {
+
+      clearMessage();
+
+      const email = resetEmail.value.trim();
+
+      if (!email) {
+        showMessage(
+          "E-posta adresini gir.",
+          "error"
+        );
+
+        return;
+      }
+
+      resetSendButton.disabled = true;
+      resetSendButton.textContent = "KOD GÖNDERİLİYOR...";
+
+      try {
+
+        const response = await fetch(
+          "/api/auth?action=forgotpassword",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              email
+            })
+          }
+        );
+
+        const data = await response.json();
+
+        showMessage(
+          data.message ||
+            "E-posta adresi kayıtlıysa sıfırlama kodu gönderilecektir.",
+          response.ok && data.success
+            ? "success"
+            : "error"
+        );
+
+      } catch (error) {
+
+        console.error(error);
+
+        showMessage(
+          "Sunucuya bağlanılamadı. Lütfen tekrar deneyin.",
+          "error"
+        );
+
+      } finally {
+
+        resetSendButton.disabled = false;
+        resetSendButton.textContent = "SIFIRLAMA KODU GÖNDER";
+
+      }
+
+    });
+
+
+    resetForm.addEventListener("submit", async function (event) {
+
+      event.preventDefault();
+
+      clearMessage();
+
+      const email = resetEmail.value.trim();
+      const code = resetCode.value.trim();
+      const newPassword = resetNewPassword.value;
+
+      if (!/^\d{6}$/.test(code)) {
+        showMessage(
+          "6 haneli sıfırlama kodunu gir.",
+          "error"
+        );
+
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        showMessage(
+          "Yeni şifre en az 6 karakter olmalıdır.",
+          "error"
+        );
+
+        return;
+      }
+
+      resetPasswordButton.disabled = true;
+      resetPasswordButton.textContent = "ŞİFRE YENİLENİYOR...";
+
+      try {
+
+        const response = await fetch(
+          "/api/auth?action=resetpassword",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              email,
+              code,
+              newPassword
+            })
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+
+          showMessage(
+            data.message || "Şifre güncellenemedi.",
+            "error"
+          );
+
+          return;
+        }
+
+        loginTab.click();
+        document.getElementById("loginEmail").value = email;
+        document.getElementById("loginPassword").value = "";
+
+        showMessage(
+          data.message ||
+            "Şifren güncellendi. Yeni şifrenle giriş yapabilirsin.",
+          "success"
+        );
+
+      } catch (error) {
+
+        console.error(error);
+
+        showMessage(
+          "Sunucuya bağlanılamadı. Lütfen tekrar deneyin.",
+          "error"
+        );
+
+      } finally {
+
+        resetPasswordButton.disabled = false;
+        resetPasswordButton.textContent = "ŞİFREYİ YENİLE";
+
+      }
+
     });
 
 
