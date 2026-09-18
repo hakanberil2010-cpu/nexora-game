@@ -2921,16 +2921,19 @@ async function getMilitaryMission(req,res){
   const rawDefensePower=defenderBreakdown.reduce((s,u)=>s+u.power,0);
   const attackPower=Math.max(0,Math.round(rawAttackPower*tactic.attackMultiplier));
   const defensePower=Math.max(0,Math.round(rawDefensePower*wallBonus*allianceRegionDefenseMultiplier));
-  const result=attackPower>defensePower?"Zafer":attackPower===defensePower?"Beraberlik":"Yenilgi";
+  const powerResult=attackPower>defensePower?"Zafer":attackPower===defensePower?"Beraberlik":"Yenilgi";
   const ratio=attackPower+defensePower>0?Math.abs(attackPower-defensePower)/(attackPower+defensePower):0;
-  const attackerLossBase=result==="Zafer"?0.18:result==="Beraberlik"?0.38:0.68;
-  const defenderLossBase=result==="Zafer"?0.62:result==="Beraberlik"?0.38:0.18;
+  const attackerLossBase=powerResult==="Zafer"?0.18:powerResult==="Beraberlik"?0.38:0.68;
+  const defenderLossBase=powerResult==="Zafer"?0.62:powerResult==="Beraberlik"?0.38:0.18;
   const attackerLosses={},survivorArmy=[],defenderLosses={};
   for(const u of army){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*attackerLossBase*tactic.lossMultiplier*mod*(1-0.12*ratio))));attackerLosses[u.unit_type]=(attackerLosses[u.unit_type]||0)+loss;survivorArmy.push({...u,quantity:q-loss});}
   for(const u of defenders){const r=roleOf(u.unit_type),q=Number(u.quantity||0),mod=Math.max(0.55,Math.min(1.45,1+(r.loss-1)*0.7)),loss=Math.min(q,Math.max(0,Math.ceil(q*defenderLossBase*mod*(1-0.12*ratio))));defenderLosses[u.unit_type]=(defenderLosses[u.unit_type]||0)+loss;}
+  const attackerSurvivors=survivorArmy.reduce((sum,u)=>sum+Math.max(0,Number(u.quantity)||0),0);
+  const annihilatedVictory=powerResult==="Zafer"&&attackerSurvivors===0;
+  const result=annihilatedVictory?"Beraberlik":powerResult;
   const outbound=Math.max(1,Math.round((new Date(mission.arrive_at).getTime()-new Date(mission.depart_at).getTime())/1000));
   const attackerX=Number(mission.depart_x),attackerY=Number(mission.depart_y),defenderX=Number(mission.target_x),defenderY=Number(mission.target_y);
-  const battlePoints=calculateBattlePoints(result,attackPower,defensePower);
+  const battlePoints=annihilatedVictory?0:calculateBattlePoints(result,attackPower,defensePower);
   const winnerPlayerId=result==="Zafer"?Number(mission.attacker_player_id):result==="Yenilgi"?Number(mission.defender_player_id):null;
   const reportBase={
     version:4,
