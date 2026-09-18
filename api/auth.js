@@ -3225,7 +3225,7 @@ async function createNpcMission(req,res){
   if(started.success!==true){
     const code=String(started.code||"");
     const status=
-      code==="ACTIVE_NPC_MISSION"||code==="NPC_CAMP_COOLDOWN"||code==="UNIT_CHANGED"
+      code==="ACTIVE_NPC_MISSION"||code==="NPC_CAMP_COOLDOWN"||code==="NPC_CAMP_BUSY"||code==="UNIT_CHANGED"
         ?409
         :(code==="CITY_NOT_FOUND"||code==="NPC_CAMP_NOT_FOUND"||code==="NPC_CAMP_DISABLED")
           ?404
