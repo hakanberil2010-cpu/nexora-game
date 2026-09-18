@@ -9,9 +9,6 @@ UPDATE public.players
    SET email_verified_at = COALESCE(created_at, now())
  WHERE email_verified_at IS NULL;
 
-ALTER TABLE public.players
-  ALTER COLUMN email_verified_at SET DEFAULT now();
-
 CREATE TABLE IF NOT EXISTS public.email_verification_codes (
   player_id bigint PRIMARY KEY
     REFERENCES public.players(id) ON DELETE CASCADE,
