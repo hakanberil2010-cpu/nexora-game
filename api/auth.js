@@ -2493,12 +2493,12 @@ async function moveColony(req, res) {
   if (
     !Number.isInteger(x) ||
     !Number.isInteger(y) ||
-    x < 1 || x > 100 ||
-    y < 1 || y > 100
+    x < 1 || x > 200 ||
+    y < 1 || y > 200
   ) {
     return send(res, 400, {
       success: false,
-      message: "X ve Y koordinatlar\u0131 1-100 aras\u0131nda tam say\u0131 olmal\u0131."
+      message: "X ve Y koordinatlar\u0131 1-200 aras\u0131nda tam say\u0131 olmal\u0131."
     });
   }
 
@@ -2580,12 +2580,12 @@ function calculateBattlePoints(result, attackPower, defensePower){
 }
 function regionForCoordinates(x,y){
   const regions=[
-    {name:'Çöl Bölgesi',x:10,y:18,bonus:'Metal üretimi +5%'},
-    {name:'Orman Bölgesi',x:42,y:12,bonus:'Alaşım üretimi +5%'},
-    {name:'Buz Bölgesi',x:91,y:17,bonus:'Enerji üretimi +5%'},
-    {name:'Dağ Bölgesi',x:30,y:83,bonus:'Savunma +5%'},
-    {name:'Volkanik Bölge',x:72,y:85,bonus:'Kristal üretimi +5%'},
-    {name:'Okyanus',x:95,y:55,bonus:'Seyahat süresi -5%'}
+    {name:'Çöl Bölgesi',x:20,y:36,bonus:'Metal üretimi +5%'},
+    {name:'Orman Bölgesi',x:84,y:24,bonus:'Alaşım üretimi +5%'},
+    {name:'Buz Bölgesi',x:182,y:34,bonus:'Enerji üretimi +5%'},
+    {name:'Dağ Bölgesi',x:60,y:166,bonus:'Savunma +5%'},
+    {name:'Volkanik Bölge',x:144,y:170,bonus:'Kristal üretimi +5%'},
+    {name:'Okyanus',x:190,y:110,bonus:'Seyahat süresi -5%'}
   ];
   let best=regions[0], dist=Infinity;
   for(const r of regions){const dd=Math.hypot(Number(x)-r.x,Number(y)-r.y);if(dd<dist){dist=dd;best=r;}}
@@ -3112,9 +3112,9 @@ async function createNpcMission(req,res){
   const targetY=Number(camp.coordinateY);
   if(
     !Number.isInteger(departX)||!Number.isInteger(departY)||
-    departX<1||departX>100||departY<1||departY>100||
+    departX<1||departX>200||departY<1||departY>200||
     !Number.isInteger(targetX)||!Number.isInteger(targetY)||
-    targetX<1||targetX>100||targetY<1||targetY>100
+    targetX<1||targetX>200||targetY<1||targetY>200
   ){
     console.error("NPC sefer koordinatı geçersiz:",{playerId,campId,departX,departY,targetX,targetY});
     return send(res,503,{success:false,message:"NPC sefer koordinatları hazırlanamadı."});
@@ -5722,6 +5722,88 @@ async function getWorldExploration(req,res){
 }
 
 
+async function getResourceGatherInfo(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const active=await supabase("resource_gather_missions?select=*&player_id=eq."+encodeURIComponent(playerId)+"&status=in.(traveling,returning)&order=id.desc&limit=1");
+  if(!active.ok)return send(res,503,{success:false,message:"Kaynak seferi bilgisi alınamadı."});
+  let mission=active.data?.[0]||null;
+  if(mission){
+    const synced=await supabase("rpc/nexora_sync_resource_gather_mission",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_mission_id:Number(mission.id)})});
+    if(synced.ok&&synced.data?.success===true){
+      mission=synced.data.mission||mission;
+      if(String(mission.status)==="completed")mission=null;
+    }
+  }
+  const city=await supabase("cities?select=id&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
+  if(!city.ok||!city.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
+  const units=await supabase("units?select=id,unit_type,quantity,level,speed,population_cost&city_id=eq."+encodeURIComponent(city.data[0].id)+"&order=id.asc");
+  if(!units.ok)return send(res,503,{success:false,message:"Birlik bilgileri alınamadı."});
+  return send(res,200,{success:true,mission,units:units.data||[],carryPerPopulation:100});
+}
+
+async function startResourceGather(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  let body; try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
+  const siteId=Number(body?.siteId);
+  const requested=body?.units&&typeof body.units==="object"&&!Array.isArray(body.units)?body.units:null;
+  if(!Number.isSafeInteger(siteId)||siteId<=0)return send(res,400,{success:false,message:"Geçersiz kaynak noktası."});
+  if(!requested)return send(res,400,{success:false,message:"Geçersiz birlik seçimi."});
+  let any=false;
+  for(const [type,raw] of Object.entries(requested)){
+    if(!Object.prototype.hasOwnProperty.call(UNIT_CONFIG,type))return send(res,400,{success:false,message:"Geçersiz birlik türü: "+type});
+    const q=Number(raw); if(!Number.isSafeInteger(q)||q<0||q>2147483647)return send(res,400,{success:false,message:type+" için geçersiz birlik miktarı."});
+    if(q>0)any=true;
+  }
+  if(!any)return send(res,400,{success:false,message:"En az bir birlik göndermelisin."});
+
+  const [cityR,siteR,researchSync,regionBonus]=await Promise.all([
+    supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
+    supabase("world_sites?select=id,site_type,resource_type,resource_stock,coordinate_x,coordinate_y,active&id=eq."+encodeURIComponent(siteId)+"&limit=1"),
+    syncResearchUpgrade(playerId),getPlayerAllianceRegionBonus(playerId)
+  ]);
+  if(!cityR.ok||!cityR.data?.[0])return send(res,404,{success:false,message:"Koloni bulunamadı."});
+  if(!siteR.ok||!siteR.data?.[0]||siteR.data[0].active!==true||siteR.data[0].site_type!=="resource")return send(res,404,{success:false,message:"Kaynak noktası artık kullanılamıyor."});
+  if(!researchSync.ok)return send(res,503,{success:false,message:"Araştırma durumu senkronize edilemedi."});
+  if(!regionBonus.ok)return send(res,503,{success:false,message:"Bölge bonusu hesaplanamadı."});
+
+  const city=cityR.data[0],site=siteR.data[0];
+  const unitsR=await supabase("units?select=*&city_id=eq."+encodeURIComponent(city.id)+"&order=id.asc");
+  if(!unitsR.ok)return send(res,503,{success:false,message:"Birlik bilgileri alınamadı."});
+  const map=new Map(); for(const u of unitsR.data||[])if(!map.has(String(u.unit_type)))map.set(String(u.unit_type),u);
+  const army=[];
+  for(const [type,raw] of Object.entries(requested)){
+    const q=Number(raw); if(q===0)continue; const row=map.get(type);
+    if(!row||Number(row.quantity||0)<q)return send(res,400,{success:false,message:type+" için yeterli birlik yok."});
+    army.push({unit_type:type,quantity:q,level:Number(row.level||1),population_cost:Number(row.population_cost||UNIT_CONFIG[type]?.population||1)});
+  }
+  const distance=Math.hypot(Number(site.coordinate_x)-Number(city.coordinate_x),Number(site.coordinate_y)-Number(city.coordinate_y));
+  const research=researchSync.research||{};
+  const speedResearch=Math.max(.25,1-Number(research.travel_speed_level||0)*.05);
+  const travelMultiplier=hasActiveAllianceRegionBonus(regionBonus.data||{},"travel_speed")?.95:1;
+  const fleetSpeed=Math.max(25,Math.min(...army.map(a=>Number(map.get(a.unit_type)?.speed||100))));
+  const speedFactor=Math.max(.35,100/fleetSpeed);
+  const travelSeconds=Math.max(1,Math.ceil((Math.max(0,distance)/2)*speedResearch*travelMultiplier*speedFactor));
+
+  const started=await supabase("rpc/nexora_start_resource_gather",{method:"POST",body:JSON.stringify({
+    p_player_id:Number(playerId),p_city_id:Number(city.id),p_site_id:siteId,p_army:army,
+    p_depart_x:Number(city.coordinate_x),p_depart_y:Number(city.coordinate_y),p_travel_seconds:travelSeconds
+  })});
+  if(!started.ok){console.error("Kaynak seferi RPC hatası:",started.data);return send(res,503,{success:false,message:"Kaynak seferi başlatılamadı."});}
+  const result=started.data||{}; if(result.success!==true){
+    const code=String(result.code||""); return send(res,code==="ACTIVE_RESOURCE_MISSION"?409:(code==="RESOURCE_SITE_NOT_FOUND"||code==="CITY_NOT_FOUND")?404:400,result);
+  }
+  return send(res,200,result);
+}
+
+async function getResourceGatherStatus(req,res){
+  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+  const id=Number(req.query.id); if(!Number.isSafeInteger(id)||id<=0)return send(res,400,{success:false,message:"Geçersiz kaynak seferi."});
+  const synced=await supabase("rpc/nexora_sync_resource_gather_mission",{method:"POST",body:JSON.stringify({p_player_id:Number(playerId),p_mission_id:id})});
+  if(!synced.ok)return send(res,503,{success:false,message:"Kaynak seferi durumu alınamadı."});
+  const result=synced.data||{}; if(result.success!==true)return send(res,String(result.code||"")==="MISSION_NOT_FOUND"?404:400,result);
+  return send(res,200,result);
+}
+
 async function startEspionage(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
   let body; try{body=await readBody(req);}catch(error){return sendBodyError(res,error);}
@@ -6291,6 +6373,15 @@ if (action === "changepassword") {
 }
 if (action === "explorestatus") {
   return await getWorldExploration(req, res);
+}
+if (action === "resourcegatherinfo") {
+  return await getResourceGatherInfo(req, res);
+}
+if (action === "startresourcegather") {
+  return await startResourceGather(req, res);
+}
+if (action === "resourcegatherstatus") {
+  return await getResourceGatherStatus(req, res);
 }
 if (action === "spy") {
   return await startEspionage(req, res);
