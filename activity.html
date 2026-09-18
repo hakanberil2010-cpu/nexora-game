@@ -147,7 +147,7 @@ function showStatus(message){
 }
 
 function safeHref(value){
-  const allowed=new Set(['reports.html','world.html','missions.html']);
+  const allowed=new Set(['reports.html','world.html','missions.html','trade.html','alliance.html']);
   const href=String(value||'');
   return allowed.has(href)?href:'game.html';
 }
@@ -157,7 +157,9 @@ function typeLabel(type){
     pvp_battle:'PvP',
     npc_battle:'PvE',
     world_exploration:'Keşif',
-    daily_mission_claim:'Günlük Görev'
+    daily_mission_claim:'Günlük Görev',
+    trade_delivery:'Ticaret',
+    alliance_activity:'İttifak'
   })[type]||'Aktivite';
 }
 
