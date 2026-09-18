@@ -712,10 +712,16 @@ BEGIN
       'takeoverMissionId',takeover_id,'battle',x.battle_plan);
   END IF;
 
-  IF result_text='Beraberlik' THEN
+  IF result_text='Beraberlik' OR public.nexora_military_army_population(defender_survivors)=0 THEN
     UPDATE public.resource_gather_missions
     SET status='returning',army=defender_survivors,gathered_amount=0,gather_complete_at=NULL,
         return_at=now_at+make_interval(secs=>travel_seconds),updated_at=now_at
+    WHERE id=target.id;
+  ELSE
+    UPDATE public.resource_gather_missions
+    SET army=defender_survivors,
+        carry_capacity=GREATEST(1,public.nexora_military_army_population(defender_survivors)*100),
+        updated_at=now_at
     WHERE id=target.id;
   END IF;
 
