@@ -2419,7 +2419,73 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
     background:radial-gradient(circle,rgba(93,222,250,.22) 0 5%,transparent 42%);
   }
 }
+/* Colony operational state feedback */
+.colony-state-banner{
+  position:absolute;left:50%;top:62px;z-index:120;
+  min-width:250px;max-width:min(520px,calc(100% - 180px));
+  padding:8px 14px;transform:translateX(-50%);
+  border:1px solid rgba(255,112,96,.48);border-radius:999px;
+  background:linear-gradient(180deg,rgba(64,15,18,.94),rgba(29,8,13,.94));
+  color:#ffe4df;box-shadow:0 10px 28px rgba(0,0,0,.34),0 0 22px rgba(244,77,65,.16);
+  font-size:10px;font-weight:800;letter-spacing:.8px;text-align:center;
+  pointer-events:none;backdrop-filter:blur(10px);
+}
+.colony-state-banner[hidden]{display:none}
+.scene-hud span.resource-full{
+  border-color:rgba(245,177,79,.60);
+  background:linear-gradient(180deg,rgba(78,47,18,.90),rgba(34,24,14,.88));
+  box-shadow:0 0 16px rgba(235,157,63,.13),inset 0 1px rgba(255,219,151,.06);
+  animation:resourceFullPulse 2.1s ease-in-out infinite;
+}
+.status.state-paused{border-color:rgba(221,158,70,.34);color:#c7aa7a}
+.status.state-alert{border-color:rgba(244,86,75,.42);color:#f0aaa1;box-shadow:0 0 18px rgba(225,69,60,.08)}
+.building-state-signal{
+  position:absolute;left:50%;top:calc(50% + var(--sprite-offset-y,0px) - 44px);z-index:6;
+  min-width:70px;padding:3px 7px;transform:translate(-50%,-100%);
+  border:1px solid rgba(135,175,188,.24);border-radius:999px;
+  background:rgba(4,17,24,.92);color:#b7d3dd;
+  box-shadow:0 6px 13px rgba(0,0,0,.28);
+  font-size:7px;font-weight:900;line-height:1.2;letter-spacing:.6px;white-space:nowrap;
+  pointer-events:none;
+}
+.building-state-signal.construction{border-color:rgba(245,190,92,.54);color:#f5d28c;background:rgba(48,34,12,.92)}
+.building-state-signal.storage-full{border-color:rgba(245,164,70,.58);color:#ffd49a;background:rgba(58,30,10,.94);animation:stateSignalBlink 2.2s ease-in-out infinite}
+.building-state-signal.production-paused{border-color:rgba(176,146,93,.42);color:#cfb98f;background:rgba(38,31,22,.94)}
+.building-state-signal.alert{border-color:rgba(255,104,91,.62);color:#ffd5cf;background:rgba(66,16,18,.95);animation:stateSignalBlink 1.05s ease-in-out infinite}
+.building-pad.state-storage-full{border-color:rgba(244,169,72,.62);box-shadow:0 0 26px rgba(233,147,55,.18),inset 0 0 30px rgba(183,105,38,.09);animation:stateStoragePulse 2.4s ease-in-out infinite}
+.building-pad.state-production-paused{border-color:rgba(152,131,92,.30);filter:saturate(.55) brightness(.75);box-shadow:inset 0 0 24px rgba(0,0,0,.24)}
+.building-node.has-sprite.state-production-paused .building-sprite{opacity:.62;filter:saturate(.42) brightness(.70) drop-shadow(0 14px 16px rgba(0,0,0,.45))}
+.building-node.has-sprite.state-production-paused::after{animation:none !important;opacity:.12;filter:grayscale(.45)}
+.building-node.has-sprite.state-storage-full .building-sprite{filter:drop-shadow(0 18px 18px rgba(0,0,0,.46)) drop-shadow(0 0 15px rgba(244,164,70,.24))}
+.building-pad.state-alert{border-color:rgba(255,94,82,.58);box-shadow:0 0 0 6px rgba(224,61,55,.05),0 0 28px rgba(224,61,55,.18),inset 0 0 28px rgba(175,43,40,.08);animation:stateAlertPulse 1.15s ease-in-out infinite}
+.building-node.has-sprite.state-alert .building-sprite{filter:drop-shadow(0 18px 18px rgba(0,0,0,.46)) drop-shadow(0 0 16px rgba(242,79,68,.30))}
+.colony-alert-layer{position:absolute;inset:0;z-index:4;overflow:hidden;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.colony-world.state-under-attack .colony-alert-layer{opacity:1}
+.colony-alert-layer::before{
+  content:"";position:absolute;inset:18px;border:2px solid rgba(255,78,68,.34);border-radius:28px;
+  box-shadow:inset 0 0 48px rgba(186,40,37,.12),0 0 30px rgba(226,58,51,.09);
+  animation:colonyAlertFrame 1.25s ease-in-out infinite;
+}
+.colony-alert-layer::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(183,37,36,.08),transparent 10%,transparent 90%,rgba(183,37,36,.08)),linear-gradient(180deg,rgba(183,37,36,.07),transparent 11%,transparent 89%,rgba(183,37,36,.09));
+}
+.colony-alert-sweep{
+  position:absolute;left:-20%;top:-8%;width:34%;height:118%;transform:skewX(-16deg);
+  background:linear-gradient(90deg,transparent,rgba(255,91,77,.075),transparent);
+  filter:blur(3px);animation:colonyAlertSweep 4.2s linear infinite;
+}
+@keyframes resourceFullPulse{50%{box-shadow:0 0 22px rgba(235,157,63,.22),inset 0 1px rgba(255,219,151,.09)}}
+@keyframes stateStoragePulse{50%{opacity:.82;box-shadow:0 0 34px rgba(233,147,55,.24),inset 0 0 34px rgba(183,105,38,.12)}}
+@keyframes stateAlertPulse{50%{opacity:.76;box-shadow:0 0 0 10px rgba(224,61,55,.025),0 0 36px rgba(224,61,55,.24),inset 0 0 34px rgba(175,43,40,.11)}}
+@keyframes stateSignalBlink{50%{opacity:.58}}
+@keyframes colonyAlertFrame{50%{border-color:rgba(255,100,88,.62);box-shadow:inset 0 0 64px rgba(186,40,37,.18),0 0 38px rgba(226,58,51,.14)}}
+@keyframes colonyAlertSweep{from{left:-25%}to{left:110%}}
+@media(prefers-reduced-motion:reduce){
+  .scene-hud span.resource-full,.building-state-signal,.building-pad.state-storage-full,.building-pad.state-alert,.colony-alert-layer::before,.colony-alert-sweep{animation:none !important}
+}
 @media(max-width:600px){
+  .colony-state-banner{top:54px;min-width:190px;max-width:calc(100% - 118px);padding:7px 10px;font-size:8px}
   .building-sprite-label{transform:translateX(-50%) scale(.9)}
 }
 
@@ -2544,6 +2610,10 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
         <button type="button" onclick="colonyZoomBy(1.2)" title="Yakınlaştır" aria-label="Yakınlaştır">+</button>
       </div>
 
+      <div class="colony-state-banner" id="colonyStateBanner" role="status" aria-live="polite" hidden>
+        ⚠ GELEN SALDIRI <span id="colonyThreatTimer"></span>
+      </div>
+
       <div class="colony-world" id="colonyWorld">
         <div class="colony-terrain-layer" id="colonyTerrainLayer" aria-hidden="true"></div>
         <div class="colony-environment" aria-hidden="true">
@@ -2629,6 +2699,9 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
           <span class="atmosphere-mote warm m10"></span>
         </div>
         <div class="building-map" id="buildings"></div>
+        <div class="colony-alert-layer" aria-hidden="true">
+          <span class="colony-alert-sweep"></span>
+        </div>
         <div class="colony-foreground" aria-hidden="true">
           <span class="foreground-rail left"></span>
           <span class="foreground-rail right"></span>
@@ -2837,6 +2910,15 @@ const COLONY_DECOR=[
 let selectedBuildingName=null;
 let selectedBuildingSlot=1;
 let latestBuildings=[];
+let latestColonyVisualState={
+  full:{metal:false,energy:false,alloy:false,crystal:false},
+  productionPaused:{},
+  storageFull:false,
+  crystalStorageFull:false,
+  incomingAttack:false,
+  attackArriveAt:null
+};
+let colonyThreatLoadPromise=null;
 
 const COLONY_WORLD_WIDTH=1800;
 const COLONY_WORLD_HEIGHT=1100;
@@ -4424,6 +4506,13 @@ async function loadCity(){
           );
       }
 
+      updateColonyOperationalState(
+        c,
+        p,
+        d.capacities||{},
+        d.buildings||[]
+      );
+
       renderBuildings(
         d.buildings||[]
       );
@@ -4625,6 +4714,150 @@ function positionBuildingPopup(name,slot=1){
 }
 
 
+function colonyResourceCapacity(resource,city,capacities){
+  const caps=capacities&&typeof capacities==='object'?capacities:{};
+  if(resource==='crystal'){
+    return Math.max(0,Number(caps.crystal_capacity||city?.crystal_storage_capacity||city?.crystal_capacity||0)||0);
+  }
+  return Math.max(0,Number(caps[resource+'_capacity']||city?.[resource+'_capacity']||city?.storage_capacity||0)||0);
+}
+
+function colonyResourceIsFull(value,capacity){
+  const cap=Math.max(0,Number(capacity)||0);
+  return cap>0&&Math.max(0,Number(value)||0)>=cap-.0001;
+}
+
+function updateColonyOperationalState(city,production,capacities,buildings){
+  const c=city&&typeof city==='object'?city:{};
+  const p=production&&typeof production==='object'?production:{};
+  const levels=getBuildingLevels(Array.isArray(buildings)?buildings:[]);
+
+  const full={
+    metal:colonyResourceIsFull(c.metal,colonyResourceCapacity('metal',c,capacities)),
+    energy:colonyResourceIsFull(c.energy,colonyResourceCapacity('energy',c,capacities)),
+    alloy:colonyResourceIsFull(c.alloy,colonyResourceCapacity('alloy',c,capacities)),
+    crystal:colonyResourceIsFull(c.crystal,colonyResourceCapacity('crystal',c,capacities))
+  };
+
+  const productionPaused={
+    'Metal Madeni':Number(levels['Metal Madeni']||0)>0&&(full.metal||Number(p.metalPerMinute||0)<=0),
+    'Enerji Santrali':Number(levels['Enerji Santrali']||0)>0&&(full.energy||Number(p.energyPerMinute||0)<=0),
+    'Alaşım Rafinerisi':Number(levels['Alaşım Rafinerisi']||0)>0&&(full.alloy||Number(p.alloyPerMinute||0)<=0),
+    'Kristal Madeni':Number(levels['Kristal Madeni']||0)>0&&(full.crystal||Number(p.crystalPerMinute||0)<=0)
+  };
+
+  latestColonyVisualState={
+    ...latestColonyVisualState,
+    full,
+    productionPaused,
+    storageFull:full.metal||full.energy||full.alloy,
+    crystalStorageFull:full.crystal
+  };
+
+  Object.entries(full).forEach(([resource,isFull])=>{
+    document.getElementById(resource)?.parentElement?.classList.toggle('resource-full',isFull);
+  });
+
+  document.getElementById('productionStats')?.classList.toggle(
+    'state-paused',
+    Object.values(productionPaused).some(Boolean)
+  );
+
+  document.getElementById('colonyStats')?.classList.toggle(
+    'state-alert',
+    latestColonyVisualState.incomingAttack
+  );
+}
+
+function incomingColonyThreat(missions){
+  const playerId=Number(savedUser?.id);
+  if(!Number.isFinite(playerId)||!Array.isArray(missions))return null;
+
+  return missions
+    .filter(mission=>
+      Number(mission?.defender_player_id)===playerId&&
+      ['traveling','resolving'].includes(String(mission?.status||''))
+    )
+    .sort((a,b)=>{
+      const aTime=Date.parse(a?.arrive_at||'');
+      const bTime=Date.parse(b?.arrive_at||'');
+      return (Number.isFinite(aTime)?aTime:Number.MAX_SAFE_INTEGER)-
+        (Number.isFinite(bTime)?bTime:Number.MAX_SAFE_INTEGER);
+    })[0]||null;
+}
+
+function updateColonyThreatVisuals(){
+  const active=latestColonyVisualState.incomingAttack===true;
+  document.getElementById('colonyWorld')?.classList.toggle('state-under-attack',active);
+  document.getElementById('colonyStats')?.classList.toggle('state-alert',active);
+
+  const banner=document.getElementById('colonyStateBanner');
+  const timer=document.getElementById('colonyThreatTimer');
+  if(banner)banner.hidden=!active;
+
+  if(timer){
+    if(!active){
+      timer.textContent='';
+      return;
+    }
+
+    const arriveAt=Date.parse(latestColonyVisualState.attackArriveAt||'');
+    const remaining=Number.isFinite(arriveAt)
+      ?Math.max(0,Math.ceil((arriveAt-Date.now())/1000))
+      :null;
+
+    timer.textContent=
+      remaining!==null&&remaining>0
+        ?'· VARIŞ '+remain(remaining)
+        :'· SAVUNMA TEMASI';
+  }
+}
+
+async function loadColonyThreatState(){
+  if(colonyThreatLoadPromise)return colonyThreatLoadPromise;
+
+  colonyThreatLoadPromise=(async function(){
+    try{
+      const response=await fetch('/api/auth?action=missions',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token}
+      });
+
+      if(response.status===401){
+        clearInvalidSession();
+        return;
+      }
+      if(!response.ok)return;
+
+      const data=await response.json();
+      if(data?.success!==true)return;
+
+      const threat=incomingColonyThreat(data.missions);
+      const wasActive=latestColonyVisualState.incomingAttack===true;
+
+      latestColonyVisualState={
+        ...latestColonyVisualState,
+        incomingAttack:!!threat,
+        attackArriveAt:threat?.arrive_at||null
+      };
+
+      updateColonyThreatVisuals();
+
+      if(wasActive!==latestColonyVisualState.incomingAttack){
+        renderBuildings(latestBuildings);
+      }
+    }catch(error){
+      console.error('Koloni tehdit durumu alınamadı:',error);
+    }
+  })();
+
+  try{
+    return await colonyThreatLoadPromise;
+  }finally{
+    colonyThreatLoadPromise=null;
+  }
+}
+
 function buildingVisualTier(level){
   const value=Math.max(
     0,
@@ -4766,10 +4999,45 @@ function renderBuildings(buildings){
         selectedBuildingName===name&&
         selectedBuildingSlot===slot;
 
+      const storageFull=
+        level>0&&(
+          (name==='Depo'&&latestColonyVisualState.storageFull)||
+          (name==='Kristal Deposu'&&latestColonyVisualState.crystalStorageFull)
+        );
+
+      const productionPaused=
+        level>0&&latestColonyVisualState.productionPaused?.[name]===true;
+
+      const defenseAlert=
+        level>0&&latestColonyVisualState.incomingAttack&&
+        ['Merkez Bina','Gözcü Kulesi','Kışla','Sur'].includes(name);
+
+      const operationalState=
+        (storageFull?' state-storage-full':'')+
+        (productionPaused?' state-production-paused':'')+
+        (defenseAlert?' state-alert':'');
+
       const visualState=
         (isSelected?' selected':'')+
         (pending?' pending':'')+
-        (locked&&!pending?' locked':'');
+        (locked&&!pending?' locked':'')+
+        operationalState;
+
+      const stateSignal=
+        pending
+          ?{className:'construction',text:'🏗️ İNŞAAT'}
+          :storageFull
+            ?{className:'storage-full',text:'⚠ DEPO DOLU'}
+            :productionPaused
+              ?{className:'production-paused',text:'⏸ ÜRETİM DURDU'}
+              :defenseAlert
+                ?{className:'alert',text:'⚠ ALARM'}
+                :null;
+
+      const stateSignalHtml=
+        stateSignal
+          ?'<span class="building-state-signal '+stateSignal.className+'">'+stateSignal.text+'</span>'
+          :'';
 
       const buildingVisual=
         BUILDING_VISUALS[name]||
@@ -4794,12 +5062,13 @@ function renderBuildings(buildings){
           aria-hidden="true"
         ></span>
         <button
-          class="building-node zone-${visualZone} ${buildingVisual?'has-sprite '+buildingVisualTier(level):''} ${name==='Merkez Bina'?'command-core':''} ${locked&&!pending?'locked':''} ${pending?'pending':''} ${isSelected?'selected':''}"
+          class="building-node zone-${visualZone} ${buildingVisual?'has-sprite '+buildingVisualTier(level):''} ${name==='Merkez Bina'?'command-core':''} ${locked&&!pending?'locked':''} ${pending?'pending':''} ${isSelected?'selected':''}${operationalState}"
           style="left:${site.x}%;top:${site.y}%;${buildingVisual?'--sprite-size:'+buildingVisual.width+'px;--sprite-offset-y:'+buildingVisual.offsetY+'px;--sprite-label-y:'+buildingVisual.labelY+'px;width:'+buildingVisual.width+'px;height:'+buildingVisual.width+'px;':''}"
           type="button"
           onclick="selectBuilding('${name.replace(/'/g,"\\'")}',${slot})"
           aria-label="${esc(buildingLabel(name,slot))} Seviye ${level}"
         >
+          ${stateSignalHtml}
           ${buildingVisual?`
             ${buildingVisual.asset?`
               <img
@@ -5323,11 +5592,25 @@ initColonyNavigation();
 loadInitialColony();
 loadBeginnerGuide();
 loadHeaderBadges();
+loadColonyThreatState();
+updateColonyThreatVisuals();
 
 /* Koloni polling döngüsü */
 setInterval(
   loadCity,
   5000
+);
+
+/* Gelen saldırı durumu mevcut askeri görevlerden izlenir. */
+setInterval(
+  loadColonyThreatState,
+  10000
+);
+
+/* Alarm sayacı yalnızca yerel görsel etiketi günceller. */
+setInterval(
+  updateColonyThreatVisuals,
+  1000
 );
 
 /* Başlangıç rehberi bağımsız olarak güncellenir. */
