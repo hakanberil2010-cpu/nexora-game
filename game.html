@@ -791,6 +791,100 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   }
 }
 
+/* Real colony sprite prototype */
+.colony-terrain-layer{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:url('assets/colony/terrain/colony-base-v1.webp') center/100% 100% no-repeat;
+  opacity:.94;
+  filter:saturate(.9) contrast(1.04) brightness(.86);
+}
+.colony-world::before{opacity:.26}
+.road-map{opacity:.34}
+.command-core-zone{opacity:.30}
+.colony-decor{opacity:.58}
+
+.building-node.has-sprite{
+  min-height:0;
+  padding:0;
+  overflow:visible;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+.building-node.has-sprite::before{display:none}
+.building-node.has-sprite:hover,
+.building-node.has-sprite.selected,
+.building-node.has-sprite.command-core{
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+.building-sprite{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:100%;
+  height:auto;
+  transform:translate(-50%,-50%) translateY(var(--sprite-offset-y,0px));
+  transform-origin:50% 72%;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-drag:none;
+  filter:drop-shadow(0 18px 18px rgba(0,0,0,.46));
+  transition:transform .16s ease,filter .16s ease,opacity .16s ease;
+}
+.building-node.has-sprite:hover .building-sprite{
+  transform:translate(-50%,-50%) translateY(var(--sprite-offset-y,0px)) scale(1.035);
+  filter:drop-shadow(0 20px 20px rgba(0,0,0,.50)) drop-shadow(0 0 12px rgba(69,205,245,.16));
+}
+.building-node.has-sprite.selected .building-sprite{
+  filter:drop-shadow(0 20px 20px rgba(0,0,0,.48)) drop-shadow(0 0 17px rgba(82,218,255,.48));
+}
+.building-node.has-sprite.pending .building-sprite{
+  filter:drop-shadow(0 18px 18px rgba(0,0,0,.48)) drop-shadow(0 0 16px rgba(244,200,106,.42));
+}
+.building-node.has-sprite.locked .building-sprite{
+  opacity:.48;
+  filter:grayscale(.60) saturate(.35) brightness(.62) drop-shadow(0 14px 16px rgba(0,0,0,.42));
+}
+.building-sprite-label{
+  position:absolute;
+  left:50%;
+  top:calc(50% + var(--sprite-label-y,58px));
+  min-width:112px;
+  max-width:170px;
+  padding:5px 8px;
+  transform:translateX(-50%);
+  border:1px solid rgba(84,170,208,.28);
+  border-radius:7px;
+  background:rgba(3,15,24,.88);
+  box-shadow:0 8px 18px rgba(0,0,0,.34);
+  backdrop-filter:blur(7px);
+  pointer-events:none;
+}
+.building-node.has-sprite .building-node-name{
+  color:#eaf8ff;
+  font-size:10px;
+  white-space:nowrap;
+}
+.building-node.has-sprite .building-node-level{
+  margin-top:2px;
+  color:#7fb5ce;
+  font-size:8px;
+}
+.building-node.has-sprite .building-node-time,
+.building-node.has-sprite .building-node-unlock{
+  margin-top:2px;
+  font-size:8px;
+}
+@media(max-width:600px){
+  .building-sprite-label{transform:translateX(-50%) scale(.9)}
+}
+
 </style></head><body>
 
 <header class="topbar">
@@ -913,6 +1007,7 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
       </div>
 
       <div class="colony-world" id="colonyWorld">
+        <div class="colony-terrain-layer" id="colonyTerrainLayer" aria-hidden="true"></div>
         <div class="command-core-zone" aria-hidden="true"></div>
         <div class="colony-decor" id="colonyDecor" aria-hidden="true"></div>
         <svg class="road-map" id="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -985,6 +1080,27 @@ const BUILDING_INFO={
   "Konut":"Nüfus ve ordu kapasitesini artırır.",
   "Sur":"Koloni savunmasına bonus verir.",
   "Gözcü Kulesi":"Casusluk ve karşı-casusluk faaliyetleri için altyapı sağlar."
+};
+
+const BUILDING_VISUALS={
+  "Merkez Bina":{
+    asset:"assets/colony/buildings/command-center.webp",
+    width:300,
+    offsetY:-74,
+    labelY:74
+  },
+  "Metal Madeni":{
+    asset:"assets/colony/buildings/metal-mine.webp",
+    width:220,
+    offsetY:-54,
+    labelY:60
+  },
+  "Enerji Santrali":{
+    asset:"assets/colony/buildings/energy-plant.webp",
+    width:225,
+    offsetY:-56,
+    labelY:62
+  }
 };
 
 const BUILDING_SITES=[
@@ -2960,6 +3076,10 @@ function renderBuildings(buildings){
         (pending?' pending':'')+
         (locked&&!pending?' locked':'');
 
+      const buildingVisual=
+        BUILDING_VISUALS[name]||
+        null;
+
       return `
         ${isSelected?`
           <span
@@ -2974,17 +3094,32 @@ function renderBuildings(buildings){
           aria-hidden="true"
         ></span>
         <button
-          class="building-node zone-${visualZone} ${name==='Merkez Bina'?'command-core':''} ${locked&&!pending?'locked':''} ${pending?'pending':''} ${isSelected?'selected':''}"
-          style="left:${site.x}%;top:${site.y}%"
+          class="building-node zone-${visualZone} ${buildingVisual?'has-sprite':''} ${name==='Merkez Bina'?'command-core':''} ${locked&&!pending?'locked':''} ${pending?'pending':''} ${isSelected?'selected':''}"
+          style="left:${site.x}%;top:${site.y}%;${buildingVisual?'--sprite-size:'+buildingVisual.width+'px;--sprite-offset-y:'+buildingVisual.offsetY+'px;--sprite-label-y:'+buildingVisual.labelY+'px;width:'+buildingVisual.width+'px;height:'+buildingVisual.width+'px;':''}"
           type="button"
           onclick="selectBuilding('${name.replace(/'/g,"\\'")}',${slot})"
           aria-label="${esc(buildingLabel(name,slot))} Seviye ${level}"
         >
-          <span class="building-icon">${site.icon}</span>
-          <span class="building-node-name">${esc(buildingLabel(name,slot))}</span>
-          <span class="building-node-level">Sv. ${level}</span>
-          ${pending?`<span class="building-node-time">${remain(left)}</span>`:''}
-          ${!slotReady&&requiredCenter?`<span class="building-node-unlock">Merkez ${requiredCenter}</span>`:''}
+          ${buildingVisual?`
+            <img
+              class="building-sprite"
+              src="${buildingVisual.asset}"
+              alt=""
+              draggable="false"
+            >
+            <span class="building-sprite-label">
+              <span class="building-node-name">${esc(buildingLabel(name,slot))}</span>
+              <span class="building-node-level">Sv. ${level}</span>
+              ${pending?`<span class="building-node-time">${remain(left)}</span>`:''}
+              ${!slotReady&&requiredCenter?`<span class="building-node-unlock">Merkez ${requiredCenter}</span>`:''}
+            </span>
+          `:`
+            <span class="building-icon">${site.icon}</span>
+            <span class="building-node-name">${esc(buildingLabel(name,slot))}</span>
+            <span class="building-node-level">Sv. ${level}</span>
+            ${pending?`<span class="building-node-time">${remain(left)}</span>`:''}
+            ${!slotReady&&requiredCenter?`<span class="building-node-unlock">Merkez ${requiredCenter}</span>`:''}
+          `}
         </button>
       `;
 
