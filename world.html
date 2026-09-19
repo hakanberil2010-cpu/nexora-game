@@ -1275,6 +1275,62 @@ body {
   }
 }
 
+.colony.intel-stale,
+.world-site.intel-stale {
+  opacity:.48;
+  filter:saturate(.35);
+}
+
+.world-site.unknown-signal {
+  border-style:dashed;
+  border-color:rgba(210,225,238,.72);
+  background:rgba(38,52,67,.86);
+}
+
+.world-mini-dot.stale {
+  opacity:.38;
+  box-shadow:none;
+}
+
+.world-mini-dot.unknown {
+  width:8px;
+  height:8px;
+  border:1px dashed rgba(255,255,255,.85);
+  background:rgba(120,138,156,.78);
+}
+
+.world-mini-vision,
+.world-mini-intel-scan {
+  position:absolute;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  pointer-events:none;
+  box-sizing:border-box;
+}
+
+.world-mini-vision {
+  z-index:1;
+  border:1px solid rgba(118,240,192,.72);
+  background:rgba(118,240,192,.05);
+}
+
+.world-mini-intel-scan {
+  z-index:1;
+  border:1px dashed rgba(215,156,255,.8);
+  background:rgba(215,156,255,.04);
+}
+
+.world-mini-dot,
+.world-mini-viewport {
+  z-index:2;
+}
+
+.world-vision-status {
+  margin-top:7px;
+  font-size:11px;
+  color:#b9d8ee;
+}
+
 </style>
 </head>
 
@@ -1313,7 +1369,13 @@ body {
           title="Haritada gitmek istediğin noktaya tıkla"
           onclick="jumpFromMiniMap(event)"
         >
+          <div class="world-mini-vision" id="worldMiniVision"></div>
+          <div id="worldMiniIntelLayer"></div>
           <div class="world-mini-viewport" id="worldMiniViewport"></div>
+        </div>
+        <div class="world-vision-status">
+          👁️ Görüş: <span id="worldVisionRadiusLabel">18</span> koordinat
+          · Gözcü Kulesi Sv.<span id="worldWatchtowerLevelLabel">0</span>
         </div>
 
         <form class="world-coordinate-jump" onsubmit="jumpToWorldCoordinate(event)">
@@ -1605,6 +1667,9 @@ let worldDragStartX = 0;
 let worldDragStartY = 0;
 let worldPanStartX = 0;
 let worldPanStartY = 0;
+let worldVisionRadius = 18;
+let worldWatchtowerLevel = 0;
+let worldIntelScans = [];
 
 const worldVisibilityFilters = {
   players: true,
@@ -1711,6 +1776,25 @@ function appendMiniMapDot(box,x,y,className,title) {
   );
 }
 
+function worldLastSeenLabel(value) {
+  const ms=value?new Date(value).getTime():NaN;
+  if(!Number.isFinite(ms))return "";
+  const seconds=Math.max(0,Math.floor((Date.now()-ms)/1000));
+  if(seconds<60)return "az önce";
+  const minutes=Math.floor(seconds/60);
+  if(minutes<60)return minutes+" dk önce";
+  const hours=Math.floor(minutes/60);
+  if(hours<24)return hours+" sa önce";
+  return Math.floor(hours/24)+" gün önce";
+}
+
+function updateWorldVisionLabels() {
+  const radius=document.getElementById("worldVisionRadiusLabel");
+  const tower=document.getElementById("worldWatchtowerLevelLabel");
+  if(radius)radius.textContent=String(Math.max(0,Number(worldVisionRadius||18)));
+  if(tower)tower.textContent=String(Math.max(0,Number(worldWatchtowerLevel||0)));
+}
+
 function renderWorldMiniMap() {
   const box =
     document.getElementById(
@@ -1722,12 +1806,37 @@ function renderWorldMiniMap() {
   }
 
   box.querySelectorAll(
-    ".world-mini-dot"
+    ".world-mini-dot,.world-mini-intel-scan"
   ).forEach(
     function(dot) {
       dot.remove();
     }
   );
+
+  const vision=document.getElementById("worldMiniVision");
+  if(vision){
+    const diameter=Math.max(1,Math.min(200,Number(worldVisionRadius||18)*2))/WORLD_MAX_COORD*100;
+    vision.style.left=miniMapPercent(myCoordinateX)+"%";
+    vision.style.top=miniMapPercent(myCoordinateY)+"%";
+    vision.style.width=diameter+"%";
+    vision.style.height=diameter+"%";
+  }
+
+  const intelLayer=document.getElementById("worldMiniIntelLayer");
+  if(intelLayer){
+    intelLayer.innerHTML="";
+    (Array.isArray(worldIntelScans)?worldIntelScans:[]).forEach(function(scan){
+      const circle=document.createElement("span");
+      const diameter=Math.max(1,Math.min(200,Number(scan.radius||0)*2))/WORLD_MAX_COORD*100;
+      circle.className="world-mini-intel-scan";
+      circle.style.left=miniMapPercent(scan.centerX)+"%";
+      circle.style.top=miniMapPercent(scan.centerY)+"%";
+      circle.style.width=diameter+"%";
+      circle.style.height=diameter+"%";
+      circle.title="🕵️ Geçici istihbarat görüşü";
+      intelLayer.appendChild(circle);
+    });
+  }
 
   appendMiniMapDot(
     box,
@@ -1761,9 +1870,12 @@ function renderWorldMiniMap() {
             box,
             player.coordinate_x,
             player.coordinate_y,
-            "player",
-            player.username ||
-              "Oyuncu"
+            "player" +
+              (player.stale===true?" stale":""),
+            (player.username || "Oyuncu") +
+              (player.stale===true && player.lastSeenAt
+                ?" · Son görüldü: "+worldLastSeenLabel(player.lastSeenAt)
+                :"")
           );
         }
       );
@@ -1780,9 +1892,12 @@ function renderWorldMiniMap() {
             box,
             camp.coordinateX,
             camp.coordinateY,
-            "npc",
-            camp.name ||
-              "NPC"
+            "npc" +
+              (camp.stale===true?" stale":""),
+            (camp.name || "NPC") +
+              (camp.stale===true && camp.lastSeenAt
+                ?" · Son görüldü: "+worldLastSeenLabel(camp.lastSeenAt)
+                :"")
           );
         }
       );
@@ -1825,6 +1940,15 @@ function renderWorldMiniMap() {
             "alliance";
           className =
             "alliance";
+        } else if (
+          site.unknownSignal === true ||
+          site.site_type === "unknown"
+        ) {
+          className = "unknown";
+        }
+
+        if (site.stale===true) {
+          className += " stale";
         }
 
         if (
@@ -2053,6 +2177,7 @@ function initWorldNavigationTools() {
     );
   }
 
+  updateWorldVisionLabels();
   renderWorldMiniMap();
 }
 
@@ -2510,6 +2635,7 @@ let selectedPlayerId = null;
 let selectedPlayerX = null;
 let selectedPlayerY = null;
 let selectedPlayerProtection = null;
+let selectedPlayerLiveVisible = true;
 let viewerPvpProtection = { protected:false, protectedUntil:null, remainingSeconds:0 };
 let worldPlayersCache = [];
 let pvpAttackBusy = false;
@@ -2629,6 +2755,11 @@ function updatePvpAttackButton() {
   button.style.display = "inline-block";
   if (pvpAttackBusy) {
     button.disabled = true;
+    return;
+  }
+  if (selectedPlayerLiveVisible!==true) {
+    button.disabled = true;
+    button.textContent = "👁️ Güncel görüş gerekli";
     return;
   }
   if (isPvpProtectionActive(selectedPlayerProtection)) {
@@ -2853,6 +2984,7 @@ function selectColony(
     selectedPlayerX = null;
     selectedPlayerY = null;
     selectedPlayerProtection = null;
+    selectedPlayerLiveVisible = true;
     refreshPvpProtectionUi();
 
     toggleOwnColonyMenu();
@@ -2980,6 +3112,10 @@ function selectPlayerColony(
       player.pvpProtection
     );
 
+  selectedPlayerLiveVisible =
+    player.liveVisible !== false &&
+    player.stale !== true;
+
   selectedPlayerX =
     Number(x);
 
@@ -3031,7 +3167,15 @@ function selectPlayerColony(
       " | 📏 Mesafe: " +
       roundedDistance +
       " km. " +
-      "Saldırı veya casusluk gönderebilirsin."
+      (
+        selectedPlayerLiveVisible
+          ?"Saldırı veya casusluk gönderebilirsin."
+          :"🕒 Eski istihbarat" +
+            (player.lastSeenAt
+              ?" · Son görüldü: "+worldLastSeenLabel(player.lastSeenAt)
+              :"") +
+            ". Askeri saldırı için hedefi yeniden görüş alanına almalısın; casusluk kullanılabilir."
+      )
   );
 
   document.getElementById(
@@ -5490,6 +5634,12 @@ function updateNpcCampAttackButton() {
     return;
   }
 
+  if(selectedNpcCamp.liveVisible===false||selectedNpcCamp.stale===true){
+    button.disabled=true;
+    button.textContent="👁️ Güncel görüş gerekli";
+    return;
+  }
+
   if (activeMission) {
     button.disabled = true;
     button.textContent = "🚀 Aktif PvE seferi var";
@@ -5552,7 +5702,9 @@ function renderSelectedNpcCampDetails() {
   if (
     !activeMission &&
     cooldown <= 0 &&
-    camp.activeMissionId == null
+    camp.activeMissionId == null &&
+    camp.liveVisible !== false &&
+    camp.stale !== true
   ) {
     camp.canAttack = true;
   }
@@ -5834,6 +5986,10 @@ function renderNpcCamps() {
       " encounter-" +
       encounterClass;
 
+    if(camp.stale===true||camp.liveVisible===false){
+      el.classList.add("intel-stale");
+    }
+
     if (Number(selectedNpcCamp?.id) === Number(camp.id)) {
       el.classList.add("selected");
     }
@@ -5844,7 +6000,12 @@ function renderNpcCamps() {
       String(camp.name || "PvE Hedefi") +
       " — Seviye " + Number(camp.level || camp.tier || 1) +
       " · " + npcEncounterLabel(camp) +
-      " · " + npcDifficultyLabel(camp.difficulty);
+      " · " + npcDifficultyLabel(camp.difficulty) +
+      (
+        camp.stale===true && camp.lastSeenAt
+          ?" · Son görüldü: "+worldLastSeenLabel(camp.lastSeenAt)
+          :""
+      );
 
     el.innerHTML =
       npcCampIcon(camp) +
@@ -5909,7 +6070,16 @@ function selectNpcCamp(camp, element) {
       " · " + npcEncounterLabel(camp) +
       " · Seviye " + Number(camp.level || camp.tier || 1) +
       " · 📏 Mesafe: " + distance +
-      " km. Birliklerini ve savaş taktiğini seçerek saldırabilirsin."
+      " km. " +
+      (
+        camp.liveVisible===false||camp.stale===true
+          ?"🕒 Eski istihbarat" +
+            (camp.lastSeenAt
+              ?" · Son görüldü: "+worldLastSeenLabel(camp.lastSeenAt)
+              :"") +
+            ". Saldırı için hedefi yeniden görüş alanına almalısın."
+          :"Birliklerini ve savaş taktiğini seçerek saldırabilirsin."
+      )
   );
 
   const info = document.getElementById("info");
@@ -6475,6 +6645,15 @@ function createPlayerColony(
   colony.className =
     "colony";
 
+  if(player.stale===true||player.liveVisible===false){
+    colony.classList.add("intel-stale");
+    colony.title=
+      "Eski istihbarat" +
+      (player.lastSeenAt
+        ?" · Son görüldü: "+worldLastSeenLabel(player.lastSeenAt)
+        :"");
+  }
+
   colony.dataset.playerId =
     String(player.player_id);
 
@@ -6692,7 +6871,9 @@ function siteTypeLabel(type) {
     abandoned:
       "Terk Edilmiş Koloni",
     alliance:
-      "İttifak Bölgesi"
+      "İttifak Bölgesi",
+    unknown:
+      "Bilinmeyen Sinyal"
   })[type] ||
   "Dünya Noktası";
 
@@ -6708,6 +6889,10 @@ function siteIcon(type, resourceType = "") {
       alloy: "🧱",
       crystal: "💎"
     })[String(resourceType || "")] || "📦";
+  }
+
+  if (type === "unknown") {
+    return "❓";
   }
 
   return ({
@@ -6752,6 +6937,13 @@ function renderWorldSites() {
             site.site_type ||
             "neutral"
           );
+
+        if(site.stale===true||site.liveVisible===false){
+          el.classList.add("intel-stale");
+        }
+        if(site.unknownSignal===true||site.site_type==="unknown"){
+          el.classList.add("unknown-signal");
+        }
 
         if (
           site.site_type ===
@@ -7144,6 +7336,16 @@ function refreshResourceActionButtons() {
     conflictButton.style.display="none";
     return;
   }
+
+  if(site.liveVisible===false||site.stale===true){
+    gatherButton.style.display="inline-block";
+    gatherButton.disabled=true;
+    gatherButton.textContent="👁️ Güncel görüş gerekli";
+    conflictButton.style.display="none";
+    return;
+  }
+
+  gatherButton.textContent="🚚 Kaynak Toplamaya Gönder";
 
   const viewerId=Number(savedUser?.id||0);
   const collectorId=Number(site.resource_collector_player_id||0);
@@ -7648,6 +7850,11 @@ function selectWorldSite(
     "";
 
   if (
+    site.unknownSignal === true ||
+    site.site_type === "unknown"
+  ) {
+    ownership = "Kimliği henüz bilinmiyor.";
+  } else if (
     site.site_type ===
     "resource"
   ) {
@@ -7737,12 +7944,14 @@ function selectWorldSite(
         null;
 
     const defaultDescription =
-      site.site_type ===
-        "resource"
-        ? "Asker göndererek stoktan kaynak toplayabilirsin."
-        : isOwned
-          ? "Kontrol altındaki stratejik nokta."
-          : "Bu nokta keşfedilmeyi bekliyor.";
+      site.unknownSignal === true || site.site_type === "unknown"
+        ? "❓ Bu sinyalin türünü öğrenmek için keşif görevi gönder."
+        : site.site_type ===
+          "resource"
+          ? "Asker göndererek stoktan kaynak toplayabilirsin."
+          : isOwned
+            ? "Kontrol altındaki stratejik nokta."
+            : "Bu nokta keşfedilmeyi bekliyor.";
 
     meta.innerHTML =
       '<strong>' +
@@ -7809,6 +8018,12 @@ function selectWorldSite(
       escapeHtml(
         ownership
       );
+
+    if(site.stale===true&&site.lastSeenAt){
+      meta.innerHTML +=
+        "<br>🕒 Eski istihbarat · Son görüldü: " +
+        escapeHtml(worldLastSeenLabel(site.lastSeenAt));
+    }
 
     if (
       site.site_type ===
@@ -8461,16 +8676,34 @@ async function loadWorldPlayers() {
         data.viewerPvpProtection
       );
 
+    worldVisionRadius =
+      Math.max(1,Number(data.vision?.radius||18));
+    worldWatchtowerLevel =
+      Math.max(0,Number(data.vision?.watchtowerLevel||0));
+    worldIntelScans =
+      Array.isArray(data.vision?.activeIntelScans)
+        ?data.vision.activeIntelScans
+        :[];
+    updateWorldVisionLabels();
+
     worldPlayersCache =
       Array.isArray(data.players)
         ? data.players
         : [];
 
     if (selectedPlayerId && !selectedNpcCamp) {
+      const selectedSnapshot=
+        (worldPlayersCache||[]).find(function(player){
+          return Number(player.player_id)===Number(selectedPlayerId);
+        });
       selectedPlayerProtection =
         getCachedPlayerProtection(
           selectedPlayerId
         );
+      selectedPlayerLiveVisible =
+        selectedSnapshot
+          ?selectedSnapshot.liveVisible!==false && selectedSnapshot.stale!==true
+          :false;
     }
 
     const playersContainer =
