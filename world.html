@@ -1287,6 +1287,19 @@ body {
   background:rgba(38,52,67,.86);
 }
 
+.world-fog {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:3;
+  pointer-events:none;
+}
+
+.world-fog-shade {
+  fill:rgba(1,7,15,.72);
+}
+
 .world-mini-dot.stale {
   opacity:.38;
   box-shadow:none;
@@ -1409,6 +1422,41 @@ body {
 
     <div class="world-canvas" id="worldCanvas">
             <div class="grid"></div>
+            <svg
+              class="world-fog"
+              id="worldFog"
+              viewBox="0 0 200 200"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <defs>
+                <radialGradient id="worldFogOpeningGradient">
+                  <stop offset="0%" stop-color="#000"></stop>
+                  <stop offset="78%" stop-color="#000"></stop>
+                  <stop offset="100%" stop-color="#fff"></stop>
+                </radialGradient>
+                <mask
+                  id="worldFogMask"
+                  x="0"
+                  y="0"
+                  width="200"
+                  height="200"
+                  maskUnits="userSpaceOnUse"
+                  maskContentUnits="userSpaceOnUse"
+                >
+                  <rect x="0" y="0" width="200" height="200" fill="#fff"></rect>
+                  <g id="worldFogOpenings"></g>
+                </mask>
+              </defs>
+              <rect
+                class="world-fog-shade"
+                x="0"
+                y="0"
+                width="200"
+                height="200"
+                mask="url(#worldFogMask)"
+              ></rect>
+            </svg>
             <div id="worldSites"></div>
             <div id="npcCamps"></div>
 
@@ -1805,6 +1853,68 @@ function updateWorldVisionLabels() {
   const tower=document.getElementById("worldWatchtowerLevelLabel");
   if(radius)radius.textContent=String(Math.max(0,Number(worldVisionRadius||18)));
   if(tower)tower.textContent=String(Math.max(0,Number(worldWatchtowerLevel||0)));
+  renderWorldFog();
+}
+
+function renderWorldFog() {
+  const openings=document.getElementById("worldFogOpenings");
+  if(!openings)return;
+
+  openings.innerHTML="";
+
+  const appendOpening=function(x,y,radius){
+    const cx=Number(x);
+    const cy=Number(y);
+    const r=Number(radius);
+
+    if(
+      !Number.isFinite(cx)||
+      !Number.isFinite(cy)||
+      !Number.isFinite(r)||
+      r<=0
+    ){
+      return;
+    }
+
+    const circle=document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle"
+    );
+
+    circle.setAttribute(
+      "cx",
+      String(Math.max(0,Math.min(WORLD_MAX_COORD,cx)))
+    );
+    circle.setAttribute(
+      "cy",
+      String(Math.max(0,Math.min(WORLD_MAX_COORD,cy)))
+    );
+    circle.setAttribute(
+      "r",
+      String(Math.max(1,Math.min(WORLD_MAX_COORD,r)))
+    );
+    circle.setAttribute(
+      "fill",
+      "url(#worldFogOpeningGradient)"
+    );
+
+    openings.appendChild(circle);
+  };
+
+  appendOpening(
+    myCoordinateX,
+    myCoordinateY,
+    worldVisionRadius
+  );
+
+  (Array.isArray(worldIntelScans)?worldIntelScans:[])
+    .forEach(function(scan){
+      appendOpening(
+        scan.centerX,
+        scan.centerY,
+        scan.radius
+      );
+    });
 }
 
 function renderWorldMiniMap() {
@@ -2609,6 +2719,7 @@ async function loadMyCoordinates() {
       }
 
       renderWorldMiniMap();
+      renderWorldFog();
 
     }
 
