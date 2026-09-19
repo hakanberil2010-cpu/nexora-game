@@ -1700,6 +1700,144 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   }
 }
 
+/* Colony cinematic atmosphere */
+.colony-atmosphere{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  overflow:hidden;
+  pointer-events:none;
+}
+.atmosphere-vignette{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(ellipse at center,transparent 0 48%,rgba(2,9,14,.08) 66%,rgba(1,6,10,.34) 100%),
+    linear-gradient(180deg,rgba(16,57,73,.08),transparent 24%,transparent 72%,rgba(0,0,0,.18));
+  box-shadow:inset 0 0 130px rgba(0,0,0,.30);
+  opacity:.78;
+}
+.atmosphere-haze{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(26px);
+  opacity:.28;
+  background:radial-gradient(ellipse at center,rgba(97,172,186,.20),rgba(33,72,84,.09) 46%,transparent 72%);
+}
+.atmosphere-haze.haze-west{
+  left:4%;
+  top:18%;
+  width:42%;
+  height:28%;
+  transform:rotate(-7deg);
+}
+.atmosphere-haze.haze-east{
+  right:2%;
+  top:30%;
+  width:38%;
+  height:30%;
+  transform:rotate(8deg);
+}
+.atmosphere-haze.haze-south{
+  left:29%;
+  bottom:4%;
+  width:48%;
+  height:20%;
+  opacity:.22;
+  background:radial-gradient(ellipse at center,rgba(163,126,74,.12),rgba(60,66,65,.06) 48%,transparent 72%);
+}
+.atmosphere-beam{
+  position:absolute;
+  width:190px;
+  height:520px;
+  transform-origin:50% 0;
+  clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);
+  background:linear-gradient(180deg,rgba(116,228,248,.16),rgba(72,178,203,.05) 44%,transparent 94%);
+  filter:blur(4px);
+  opacity:.26;
+}
+.atmosphere-beam.beam-command{
+  left:45%;
+  top:-7%;
+  transform:rotate(4deg);
+}
+.atmosphere-beam.beam-east{
+  left:73%;
+  top:-10%;
+  width:150px;
+  height:450px;
+  transform:rotate(-9deg);
+  opacity:.18;
+}
+.atmosphere-glow{
+  position:absolute;
+  width:240px;
+  height:150px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  filter:blur(16px);
+  opacity:.18;
+}
+.atmosphere-glow.command{
+  left:50%;
+  top:48%;
+  background:radial-gradient(circle,rgba(73,207,237,.26),rgba(38,128,156,.07) 47%,transparent 72%);
+}
+.atmosphere-glow.industry{
+  left:84%;
+  top:23%;
+  background:radial-gradient(circle,rgba(231,157,76,.18),rgba(108,83,55,.05) 48%,transparent 72%);
+}
+.atmosphere-mote{
+  position:absolute;
+  width:3px;
+  height:3px;
+  border-radius:50%;
+  background:rgba(154,219,228,.42);
+  box-shadow:0 0 5px rgba(120,209,226,.24);
+  opacity:0;
+  animation:atmosphereMoteDrift var(--mote-duration,14s) linear var(--mote-delay,0s) infinite;
+}
+.atmosphere-mote.warm{
+  background:rgba(231,171,91,.42);
+  box-shadow:0 0 5px rgba(222,153,73,.20);
+}
+.atmosphere-mote.m1{left:12%;top:72%;--mote-x:80px;--mote-y:-120px;--mote-duration:17s;--mote-delay:-4s}
+.atmosphere-mote.m2{left:22%;top:58%;--mote-x:62px;--mote-y:-92px;--mote-duration:15s;--mote-delay:-10s}
+.atmosphere-mote.m3{left:34%;top:80%;--mote-x:-40px;--mote-y:-110px;--mote-duration:19s;--mote-delay:-7s}
+.atmosphere-mote.m4{left:45%;top:64%;--mote-x:54px;--mote-y:-128px;--mote-duration:18s;--mote-delay:-13s}
+.atmosphere-mote.m5{left:57%;top:76%;--mote-x:-48px;--mote-y:-116px;--mote-duration:16s;--mote-delay:-5s}
+.atmosphere-mote.m6{left:69%;top:62%;--mote-x:66px;--mote-y:-104px;--mote-duration:20s;--mote-delay:-11s}
+.atmosphere-mote.m7{left:81%;top:74%;--mote-x:-52px;--mote-y:-126px;--mote-duration:17s;--mote-delay:-9s}
+.atmosphere-mote.m8{left:90%;top:55%;--mote-x:-74px;--mote-y:-88px;--mote-duration:18s;--mote-delay:-3s}
+.atmosphere-mote.m9{left:18%;top:42%;--mote-x:44px;--mote-y:-74px;--mote-duration:21s;--mote-delay:-15s}
+.atmosphere-mote.m10{left:76%;top:43%;--mote-x:-38px;--mote-y:-82px;--mote-duration:22s;--mote-delay:-8s}
+.atmosphere-scanline{
+  position:absolute;
+  left:7%;
+  right:7%;
+  top:14%;
+  height:1px;
+  opacity:.09;
+  background:linear-gradient(90deg,transparent,rgba(115,221,242,.48),transparent);
+  box-shadow:
+    0 210px rgba(115,221,242,.16),
+    0 460px rgba(115,221,242,.12),
+    0 700px rgba(115,221,242,.10);
+}
+
+@keyframes atmosphereMoteDrift{
+  0%{transform:translate(0,0) scale(.7);opacity:0}
+  14%{opacity:.36}
+  72%{opacity:.20}
+  100%{transform:translate(var(--mote-x),var(--mote-y)) scale(1.2);opacity:0}
+}
+@media(prefers-reduced-motion:reduce){
+  .atmosphere-mote{display:none}
+  .atmosphere-beam{opacity:.12}
+  .atmosphere-haze{opacity:.18}
+}
+
 .building-node.has-sprite{
   min-height:0;
   padding:0;
@@ -2468,6 +2606,27 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
           <span class="life-sector-marker sec">SEC-A</span>
           <span class="life-bollards bollards-a"></span>
           <span class="life-bollards bollards-b"></span>
+        </div>
+        <div class="colony-atmosphere" aria-hidden="true">
+          <span class="atmosphere-vignette"></span>
+          <span class="atmosphere-haze haze-west"></span>
+          <span class="atmosphere-haze haze-east"></span>
+          <span class="atmosphere-haze haze-south"></span>
+          <span class="atmosphere-beam beam-command"></span>
+          <span class="atmosphere-beam beam-east"></span>
+          <span class="atmosphere-glow command"></span>
+          <span class="atmosphere-glow industry"></span>
+          <span class="atmosphere-scanline"></span>
+          <span class="atmosphere-mote m1"></span>
+          <span class="atmosphere-mote warm m2"></span>
+          <span class="atmosphere-mote m3"></span>
+          <span class="atmosphere-mote warm m4"></span>
+          <span class="atmosphere-mote m5"></span>
+          <span class="atmosphere-mote m6"></span>
+          <span class="atmosphere-mote warm m7"></span>
+          <span class="atmosphere-mote m8"></span>
+          <span class="atmosphere-mote m9"></span>
+          <span class="atmosphere-mote warm m10"></span>
         </div>
         <div class="building-map" id="buildings"></div>
         <div class="colony-foreground" aria-hidden="true">
