@@ -1459,6 +1459,247 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   .life-drone{opacity:.38}
 }
 
+/* Colony depth, perimeter defense and foreground occlusion */
+.colony-perimeter{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  overflow:hidden;
+  pointer-events:none;
+}
+.perimeter-segment{
+  position:absolute;
+  border:1px solid rgba(111,145,157,.26);
+  background:
+    linear-gradient(180deg,rgba(70,82,88,.86),rgba(30,43,49,.92) 46%,rgba(13,25,31,.94) 47% 100%);
+  box-shadow:
+    inset 0 1px rgba(194,212,218,.08),
+    inset 0 -5px 10px rgba(0,0,0,.22),
+    0 10px 18px rgba(0,0,0,.20);
+  opacity:.88;
+}
+.perimeter-segment::before{
+  content:"";
+  position:absolute;
+  inset:4px;
+  border:1px solid rgba(105,202,222,.10);
+  background:
+    repeating-linear-gradient(90deg,transparent 0 58px,rgba(101,210,233,.16) 59px 63px,transparent 64px 122px);
+}
+.perimeter-segment.north{
+  left:5%;
+  top:5%;
+  width:90%;
+  height:24px;
+  transform:rotate(-.3deg);
+}
+.perimeter-segment.south{
+  left:8%;
+  top:94%;
+  width:84%;
+  height:30px;
+  transform:rotate(.25deg);
+}
+.perimeter-segment.west{
+  left:2.8%;
+  top:10%;
+  width:24px;
+  height:79%;
+  background:
+    linear-gradient(90deg,rgba(13,25,31,.94),rgba(30,43,49,.92) 48%,rgba(70,82,88,.86));
+}
+.perimeter-segment.west::before,
+.perimeter-segment.east::before{
+  background:
+    repeating-linear-gradient(180deg,transparent 0 54px,rgba(101,210,233,.15) 55px 59px,transparent 60px 114px);
+}
+.perimeter-segment.east{
+  right:2.8%;
+  top:10%;
+  width:24px;
+  height:79%;
+  background:
+    linear-gradient(90deg,rgba(70,82,88,.86),rgba(30,43,49,.92) 48%,rgba(13,25,31,.94));
+}
+.perimeter-gate{
+  position:absolute;
+  left:50%;
+  top:92.8%;
+  width:220px;
+  height:50px;
+  transform:translateX(-50%);
+  border:1px solid rgba(129,164,174,.28);
+  border-radius:6px 6px 0 0;
+  background:
+    linear-gradient(90deg,rgba(28,40,46,.96) 0 18%,rgba(10,22,28,.70) 19% 81%,rgba(28,40,46,.96) 82%),
+    repeating-linear-gradient(90deg,transparent 0 30px,rgba(94,205,228,.10) 31px 34px,transparent 35px 66px);
+  box-shadow:0 -7px 18px rgba(0,0,0,.22),inset 0 1px rgba(189,213,219,.07);
+}
+.perimeter-gate::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:9px;
+  width:92px;
+  height:28px;
+  transform:translateX(-50%);
+  border:1px solid rgba(89,193,216,.22);
+  background:
+    repeating-linear-gradient(90deg,rgba(75,101,110,.46) 0 8px,rgba(16,31,37,.74) 8px 16px);
+}
+.perimeter-gate::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:4px;
+  width:74px;
+  height:2px;
+  transform:translateX(-50%);
+  background:#63d6ee;
+  box-shadow:0 0 10px rgba(99,214,238,.34);
+  opacity:.48;
+}
+.perimeter-node{
+  position:absolute;
+  width:62px;
+  height:62px;
+  transform:translate(-50%,-50%) rotate(45deg);
+  border:1px solid rgba(120,157,169,.30);
+  border-radius:10px;
+  background:
+    radial-gradient(circle,rgba(82,205,230,.20) 0 9%,rgba(39,64,73,.86) 11% 42%,rgba(15,29,35,.95) 44%);
+  box-shadow:0 10px 20px rgba(0,0,0,.24),inset 0 0 16px rgba(74,178,201,.05);
+}
+.perimeter-node::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:6px;
+  height:6px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:#78def3;
+  box-shadow:0 0 12px rgba(120,222,243,.52);
+}
+.perimeter-node.nw{left:4.1%;top:6.7%}
+.perimeter-node.ne{left:95.9%;top:6.7%}
+.perimeter-node.sw{left:4.7%;top:93.1%}
+.perimeter-node.se{left:95.3%;top:93.1%}
+
+.service-trench{
+  position:absolute;
+  height:14px;
+  border-top:1px solid rgba(100,143,154,.12);
+  border-bottom:1px solid rgba(0,0,0,.22);
+  background:
+    repeating-linear-gradient(90deg,rgba(8,19,23,.72) 0 46px,rgba(41,59,65,.38) 47px 52px);
+  box-shadow:inset 0 3px 6px rgba(0,0,0,.18);
+  opacity:.54;
+}
+.service-trench.trench-a{left:10%;top:58%;width:30%;transform:rotate(-1.4deg)}
+.service-trench.trench-b{left:60%;top:58%;width:31%;transform:rotate(1.2deg)}
+.service-trench.trench-c{left:31%;top:81%;width:39%;transform:rotate(.5deg)}
+
+.building-contact-shadow{
+  position:absolute;
+  z-index:1;
+  width:150px;
+  height:52px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  pointer-events:none;
+  background:radial-gradient(ellipse at center,rgba(0,0,0,.48) 0 19%,rgba(0,0,0,.26) 42%,rgba(0,0,0,.08) 62%,transparent 72%);
+  filter:blur(2px);
+  opacity:.78;
+}
+.building-contact-shadow.shadow-command{width:220px;height:74px;opacity:.84}
+.building-contact-shadow.shadow-production{width:170px;height:58px}
+.building-contact-shadow.shadow-storage{width:166px;height:56px}
+.building-contact-shadow.shadow-military{width:172px;height:58px}
+.building-contact-shadow.shadow-defense{width:150px;height:50px}
+.building-contact-shadow.wall-shadow{width:300px;height:56px;opacity:.84}
+
+.colony-foreground{
+  position:absolute;
+  inset:0;
+  z-index:4;
+  overflow:hidden;
+  pointer-events:none;
+}
+.foreground-rail{
+  position:absolute;
+  height:26px;
+  border:1px solid rgba(92,124,135,.24);
+  background:
+    linear-gradient(180deg,rgba(54,69,75,.90),rgba(18,31,37,.96)),
+    repeating-linear-gradient(90deg,transparent 0 42px,rgba(99,188,207,.10) 43px 46px,transparent 47px 86px);
+  box-shadow:0 -7px 16px rgba(0,0,0,.20),inset 0 1px rgba(185,207,214,.06);
+  opacity:.90;
+}
+.foreground-rail.left{
+  left:-2%;
+  bottom:1.5%;
+  width:35%;
+  transform:rotate(3deg);
+}
+.foreground-rail.right{
+  right:-2%;
+  bottom:1.1%;
+  width:35%;
+  transform:rotate(-3deg);
+}
+.foreground-pipe{
+  position:absolute;
+  bottom:2.2%;
+  width:190px;
+  height:16px;
+  border:1px solid rgba(103,126,132,.28);
+  border-radius:999px;
+  background:linear-gradient(180deg,#42545a,#1d2d33 52%,#0f2026);
+  box-shadow:0 -5px 12px rgba(0,0,0,.18),inset 0 1px rgba(215,224,226,.06);
+  opacity:.88;
+}
+.foreground-pipe::after{
+  content:"";
+  position:absolute;
+  inset:4px 16px;
+  border-top:2px dashed rgba(91,205,226,.18);
+}
+.foreground-pipe.pipe-a{left:10%;transform:rotate(2deg)}
+.foreground-pipe.pipe-b{right:9%;transform:rotate(-2deg)}
+.foreground-beacon{
+  position:absolute;
+  bottom:4.8%;
+  width:8px;
+  height:34px;
+  border-radius:5px;
+  background:linear-gradient(#6a7e84,#1b3037);
+  box-shadow:0 6px 10px rgba(0,0,0,.20);
+}
+.foreground-beacon::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-4px;
+  width:6px;
+  height:6px;
+  transform:translateX(-50%);
+  border-radius:50%;
+  background:#efaa58;
+  box-shadow:0 0 8px rgba(239,170,88,.48);
+}
+.foreground-beacon.beacon-a{left:7%}
+.foreground-beacon.beacon-b{right:7%}
+
+@media(prefers-reduced-motion:reduce){
+  .perimeter-node::after,
+  .perimeter-gate::after,
+  .foreground-beacon::after{
+    animation:none;
+  }
+}
+
 .building-node.has-sprite{
   min-height:0;
   padding:0;
@@ -2179,6 +2420,20 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
           <span class="colony-plaza"></span>
         </div>
         <div class="command-core-zone" aria-hidden="true"></div>
+        <div class="colony-perimeter" aria-hidden="true">
+          <span class="perimeter-segment north"></span>
+          <span class="perimeter-segment south"></span>
+          <span class="perimeter-segment west"></span>
+          <span class="perimeter-segment east"></span>
+          <span class="perimeter-gate"></span>
+          <span class="perimeter-node nw"></span>
+          <span class="perimeter-node ne"></span>
+          <span class="perimeter-node sw"></span>
+          <span class="perimeter-node se"></span>
+          <span class="service-trench trench-a"></span>
+          <span class="service-trench trench-b"></span>
+          <span class="service-trench trench-c"></span>
+        </div>
         <div class="colony-decor" id="colonyDecor" aria-hidden="true"></div>
         <svg class="road-map" id="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
         <div class="colony-ambient" aria-hidden="true">
@@ -2215,6 +2470,14 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
           <span class="life-bollards bollards-b"></span>
         </div>
         <div class="building-map" id="buildings"></div>
+        <div class="colony-foreground" aria-hidden="true">
+          <span class="foreground-rail left"></span>
+          <span class="foreground-rail right"></span>
+          <span class="foreground-pipe pipe-a"></span>
+          <span class="foreground-pipe pipe-b"></span>
+          <span class="foreground-beacon beacon-a"></span>
+          <span class="foreground-beacon beacon-b"></span>
+        </div>
       </div>
 
       <div class="building-popover" id="buildingPopup" role="dialog" aria-modal="false" aria-label="Bina seçenekleri">
@@ -4361,6 +4624,11 @@ function renderBuildings(buildings){
             aria-hidden="true"
           ></span>
         `:''}
+        <span
+          class="building-contact-shadow shadow-${visualZone}${name==='Sur'?' wall-shadow':''}"
+          style="left:${site.x}%;top:calc(${site.y}% + 38px)"
+          aria-hidden="true"
+        ></span>
         <span
           class="building-pad ${visualZone}${visualState}"
           style="left:${site.x}%;top:${site.y}%"
