@@ -1118,6 +1118,163 @@ body {
 }
 
 
+.world-tools-panel {
+  position:absolute;
+  top:18px;
+  right:18px;
+  z-index:76;
+  width:250px;
+  max-width:calc(100% - 36px);
+  border:1px solid rgba(103,216,255,.45);
+  border-radius:12px;
+  background:rgba(4,18,31,.94);
+  box-shadow:0 12px 30px rgba(0,0,0,.38);
+  backdrop-filter:blur(8px);
+  color:#eaf6ff;
+  overflow:hidden;
+}
+
+.world-tools-panel summary {
+  cursor:pointer;
+  padding:10px 12px;
+  font-weight:800;
+  user-select:none;
+  list-style:none;
+}
+
+.world-tools-panel summary::-webkit-details-marker {
+  display:none;
+}
+
+.world-tools-body {
+  padding:0 10px 10px;
+}
+
+.world-mini-map {
+  position:relative;
+  width:100%;
+  height:145px;
+  overflow:hidden;
+  border:1px solid #315879;
+  border-radius:9px;
+  background:
+    linear-gradient(rgba(103,216,255,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(103,216,255,.07) 1px, transparent 1px),
+    #061321;
+  background-size:20% 20%;
+  cursor:crosshair;
+}
+
+.world-mini-dot {
+  position:absolute;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  background:#9fc8e8;
+  box-shadow:0 0 4px rgba(255,255,255,.55);
+}
+
+.world-mini-dot.self {
+  width:9px;
+  height:9px;
+  background:#78f0c0;
+}
+
+.world-mini-dot.player {
+  background:#86bfff;
+}
+
+.world-mini-dot.npc {
+  background:#ff7777;
+}
+
+.world-mini-dot.resource-normal {
+  background:#ffd35a;
+}
+
+.world-mini-dot.resource-rare {
+  width:8px;
+  height:8px;
+  background:#67d8ff;
+}
+
+.world-mini-dot.resource-elite {
+  width:9px;
+  height:9px;
+  background:#d79cff;
+}
+
+.world-mini-dot.alliance {
+  background:#b889ff;
+}
+
+.world-mini-viewport {
+  position:absolute;
+  border:1px solid #ffffff;
+  background:rgba(255,255,255,.06);
+  pointer-events:none;
+  min-width:3px;
+  min-height:3px;
+}
+
+.world-coordinate-jump {
+  display:grid;
+  grid-template-columns:1fr 1fr auto;
+  gap:6px;
+  margin-top:9px;
+}
+
+.world-coordinate-jump input {
+  min-width:0;
+  padding:7px;
+  border:1px solid #315879;
+  border-radius:7px;
+  background:#061321;
+  color:#eaf6ff;
+}
+
+.world-coordinate-jump button {
+  padding:7px 9px;
+  border:1px solid #3e789d;
+  border-radius:7px;
+  background:#0b3855;
+  color:#fff;
+  cursor:pointer;
+}
+
+.world-filter-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px 8px;
+  margin-top:9px;
+  font-size:11px;
+}
+
+.world-filter-grid label {
+  display:flex;
+  align-items:center;
+  gap:5px;
+  cursor:pointer;
+}
+
+.world-filter-grid input {
+  margin:0;
+}
+
+@media (max-width:700px) {
+  .world-tools-panel {
+    top:58px;
+    right:8px;
+    width:min(240px,calc(100% - 16px));
+  }
+
+  .world-mini-map {
+    height:120px;
+  }
+}
+
 </style>
 </head>
 
@@ -1146,6 +1303,35 @@ body {
       <span class="city-direction-arrow" id="cityDirectionArrow">➤</span>
       <span class="city-direction-distance" id="cityDirectionDistance">🏰 0 km</span>
     </button>
+
+    <details class="world-tools-panel" id="worldToolsPanel" open>
+      <summary>🗺️ Harita Araçları</summary>
+      <div class="world-tools-body">
+        <div
+          class="world-mini-map"
+          id="worldMiniMap"
+          title="Haritada gitmek istediğin noktaya tıkla"
+          onclick="jumpFromMiniMap(event)"
+        >
+          <div class="world-mini-viewport" id="worldMiniViewport"></div>
+        </div>
+
+        <form class="world-coordinate-jump" onsubmit="jumpToWorldCoordinate(event)">
+          <input id="worldJumpX" type="number" min="1" max="200" step="1" placeholder="X">
+          <input id="worldJumpY" type="number" min="1" max="200" step="1" placeholder="Y">
+          <button type="submit">Git</button>
+        </form>
+
+        <div class="world-filter-grid">
+          <label><input type="checkbox" checked onchange="setWorldFilter('players',this.checked)"> Oyuncular</label>
+          <label><input type="checkbox" checked onchange="setWorldFilter('npc',this.checked)"> NPC</label>
+          <label><input type="checkbox" checked onchange="setWorldFilter('resource-normal',this.checked)"> Normal Kaynak</label>
+          <label><input type="checkbox" checked onchange="setWorldFilter('resource-rare',this.checked)"> ✨ Nadir</label>
+          <label><input type="checkbox" checked onchange="setWorldFilter('resource-elite',this.checked)"> 👑 Elit</label>
+          <label><input type="checkbox" checked onchange="setWorldFilter('alliance',this.checked)"> İttifak</label>
+        </div>
+      </div>
+    </details>
 
     <div class="world-canvas" id="worldCanvas">
             <div class="grid"></div>
@@ -1420,6 +1606,456 @@ let worldDragStartY = 0;
 let worldPanStartX = 0;
 let worldPanStartY = 0;
 
+const worldVisibilityFilters = {
+  players: true,
+  npc: true,
+  "resource-normal": true,
+  "resource-rare": true,
+  "resource-elite": true,
+  alliance: true
+};
+
+function setWorldFilter(key,visible) {
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      worldVisibilityFilters,
+      key
+    )
+  ) {
+    return;
+  }
+
+  worldVisibilityFilters[key] =
+    visible === true;
+
+  applyWorldVisibilityFilters();
+}
+
+function applyWorldVisibilityFilters() {
+  document.querySelectorAll(
+    "[data-map-filter]"
+  ).forEach(
+    function(element) {
+      const key =
+        String(
+          element.dataset.mapFilter ||
+          ""
+        );
+
+      const visible =
+        worldVisibilityFilters[key] !==
+        false;
+
+      element.style.display =
+        visible
+          ? ""
+          : "none";
+    }
+  );
+
+  renderWorldMiniMap();
+}
+
+function miniMapPercent(value) {
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      Number(value || 0) /
+        WORLD_MAX_COORD *
+        100
+    )
+  );
+}
+
+function appendMiniMapDot(box,x,y,className,title) {
+  const px =
+    Number(x);
+  const py =
+    Number(y);
+
+  if (
+    !Number.isFinite(px) ||
+    !Number.isFinite(py)
+  ) {
+    return;
+  }
+
+  const dot =
+    document.createElement(
+      "span"
+    );
+
+  dot.className =
+    "world-mini-dot " +
+    String(
+      className ||
+      ""
+    );
+
+  dot.style.left =
+    miniMapPercent(px) +
+    "%";
+
+  dot.style.top =
+    miniMapPercent(py) +
+    "%";
+
+  if (title) {
+    dot.title =
+      String(title);
+  }
+
+  box.appendChild(
+    dot
+  );
+}
+
+function renderWorldMiniMap() {
+  const box =
+    document.getElementById(
+      "worldMiniMap"
+    );
+
+  if (!box) {
+    return;
+  }
+
+  box.querySelectorAll(
+    ".world-mini-dot"
+  ).forEach(
+    function(dot) {
+      dot.remove();
+    }
+  );
+
+  appendMiniMapDot(
+    box,
+    myCoordinateX,
+    myCoordinateY,
+    "self",
+    "Kolonim"
+  );
+
+  if (
+    worldVisibilityFilters.players !==
+    false
+  ) {
+    (worldPlayersCache || [])
+      .filter(
+        function(player) {
+          return (
+            !savedUser ||
+            Number(
+              player.player_id
+            ) !==
+            Number(
+              savedUser.id
+            )
+          );
+        }
+      )
+      .forEach(
+        function(player) {
+          appendMiniMapDot(
+            box,
+            player.coordinate_x,
+            player.coordinate_y,
+            "player",
+            player.username ||
+              "Oyuncu"
+          );
+        }
+      );
+  }
+
+  if (
+    worldVisibilityFilters.npc !==
+    false
+  ) {
+    (npcCamps || [])
+      .forEach(
+        function(camp) {
+          appendMiniMapDot(
+            box,
+            camp.coordinateX,
+            camp.coordinateY,
+            "npc",
+            camp.name ||
+              "NPC"
+          );
+        }
+      );
+  }
+
+  (worldSites || [])
+    .forEach(
+      function(site) {
+        let filterKey =
+          null;
+        let className =
+          "";
+
+        if (
+          site.site_type ===
+          "resource"
+        ) {
+          const rarity =
+            String(
+              site.resource_rarity ||
+              "normal"
+            );
+
+          filterKey =
+            "resource-" +
+            (
+              rarity === "rare" ||
+              rarity === "elite"
+                ? rarity
+                : "normal"
+            );
+
+          className =
+            filterKey;
+        } else if (
+          site.site_type ===
+          "alliance"
+        ) {
+          filterKey =
+            "alliance";
+          className =
+            "alliance";
+        }
+
+        if (
+          filterKey &&
+          worldVisibilityFilters[filterKey] ===
+            false
+        ) {
+          return;
+        }
+
+        appendMiniMapDot(
+          box,
+          site.coordinate_x,
+          site.coordinate_y,
+          className,
+          site.name ||
+            "Dünya Noktası"
+        );
+      }
+    );
+
+  updateWorldMiniViewport();
+}
+
+function updateWorldMiniViewport() {
+  const viewport =
+    document.getElementById(
+      "worldViewport"
+    );
+  const canvas =
+    document.getElementById(
+      "worldCanvas"
+    );
+  const marker =
+    document.getElementById(
+      "worldMiniViewport"
+    );
+
+  if (
+    !viewport ||
+    !canvas ||
+    !marker
+  ) {
+    return;
+  }
+
+  const canvasWidth =
+    Math.max(
+      1,
+      canvas.offsetWidth
+    );
+  const canvasHeight =
+    Math.max(
+      1,
+      canvas.offsetHeight
+    );
+
+  const left =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        -worldPanX /
+          canvasWidth *
+          100
+      )
+    );
+
+  const top =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        -worldPanY /
+          canvasHeight *
+          100
+      )
+    );
+
+  const width =
+    Math.max(
+      0.5,
+      Math.min(
+        100 - left,
+        viewport.clientWidth /
+          canvasWidth *
+          100
+      )
+    );
+
+  const height =
+    Math.max(
+      0.5,
+      Math.min(
+        100 - top,
+        viewport.clientHeight /
+          canvasHeight *
+          100
+      )
+    );
+
+  marker.style.left =
+    left +
+    "%";
+  marker.style.top =
+    top +
+    "%";
+  marker.style.width =
+    width +
+    "%";
+  marker.style.height =
+    height +
+    "%";
+}
+
+function jumpFromMiniMap(event) {
+  const box =
+    document.getElementById(
+      "worldMiniMap"
+    );
+
+  if (!box) {
+    return;
+  }
+
+  const rect =
+    box.getBoundingClientRect();
+
+  if (
+    rect.width <= 0 ||
+    rect.height <= 0
+  ) {
+    return;
+  }
+
+  const x =
+    Math.max(
+      1,
+      Math.min(
+        WORLD_MAX_COORD,
+        (
+          event.clientX -
+          rect.left
+        ) /
+        rect.width *
+        WORLD_MAX_COORD
+      )
+    );
+
+  const y =
+    Math.max(
+      1,
+      Math.min(
+        WORLD_MAX_COORD,
+        (
+          event.clientY -
+          rect.top
+        ) /
+        rect.height *
+        WORLD_MAX_COORD
+      )
+    );
+
+  centerWorldOnCoordinates(
+    x,
+    y
+  );
+}
+
+function jumpToWorldCoordinate(event) {
+  if (event) {
+    event.preventDefault();
+  }
+
+  const x =
+    Number(
+      document.getElementById(
+        "worldJumpX"
+      )?.value
+    );
+
+  const y =
+    Number(
+      document.getElementById(
+        "worldJumpY"
+      )?.value
+    );
+
+  if (
+    !Number.isInteger(x) ||
+    !Number.isInteger(y) ||
+    x < 1 ||
+    y < 1 ||
+    x > WORLD_MAX_COORD ||
+    y > WORLD_MAX_COORD
+  ) {
+    alert(
+      "X ve Y koordinatları 1-" +
+      WORLD_MAX_COORD +
+      " arasında tam sayı olmalı."
+    );
+    return;
+  }
+
+  centerWorldOnCoordinates(
+    x,
+    y
+  );
+}
+
+function initWorldNavigationTools() {
+  const panel =
+    document.getElementById(
+      "worldToolsPanel"
+    );
+
+  if (
+    panel &&
+    window.matchMedia &&
+    window.matchMedia(
+      "(max-width: 700px)"
+    ).matches
+  ) {
+    panel.removeAttribute(
+      "open"
+    );
+  }
+
+  renderWorldMiniMap();
+}
+
 function clampWorldPan(x,y) {
   const viewport =
     document.getElementById("worldViewport");
@@ -1474,6 +2110,7 @@ function applyWorldPan(x,y) {
     "px,0)";
 
   updateCityDirectionIndicator();
+  updateWorldMiniViewport();
 }
 
 function updateCityDirectionIndicator() {
@@ -1626,7 +2263,7 @@ function initWorldPan() {
     function(event) {
       if (
         event.target.closest(
-          ".colony,.world-site,.own-colony-menu,.info,button,input,a"
+          ".colony,.world-site,.own-colony-menu,.info,.world-tools-panel,button,input,a,select,label,summary"
         )
       ) {
         return;
@@ -1833,6 +2470,8 @@ async function loadMyCoordinates() {
         positionOwnColonyMenu();
 
       }
+
+      renderWorldMiniMap();
 
     }
 
@@ -5214,6 +5853,7 @@ function renderNpcCamps() {
       "</span>";
 
     el.dataset.npcCampId = String(camp.id || "");
+    el.dataset.mapFilter = "npc";
 
     el.addEventListener("click", function(event) {
       event.stopPropagation();
@@ -5222,6 +5862,8 @@ function renderNpcCamps() {
 
     box.appendChild(el);
   });
+
+  applyWorldVisibilityFilters();
 }
 
 function selectNpcCamp(camp, element) {
@@ -5806,9 +6448,9 @@ function createPlayerColony(
       savedY
     ) &&
     savedX >= 1 &&
-    savedX <= 100 &&
+    savedX <= WORLD_MAX_COORD &&
     savedY >= 1 &&
-    savedY <= 100;
+    savedY <= WORLD_MAX_COORD;
 
   const fallbackPosition =
     getPlayerPosition(
@@ -5835,6 +6477,9 @@ function createPlayerColony(
 
   colony.dataset.playerId =
     String(player.player_id);
+
+  colony.dataset.mapFilter =
+    "players";
 
   if (playerProtection.protected) {
     colony.classList.add("pvp-protected");
@@ -6118,6 +6763,15 @@ function renderWorldSites() {
               "normal"
             );
 
+          el.dataset.mapFilter =
+            "resource-" +
+            (
+              rarity === "rare" ||
+              rarity === "elite"
+                ? rarity
+                : "normal"
+            );
+
           if (
             rarity === "rare" ||
             rarity === "elite"
@@ -6135,6 +6789,12 @@ function renderWorldSites() {
               "under-attack"
             );
           }
+        } else if (
+          site.site_type ===
+          "alliance"
+        ) {
+          el.dataset.mapFilter =
+            "alliance";
         }
 
         if (
@@ -6277,6 +6937,7 @@ function renderWorldSites() {
     );
 
   refreshResourceMapTimers();
+  applyWorldVisibilityFilters();
 
 }
 
@@ -7898,6 +8559,7 @@ async function loadWorldPlayers() {
       }
     );
 
+    applyWorldVisibilityFilters();
     refreshPvpProtectionUi();
 
   } catch (error) {
@@ -7913,6 +8575,7 @@ async function loadWorldPlayers() {
 
 
 initWorldPan();
+initWorldNavigationTools();
 
 loadMyCoordinates()
   .then(
