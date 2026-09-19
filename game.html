@@ -1589,6 +1589,172 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
     linear-gradient(90deg,transparent 0 12%,rgba(83,89,88,.54) 13% 21%,transparent 22% 78%,rgba(83,89,88,.54) 79% 87%,transparent 88%);
   box-shadow:0 0 18px rgba(220,145,68,.08);
 }
+/* Remaining building visual evolution tiers */
+.building-node.has-sprite[aria-label^="Gözcü Kulesi "].visual-tier-2::before{
+  width:132px;height:118px;top:47%;border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 14%,rgba(102,228,251,.48) 0 4%,rgba(37,92,105,.60) 6% 15%,transparent 16%),
+    radial-gradient(ellipse at 50% 76%,transparent 0 48%,rgba(78,178,199,.15) 49% 52%,transparent 53%);
+}
+.building-node.has-sprite[aria-label^="Gözcü Kulesi "].visual-tier-3::before{
+  width:154px;height:142px;top:45%;border:1px solid rgba(101,221,246,.22);border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 8%,rgba(112,238,255,.60) 0 3%,rgba(35,94,108,.64) 5% 14%,transparent 15%),
+    radial-gradient(circle at 18% 54%,rgba(91,210,237,.32) 0 3%,rgba(38,79,90,.50) 5% 13%,transparent 14%),
+    radial-gradient(circle at 82% 54%,rgba(91,210,237,.32) 0 3%,rgba(38,79,90,.50) 5% 13%,transparent 14%);
+}
+.building-node.has-sprite[aria-label^="Gözcü Kulesi "].visual-tier-4::before{
+  width:174px;height:158px;top:44%;border:1px solid rgba(120,235,255,.30);border-radius:50%;
+  background:
+    conic-gradient(from 0deg,transparent 0 318deg,rgba(96,226,250,.05) 328deg,rgba(116,239,255,.34) 356deg,transparent 360deg),
+    radial-gradient(circle at 50% 7%,rgba(128,242,255,.74) 0 3%,rgba(36,101,116,.68) 5% 14%,transparent 15%),
+    radial-gradient(circle at 13% 58%,rgba(103,225,248,.44) 0 3%,rgba(35,84,96,.55) 5% 13%,transparent 14%),
+    radial-gradient(circle at 87% 58%,rgba(103,225,248,.44) 0 3%,rgba(35,84,96,.55) 5% 13%,transparent 14%);
+  box-shadow:0 0 22px rgba(73,209,237,.11);
+  animation:buildingTierFlux 4.6s ease-in-out infinite;
+}
+
+.building-node.has-sprite[aria-label^="Kristal Madeni "].visual-tier-2::before{
+  width:186px;height:108px;top:54%;border-radius:44%;
+  background:
+    radial-gradient(circle at 15% 52%,rgba(110,230,255,.54) 0 4%,rgba(52,91,145,.48) 6% 15%,transparent 16%),
+    radial-gradient(circle at 85% 52%,rgba(142,110,255,.38) 0 4%,rgba(72,58,132,.42) 6% 15%,transparent 16%);
+}
+.building-node.has-sprite[aria-label^="Kristal Madeni "].visual-tier-3::before{
+  width:216px;height:132px;top:52%;border:1px solid rgba(111,208,255,.22);border-radius:46%;
+  background:
+    radial-gradient(circle at 10% 54%,rgba(119,239,255,.64) 0 4%,rgba(49,96,151,.54) 6% 15%,transparent 16%),
+    radial-gradient(circle at 90% 54%,rgba(159,125,255,.48) 0 4%,rgba(77,61,139,.46) 6% 15%,transparent 16%),
+    radial-gradient(circle at 50% 91%,rgba(108,218,255,.36) 0 4%,rgba(52,81,126,.38) 6% 13%,transparent 14%);
+}
+.building-node.has-sprite[aria-label^="Kristal Madeni "].visual-tier-4::before{
+  width:244px;height:150px;top:50%;border:1px solid rgba(126,222,255,.28);border-radius:48%;
+  background:
+    radial-gradient(circle at 8% 54%,rgba(136,247,255,.76) 0 3%,rgba(47,104,162,.62) 5% 15%,transparent 16%),
+    radial-gradient(circle at 92% 54%,rgba(177,139,255,.60) 0 3%,rgba(85,65,151,.54) 5% 15%,transparent 16%),
+    radial-gradient(circle at 50% 91%,rgba(122,232,255,.48) 0 3%,rgba(52,91,140,.46) 5% 13%,transparent 14%),
+    radial-gradient(ellipse at center,transparent 0 54%,rgba(115,210,255,.18) 55% 58%,transparent 59%);
+  box-shadow:0 0 24px rgba(91,189,238,.10);
+  animation:buildingTierFlux 4.8s ease-in-out infinite;
+}
+
+.building-node.has-sprite[aria-label^="Alaşım Rafinerisi "].visual-tier-2::before{
+  width:184px;height:102px;top:55%;
+  background:
+    radial-gradient(circle at 12% 58%,rgba(245,168,75,.58) 0 4%,rgba(84,68,52,.56) 6% 16%,transparent 17%),
+    radial-gradient(circle at 88% 44%,rgba(100,218,238,.34) 0 4%,rgba(41,83,92,.48) 6% 15%,transparent 16%);
+}
+.building-node.has-sprite[aria-label^="Alaşım Rafinerisi "].visual-tier-3::before{
+  width:214px;height:126px;top:53%;border-radius:38%;
+  background:
+    radial-gradient(circle at 8% 58%,rgba(250,176,79,.70) 0 3%,rgba(88,68,50,.62) 5% 15%,transparent 16%),
+    radial-gradient(circle at 92% 45%,rgba(111,228,246,.46) 0 3%,rgba(39,91,102,.56) 5% 15%,transparent 16%),
+    linear-gradient(90deg,transparent 0 12%,rgba(80,88,85,.48) 13% 20%,transparent 21% 79%,rgba(80,88,85,.44) 80% 87%,transparent 88%);
+}
+.building-node.has-sprite[aria-label^="Alaşım Rafinerisi "].visual-tier-4::before{
+  width:242px;height:146px;top:51%;border:1px solid rgba(194,146,85,.22);border-radius:40%;
+  background:
+    radial-gradient(circle at 7% 58%,rgba(255,187,88,.82) 0 3%,rgba(91,69,49,.68) 5% 14%,transparent 15%),
+    radial-gradient(circle at 93% 43%,rgba(125,238,253,.60) 0 3%,rgba(37,98,112,.64) 5% 14%,transparent 15%),
+    radial-gradient(circle at 50% 91%,rgba(245,162,69,.40) 0 3%,rgba(77,61,47,.48) 5% 12%,transparent 13%);
+  box-shadow:0 0 20px rgba(226,151,69,.08);
+  animation:buildingTierFlux 5.1s ease-in-out infinite;
+}
+
+.building-node.has-sprite[aria-label^="Depo "].visual-tier-2::before{
+  width:176px;height:94px;top:56%;border-radius:28%;
+  background:
+    linear-gradient(90deg,rgba(67,79,82,.50) 0 14%,transparent 15% 85%,rgba(67,79,82,.50) 86% 100%),
+    radial-gradient(circle at 12% 62%,rgba(92,211,235,.38) 0 3%,transparent 8%),
+    radial-gradient(circle at 88% 62%,rgba(238,165,77,.40) 0 3%,transparent 8%);
+}
+.building-node.has-sprite[aria-label^="Depo "].visual-tier-3::before{
+  width:206px;height:118px;top:54%;border-radius:26%;
+  background:
+    linear-gradient(90deg,rgba(71,84,88,.58) 0 16%,transparent 17% 83%,rgba(71,84,88,.58) 84% 100%),
+    radial-gradient(circle at 8% 60%,rgba(101,225,248,.48) 0 3%,rgba(39,83,92,.44) 5% 12%,transparent 13%),
+    radial-gradient(circle at 92% 60%,rgba(245,175,82,.48) 0 3%,rgba(84,66,49,.44) 5% 12%,transparent 13%);
+}
+.building-node.has-sprite[aria-label^="Depo "].visual-tier-4::before{
+  width:236px;height:136px;top:52%;border:1px solid rgba(133,158,162,.22);border-radius:24%;
+  background:
+    linear-gradient(90deg,rgba(78,92,96,.66) 0 17%,transparent 18% 82%,rgba(78,92,96,.66) 83% 100%),
+    radial-gradient(circle at 7% 60%,rgba(111,235,255,.60) 0 3%,rgba(40,91,102,.54) 5% 12%,transparent 13%),
+    radial-gradient(circle at 93% 60%,rgba(252,185,91,.58) 0 3%,rgba(89,69,50,.50) 5% 12%,transparent 13%);
+  box-shadow:0 0 18px rgba(86,186,207,.07);
+}
+
+.building-node.has-sprite[aria-label^="Kristal Deposu "].visual-tier-2::before{
+  width:184px;height:106px;top:54%;border-radius:40%;
+  background:
+    radial-gradient(circle at 14% 55%,rgba(111,230,255,.52) 0 4%,rgba(48,88,136,.50) 6% 15%,transparent 16%),
+    radial-gradient(circle at 86% 55%,rgba(153,120,255,.42) 0 4%,rgba(76,59,134,.44) 6% 15%,transparent 16%);
+}
+.building-node.has-sprite[aria-label^="Kristal Deposu "].visual-tier-3::before{
+  width:214px;height:128px;top:52%;border:1px solid rgba(116,203,255,.22);border-radius:43%;
+  background:
+    radial-gradient(circle at 9% 56%,rgba(121,239,255,.64) 0 3%,rgba(47,96,149,.56) 5% 14%,transparent 15%),
+    radial-gradient(circle at 91% 56%,rgba(170,131,255,.52) 0 3%,rgba(81,62,143,.50) 5% 14%,transparent 15%),
+    radial-gradient(circle at 50% 91%,rgba(115,224,255,.34) 0 3%,rgba(49,82,126,.36) 5% 12%,transparent 13%);
+}
+.building-node.has-sprite[aria-label^="Kristal Deposu "].visual-tier-4::before{
+  width:242px;height:146px;top:50%;border:1px solid rgba(132,220,255,.28);border-radius:45%;
+  background:
+    radial-gradient(circle at 8% 56%,rgba(137,248,255,.76) 0 3%,rgba(48,106,161,.62) 5% 14%,transparent 15%),
+    radial-gradient(circle at 92% 56%,rgba(188,145,255,.62) 0 3%,rgba(88,66,151,.56) 5% 14%,transparent 15%),
+    radial-gradient(ellipse at center,transparent 0 53%,rgba(119,211,255,.18) 54% 58%,transparent 59%);
+  box-shadow:0 0 22px rgba(94,188,238,.09);
+  animation:buildingTierFlux 4.9s ease-in-out infinite;
+}
+
+.building-node.has-sprite[aria-label^="Konut "].visual-tier-2::before{
+  width:184px;height:102px;top:55%;border-radius:30%;
+  background:
+    radial-gradient(circle at 12% 58%,rgba(244,180,91,.54) 0 3%,rgba(73,72,66,.52) 5% 14%,transparent 15%),
+    radial-gradient(circle at 88% 58%,rgba(101,215,238,.36) 0 3%,rgba(41,80,88,.46) 5% 14%,transparent 15%);
+}
+.building-node.has-sprite[aria-label^="Konut "].visual-tier-3::before{
+  width:214px;height:126px;top:53%;border-radius:32%;
+  background:
+    radial-gradient(circle at 8% 58%,rgba(250,190,100,.66) 0 3%,rgba(78,74,65,.58) 5% 14%,transparent 15%),
+    radial-gradient(circle at 92% 58%,rgba(112,228,247,.46) 0 3%,rgba(40,88,98,.52) 5% 14%,transparent 15%),
+    linear-gradient(90deg,transparent 0 13%,rgba(72,84,85,.46) 14% 21%,transparent 22% 78%,rgba(72,84,85,.46) 79% 86%,transparent 87%);
+}
+.building-node.has-sprite[aria-label^="Konut "].visual-tier-4::before{
+  width:240px;height:144px;top:51%;border:1px solid rgba(150,182,184,.20);border-radius:34%;
+  background:
+    radial-gradient(circle at 7% 58%,rgba(255,201,111,.74) 0 3%,rgba(84,77,65,.64) 5% 14%,transparent 15%),
+    radial-gradient(circle at 93% 58%,rgba(125,238,255,.58) 0 3%,rgba(40,96,108,.60) 5% 14%,transparent 15%),
+    radial-gradient(circle at 50% 91%,rgba(245,187,98,.32) 0 3%,rgba(75,69,60,.38) 5% 11%,transparent 12%);
+  box-shadow:0 0 18px rgba(234,182,95,.06);
+}
+
+.building-node.has-sprite[aria-label^="Sur "].visual-tier-2::before{
+  width:330px;height:94px;top:57%;border-radius:20%;
+  background:
+    linear-gradient(90deg,rgba(69,78,84,.58) 0 10%,transparent 11% 89%,rgba(69,78,84,.58) 90% 100%),
+    radial-gradient(circle at 8% 55%,rgba(94,216,240,.48) 0 3%,transparent 8%),
+    radial-gradient(circle at 92% 55%,rgba(94,216,240,.48) 0 3%,transparent 8%);
+}
+.building-node.has-sprite[aria-label^="Sur "].visual-tier-3::before{
+  width:382px;height:116px;top:54%;border-radius:18%;
+  background:
+    linear-gradient(90deg,rgba(77,87,94,.68) 0 12%,transparent 13% 87%,rgba(77,87,94,.68) 88% 100%),
+    radial-gradient(circle at 6% 55%,rgba(108,229,250,.60) 0 3%,rgba(40,88,100,.46) 5% 11%,transparent 12%),
+    radial-gradient(circle at 94% 55%,rgba(108,229,250,.60) 0 3%,rgba(40,88,100,.46) 5% 11%,transparent 12%),
+    linear-gradient(180deg,transparent 0 66%,rgba(72,82,88,.42) 67% 78%,transparent 79%);
+}
+.building-node.has-sprite[aria-label^="Sur "].visual-tier-4::before{
+  width:430px;height:136px;top:52%;border:1px solid rgba(133,167,180,.24);border-radius:16%;
+  background:
+    linear-gradient(90deg,rgba(84,95,103,.76) 0 13%,transparent 14% 86%,rgba(84,95,103,.76) 87% 100%),
+    radial-gradient(circle at 5% 54%,rgba(122,240,255,.74) 0 3%,rgba(43,99,113,.58) 5% 11%,transparent 12%),
+    radial-gradient(circle at 95% 54%,rgba(122,240,255,.74) 0 3%,rgba(43,99,113,.58) 5% 11%,transparent 12%),
+    radial-gradient(circle at 50% 20%,rgba(116,226,248,.38) 0 2%,rgba(42,91,102,.40) 4% 9%,transparent 10%);
+  box-shadow:0 0 20px rgba(78,199,226,.08);
+  animation:buildingTierFlux 5.8s ease-in-out infinite;
+}
+
 @keyframes buildingTierFlux{
   0%,100%{opacity:.58;filter:drop-shadow(0 10px 12px rgba(0,0,0,.28)) brightness(.94)}
   50%{opacity:.86;filter:drop-shadow(0 10px 12px rgba(0,0,0,.28)) brightness(1.10)}
