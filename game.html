@@ -3626,6 +3626,48 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   }
 }
 
+/* Depth & Occlusion Pass */
+.building-map{
+  isolation:isolate;
+}
+.building-map .building-foundation,
+.building-map .building-contact-shadow,
+.building-map .building-pad,
+.building-map .building-focus-lines,
+.building-map .building-node{
+  position:absolute;
+}
+.building-map .building-node{
+  z-index:auto;
+}
+.building-node.has-sprite{
+  transform-origin:50% 74%;
+}
+.building-node.has-sprite .building-sprite{
+  transform-origin:50% 76%;
+}
+
+@media(max-width:600px){
+  .colony-world.compact-overview
+  .building-node.secondary-slot
+  .building-sprite-label{
+    display:none;
+  }
+
+  .colony-world.compact-overview
+  .building-node.command-core
+  .building-sprite-label{
+    display:block;
+    opacity:.98;
+  }
+
+  .colony-world.compact-overview
+  .building-node.has-sprite.selected
+  .building-sprite-label{
+    display:block;
+  }
+}
+
 </style></head><body>
 
 <header class="topbar">
@@ -4331,10 +4373,10 @@ function applyColonyView(){
   const overviewLabelScale=
     compactOverview
       ?Math.min(
-          2.8,
+          2.2,
           Math.max(
-            1.55,
-            .50/
+            1.45,
+            .42/
               Math.max(
                 .16,
                 colonyViewScale
@@ -6279,6 +6321,28 @@ function cityDepthScale(y){
 }
 
 
+function cityDepthLayer(y,name){
+  const depth=Math.max(
+    0,
+    Math.min(
+      100,
+      Number(y)||0
+    )
+  );
+
+  const specialBias=
+    name==='Sur'
+      ?24
+      :name==='Merkez Bina'
+        ?6
+        :0;
+
+  return 1000+
+    Math.round(depth*10)+
+    specialBias;
+}
+
+
 function renderBuildings(buildings){
 
   latestBuildings=Array.isArray(buildings)
@@ -6485,32 +6549,50 @@ function renderBuildings(buildings){
             )
           :0;
 
+      const depthLayer=
+        cityDepthLayer(
+          site.y,
+          name
+        );
+
+      const foundationLayer=
+        20+
+        Math.round(site.y);
+
+      const shadowLayer=
+        130+
+        Math.round(site.y);
+
+      const padLayer=
+        240+
+        Math.round(site.y);
+
       return `
         ${isSelected?`
           <span
             class="building-focus-lines"
-            style="left:${site.x}%;top:${site.y}%"
+            style="left:${site.x}%;top:${site.y}%;z-index:${depthLayer-1}"
             aria-hidden="true"
           ></span>
         `:''}
         <span
           class="building-foundation ${visualZone}${name==='Sur'?' wall-foundation':''}"
-          style="left:${site.x}%;top:calc(${site.y}% + 24px);--foundation-scale:${depthScale}"
+          style="left:${site.x}%;top:calc(${site.y}% + 24px);--foundation-scale:${depthScale};z-index:${foundationLayer}"
           aria-hidden="true"
         ></span>
         <span
           class="building-contact-shadow shadow-${visualZone}${name==='Sur'?' wall-shadow':''}"
-          style="left:${site.x}%;top:calc(${site.y}% + 38px)"
+          style="left:${site.x}%;top:calc(${site.y}% + 38px);z-index:${shadowLayer}"
           aria-hidden="true"
         ></span>
         <span
           class="building-pad ${visualZone}${visualState}"
-          style="left:${site.x}%;top:${site.y}%"
+          style="left:${site.x}%;top:${site.y}%;z-index:${padLayer}"
           aria-hidden="true"
         ></span>
         <button
-          class="building-node zone-${visualZone} ${buildingVisual?'has-sprite '+buildingVisualTier(level):''} ${name==='Merkez Bina'?'command-core':''} ${locked&&!pending?'locked':''} ${pending?'pending':''} ${isSelected?'selected':''}${operationalState}"
-          style="left:${site.x}%;top:${site.y}%;${buildingVisual?'--sprite-size:'+renderWidth+'px;--sprite-offset-y:'+renderOffsetY+'px;--sprite-label-y:'+renderLabelY+'px;width:'+renderWidth+'px;height:'+renderWidth+'px;':''}"
+          class="building-node zone-${visualZone} ${buildingVisual?'has-sprite '+buildingVisualTier(level):''} ${name==='Merkez Bina'?'command-core':''}${slot>1?' secondary-slot':''}${visualState}"
+          style="left:${site.x}%;top:${site.y}%;z-index:${depthLayer};${buildingVisual?'--sprite-size:'+renderWidth+'px;--sprite-offset-y:'+renderOffsetY+'px;--sprite-label-y:'+renderLabelY+'px;width:'+renderWidth+'px;height:'+renderWidth+'px;':''}"
           type="button"
           onclick="selectBuilding('${name.replace(/'/g,"\\'")}',${slot})"
           aria-label="${esc(buildingLabel(name,slot))} Seviye ${level}"
