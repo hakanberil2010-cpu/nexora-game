@@ -7192,8 +7192,29 @@ function renderResourceGatherStatus(mission,underAttack=false) {
   if(status==="traveling"){
     box.textContent="🚚 Birlikler kaynak noktasına gidiyor · "+remaining+" sn";
   }else if(status==="gathering"){
+    const totalSeconds=
+      Math.max(
+        0,
+        Number(
+          mission.gather_duration_seconds ||
+          0
+        )
+      );
+    const totalLabel=
+      totalSeconds>0
+        ? " · Toplam "+
+          Math.max(
+            1,
+            Math.ceil(
+              totalSeconds/60
+            )
+          )+
+          " dk"
+        : "";
+
     box.textContent=
       "⛏️ Kaynak toplanıyor · "+remaining+" sn"+
+      totalLabel+
       (underAttack?" · ⚔️ Saldırı altında":"");
   }else if(status==="returning"){
     const eliteBonus=
@@ -7819,12 +7840,7 @@ function selectWorldSite(
             site.resource_type
           )
         ) +
-        " · ⏱️ " +
-        Number(
-          site.resource_gather_seconds ||
-          30
-        ) +
-        " sn toplama";
+        " · ⏱️ Toplama: şehir üretim süresinin 1/3'ü";
 
       if (
         site.resource_guard_active ===
