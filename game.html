@@ -517,11 +517,163 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   z-index:3;
 }
 
+.colony-decor{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+}
+
+.colony-decor-item{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+}
+
+.colony-decor-item.light{
+  width:16px;
+  height:16px;
+  border:1px solid rgba(101,214,242,.28);
+  border-radius:50%;
+  background:#0b2838;
+  box-shadow:
+    0 0 0 4px rgba(55,170,205,.05),
+    0 0 14px rgba(80,205,237,.28);
+}
+
+.colony-decor-item.light::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:3px;
+  height:24px;
+  transform:translate(-50%,-2px);
+  border-radius:999px;
+  background:linear-gradient(#315e71,#102935);
+}
+
+.colony-decor-item.light::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:5px;
+  height:5px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:#82e9ff;
+  box-shadow:0 0 10px rgba(130,233,255,.72);
+  animation:colonyBeacon 2.8s ease-in-out infinite;
+}
+
+.colony-decor-item.energy{
+  width:28px;
+  height:28px;
+  border:1px solid rgba(93,209,242,.32);
+  border-radius:8px;
+  background:
+    radial-gradient(circle,rgba(80,208,239,.35) 0 18%,rgba(10,39,53,.92) 22% 56%,rgba(4,19,28,.82) 60%);
+  box-shadow:
+    0 0 18px rgba(56,188,224,.15),
+    inset 0 0 14px rgba(77,206,239,.08);
+}
+
+.colony-decor-item.energy::after{
+  content:"";
+  position:absolute;
+  inset:6px;
+  border:1px solid rgba(108,224,250,.38);
+  border-radius:50%;
+  animation:colonyNodePulse 2.4s ease-in-out infinite;
+}
+
+.colony-decor-item.junction{
+  width:34px;
+  height:34px;
+  border:1px solid rgba(115,166,185,.20);
+  transform:translate(-50%,-50%) rotate(45deg);
+  background:rgba(5,22,30,.55);
+  box-shadow:inset 0 0 12px rgba(0,0,0,.32);
+}
+
+.colony-decor-item.junction::before,
+.colony-decor-item.junction::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  background:rgba(108,191,214,.28);
+  transform:translate(-50%,-50%);
+}
+
+.colony-decor-item.junction::before{
+  width:2px;
+  height:22px;
+}
+
+.colony-decor-item.junction::after{
+  width:22px;
+  height:2px;
+}
+
+.colony-decor-item.utility{
+  width:48px;
+  height:32px;
+  border:1px solid rgba(100,145,164,.20);
+  border-radius:7px;
+  background:
+    linear-gradient(90deg,rgba(10,34,45,.88),rgba(16,46,59,.78));
+  box-shadow:
+    inset 0 0 12px rgba(0,0,0,.28),
+    0 7px 15px rgba(0,0,0,.15);
+}
+
+.colony-decor-item.utility::before{
+  content:"";
+  position:absolute;
+  left:8px;
+  right:8px;
+  top:7px;
+  height:3px;
+  border-radius:999px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(99,194,216,.28) 0 5px,
+      transparent 5px 9px
+    );
+}
+
+.colony-decor-item.utility::after{
+  content:"";
+  position:absolute;
+  left:8px;
+  bottom:6px;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#54c8df;
+  box-shadow:
+    12px 0 0 rgba(84,200,223,.35),
+    24px 0 0 rgba(244,200,106,.34);
+}
+
+@keyframes colonyBeacon{
+  50%{opacity:.42;box-shadow:0 0 5px rgba(130,233,255,.34)}
+}
+
+@keyframes colonyNodePulse{
+  50%{transform:scale(.72);opacity:.42}
+}
+
 @media(prefers-reduced-motion:reduce){
   .road-map .road-energy,
   .building-pad.selected,
   .building-pad.pending,
-  .building-pad.pending::after{
+  .building-pad.pending::after,
+  .colony-decor-item.light::after,
+  .colony-decor-item.energy::after{
     animation:none;
   }
 }
@@ -648,6 +800,7 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
       </div>
 
       <div class="colony-world" id="colonyWorld">
+        <div class="colony-decor" id="colonyDecor" aria-hidden="true"></div>
         <svg class="road-map" id="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
         <div class="building-map" id="buildings"></div>
       </div>
@@ -755,6 +908,27 @@ const ROAD_LINKS=[
   ["Depo#1","Depo#2"],
   ["Depo#2","Kristal Deposu#1"],
   ["Depo#1","Sur#1"]
+];
+
+const COLONY_DECOR=[
+  {type:"light",x:20,y:35},
+  {type:"light",x:40,y:35},
+  {type:"light",x:60,y:35},
+  {type:"light",x:80,y:35},
+  {type:"light",x:18,y:61},
+  {type:"light",x:38,y:61},
+  {type:"light",x:62,y:61},
+  {type:"light",x:82,y:61},
+  {type:"energy",x:39,y:48},
+  {type:"energy",x:61,y:48},
+  {type:"energy",x:50,y:63},
+  {type:"junction",x:50,y:35},
+  {type:"junction",x:39,y:61},
+  {type:"junction",x:61,y:61},
+  {type:"utility",x:6,y:35},
+  {type:"utility",x:94,y:35},
+  {type:"utility",x:18,y:88},
+  {type:"utility",x:82,y:88}
 ];
 
 let selectedBuildingName=null;
@@ -2080,6 +2254,22 @@ function slotUnlocked(name,slot,levels){
   return !required||Number(levels['Merkez Bina']||0)>=required;
 }
 
+function renderColonyDecorations(){
+  const box=document.getElementById('colonyDecor');
+  if(!box)return;
+
+  box.innerHTML=COLONY_DECOR.map(
+    item=>
+      '<span class="colony-decor-item '+
+      item.type+
+      '" style="left:'+
+      item.x+
+      '%;top:'+
+      item.y+
+      '%"></span>'
+  ).join('');
+}
+
 function renderRoads(){
   const roadMap=document.getElementById('roads');
   if(!roadMap)return;
@@ -2553,6 +2743,7 @@ function renderBuildings(buildings){
     selectedBuildingSlot=1;
   }
 
+  renderColonyDecorations();
   renderRoads();
 
   el.innerHTML=BUILDING_SITES.map(
