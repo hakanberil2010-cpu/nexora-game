@@ -6544,7 +6544,7 @@ async function startEspionage(req,res){
 
   const spyVisibility=await getWorldTargetVisibility(playerId,"player",targetPlayerId);
   if(!spyVisibility.ok)return send(res,404,{success:false,message:"Hedef koloni bulunamadı."});
-  if(spyVisibility.data.seen!==true){
+  if(spyVisibility.data.seen!==true&&spyVisibility.data.liveVisible!==true){
     return send(res,403,{
       success:false,
       code:"SPY_TARGET_UNKNOWN",
