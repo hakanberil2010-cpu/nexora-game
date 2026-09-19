@@ -1295,6 +1295,204 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
 .building-node.has-sprite[aria-label^="Sur "]:hover .building-sprite{
   transform:translate(-50%,-50%) translateY(var(--sprite-offset-y,0px)) scale(1.02);
 }
+/* Building identity micro-animations */
+.building-node.has-sprite::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  z-index:2;
+  width:58px;
+  height:34px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  pointer-events:none;
+  opacity:.72;
+  mix-blend-mode:screen;
+}
+.building-node.has-sprite .building-sprite-label{
+  z-index:4;
+}
+.building-node.has-sprite.locked::after{
+  opacity:.12;
+  animation:none !important;
+}
+
+/* Command center: restrained command-core breathing light */
+.building-node.has-sprite[aria-label^="Merkez Bina "]::after{
+  width:92px;
+  height:54px;
+  top:43%;
+  background:radial-gradient(ellipse at center,rgba(94,220,250,.34) 0 12%,rgba(56,174,211,.14) 30%,transparent 66%);
+  box-shadow:0 0 18px rgba(67,203,236,.11);
+  animation:buildingCommandCore 4.8s ease-in-out infinite;
+}
+
+/* Energy plants: reactor pulse */
+.building-node.has-sprite[aria-label^="Enerji Santrali "]::after{
+  width:74px;
+  height:50px;
+  top:45%;
+  border:1px solid rgba(92,224,252,.30);
+  background:radial-gradient(circle,rgba(105,235,255,.30) 0 13%,rgba(46,171,215,.12) 30%,transparent 64%);
+  box-shadow:0 0 16px rgba(73,209,240,.14),inset 0 0 14px rgba(76,211,241,.09);
+  animation:buildingReactorPulse 3.1s ease-out infinite;
+}
+
+/* Metal mines: warm/cyan alternating work lamps */
+.building-node.has-sprite[aria-label^="Metal Madeni "]::after{
+  width:96px;
+  height:40px;
+  top:48%;
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 23% 52%,rgba(246,168,77,.78) 0 4%,rgba(246,168,77,.16) 6%,transparent 14%),
+    radial-gradient(circle at 77% 40%,rgba(96,221,249,.70) 0 4%,rgba(96,221,249,.13) 6%,transparent 14%);
+  animation:buildingWorkLights 2.7s steps(2,end) infinite;
+}
+
+/* Crystal mines and storage: cold crystalline shimmer */
+.building-node.has-sprite[aria-label^="Kristal Madeni "]::after,
+.building-node.has-sprite[aria-label^="Kristal Deposu "]::after{
+  width:86px;
+  height:58px;
+  top:44%;
+  background:
+    radial-gradient(ellipse at center,rgba(104,229,255,.31) 0 10%,rgba(70,143,239,.15) 27%,rgba(106,75,211,.08) 43%,transparent 68%);
+  filter:blur(.2px);
+  animation:buildingCrystalShimmer 4.1s ease-in-out infinite;
+}
+
+/* Barracks: periodic readiness beacon */
+.building-node.has-sprite[aria-label^="Kışla "]::after{
+  width:106px;
+  height:42px;
+  top:40%;
+  border-radius:16px;
+  background:
+    radial-gradient(circle at 18% 50%,rgba(242,157,70,.82) 0 4%,rgba(242,157,70,.12) 7%,transparent 14%),
+    radial-gradient(circle at 82% 50%,rgba(242,157,70,.82) 0 4%,rgba(242,157,70,.12) 7%,transparent 14%);
+  animation:buildingBarracksBeacon 3.6s steps(1,end) infinite;
+}
+
+/* Watchtower: local radar sweep attached to the structure */
+.building-node.has-sprite[aria-label^="Gözcü Kulesi "]::after{
+  width:92px;
+  height:58px;
+  top:33%;
+  border:1px solid rgba(93,222,250,.24);
+  background:conic-gradient(from 0deg,transparent 0 316deg,rgba(93,222,250,.06) 327deg,rgba(101,229,255,.44) 355deg,transparent 360deg);
+  box-shadow:inset 0 0 12px rgba(78,210,240,.06);
+  animation:buildingRadarSweep 5.4s linear infinite;
+}
+
+/* Alloy refinery: furnace glow with gentle stack rhythm */
+.building-node.has-sprite[aria-label^="Alaşım Rafinerisi "]::after{
+  width:104px;
+  height:54px;
+  top:45%;
+  background:
+    radial-gradient(circle at 29% 66%,rgba(255,174,79,.46) 0 7%,rgba(236,123,50,.15) 15%,transparent 30%),
+    radial-gradient(circle at 70% 31%,rgba(117,218,235,.24) 0 5%,transparent 22%);
+  animation:buildingRefineryGlow 3.9s ease-in-out infinite;
+}
+
+/* Storage: subtle loading-bay status strip */
+.building-node.has-sprite[aria-label^="Depo "]::after{
+  width:112px;
+  height:34px;
+  top:52%;
+  border-radius:9px;
+  background:
+    linear-gradient(90deg,transparent 0 12%,rgba(92,216,242,.54) 14% 18%,transparent 20% 40%,rgba(239,164,77,.55) 42% 46%,transparent 48% 68%,rgba(92,216,242,.46) 70% 74%,transparent 76%);
+  background-size:128px 100%;
+  animation:buildingDepotStatus 4.6s linear infinite;
+}
+
+/* Housing: sparse inhabited-window flicker */
+.building-node.has-sprite[aria-label^="Konut "]::after{
+  width:96px;
+  height:64px;
+  top:43%;
+  border-radius:14px;
+  background:
+    radial-gradient(circle at 22% 38%,rgba(244,183,94,.68) 0 3%,transparent 6%),
+    radial-gradient(circle at 49% 58%,rgba(244,183,94,.50) 0 3%,transparent 6%),
+    radial-gradient(circle at 76% 31%,rgba(104,220,244,.48) 0 3%,transparent 6%);
+  animation:buildingHousingLights 6.2s steps(2,end) infinite;
+}
+
+/* Wall: defense-node readiness pulse */
+.building-node.has-sprite[aria-label^="Sur "]::after{
+  width:214px;
+  height:34px;
+  top:48%;
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 8% 50%,rgba(95,220,248,.62) 0 2%,transparent 5%),
+    radial-gradient(circle at 30% 50%,rgba(95,220,248,.36) 0 2%,transparent 5%),
+    radial-gradient(circle at 70% 50%,rgba(95,220,248,.36) 0 2%,transparent 5%),
+    radial-gradient(circle at 92% 50%,rgba(95,220,248,.62) 0 2%,transparent 5%);
+  animation:buildingWallNodes 4.4s ease-in-out infinite;
+}
+
+@keyframes buildingCommandCore{
+  0%,100%{opacity:.38;transform:translate(-50%,-50%) scale(.92)}
+  50%{opacity:.82;transform:translate(-50%,-50%) scale(1.08)}
+}
+@keyframes buildingReactorPulse{
+  0%{opacity:.18;transform:translate(-50%,-50%) scale(.70)}
+  45%{opacity:.80}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.30)}
+}
+@keyframes buildingWorkLights{
+  0%,44%{opacity:.36}
+  45%,74%{opacity:.86}
+  75%,100%{opacity:.52}
+}
+@keyframes buildingCrystalShimmer{
+  0%,100%{opacity:.36;transform:translate(-50%,-50%) scale(.92)}
+  48%{opacity:.88;transform:translate(-50%,-50%) scale(1.08)}
+  62%{opacity:.58}
+}
+@keyframes buildingBarracksBeacon{
+  0%,72%,100%{opacity:.28}
+  73%,80%{opacity:.94}
+  81%,88%{opacity:.35}
+  89%,96%{opacity:.82}
+}
+@keyframes buildingRadarSweep{
+  to{transform:translate(-50%,-50%) rotate(360deg)}
+}
+@keyframes buildingRefineryGlow{
+  0%,100%{opacity:.40;filter:brightness(.88)}
+  42%{opacity:.88;filter:brightness(1.22)}
+  62%{opacity:.56;filter:brightness(1)}
+}
+@keyframes buildingDepotStatus{
+  0%{background-position:-128px 0;opacity:.38}
+  50%{opacity:.78}
+  100%{background-position:128px 0;opacity:.38}
+}
+@keyframes buildingHousingLights{
+  0%,32%{opacity:.38}
+  33%,64%{opacity:.72}
+  65%,82%{opacity:.48}
+  83%,100%{opacity:.82}
+}
+@keyframes buildingWallNodes{
+  0%,100%{opacity:.30}
+  50%{opacity:.82}
+}
+@media(prefers-reduced-motion:reduce){
+  .building-node.has-sprite::after{
+    animation:none !important;
+    opacity:.34;
+  }
+  .building-node.has-sprite[aria-label^="Gözcü Kulesi "]::after{
+    background:radial-gradient(circle,rgba(93,222,250,.22) 0 5%,transparent 42%);
+  }
+}
 @media(max-width:600px){
   .building-sprite-label{transform:translateX(-50%) scale(.9)}
 }
