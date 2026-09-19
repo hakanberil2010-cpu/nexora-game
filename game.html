@@ -548,6 +548,8 @@ let colonyViewScale=1;
 let colonyViewInitialized=false;
 let colonyViewUserAdjusted=false;
 let colonyDragMoved=false;
+let colonyDragOriginX=0;
+let colonyDragOriginY=0;
 let colonySuppressClickUntil=0;
 let colonyPinchDistance=0;
 const colonyPointers=new Map();
@@ -836,6 +838,8 @@ function initColonyNavigation(){
 
       if(colonyPointers.size===1){
         colonyDragMoved=false;
+        colonyDragOriginX=event.clientX;
+        colonyDragOriginY=event.clientY;
         colonyPinchDistance=0;
       }else if(colonyPointers.size===2){
         colonyPinchDistance=
@@ -909,7 +913,10 @@ function initColonyNavigation(){
         colonyViewUserAdjusted=true;
 
         if(
-          Math.hypot(dx,dy)>2
+          Math.hypot(
+            event.clientX-colonyDragOriginX,
+            event.clientY-colonyDragOriginY
+          )>6
         ){
           colonyDragMoved=true;
         }
