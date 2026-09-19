@@ -2747,6 +2747,18 @@ async function createMilitaryMission(req, res) {
     return send(res,400,{success:false,message:"En az bir birlik miktarı seçmelisin."});
   }
 
+  const targetVisibility=await getWorldTargetVisibility(playerId,"player",targetPlayerId);
+  if(!targetVisibility.ok){
+    return send(res,404,{success:false,message:"Hedef koloni bulunamadı."});
+  }
+  if(targetVisibility.data.liveVisible!==true){
+    return send(res,403,{
+      success:false,
+      code:"TARGET_NOT_VISIBLE",
+      message:"Bu koloni güncel görüş alanında değil. Önce yeniden görüş alanına almalısın."
+    });
+  }
+
   const [attackerCityResult,targetCityResult] = await Promise.all([
     supabase("cities?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
     supabase("cities?select=*&player_id=eq."+encodeURIComponent(targetPlayerId)+"&limit=1")
@@ -3135,17 +3147,58 @@ async function getNpcCamps(req,res){
   const playerId=authPlayerId(req);
   if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
 
-  const snapshot=await supabase("rpc/nexora_npc_camps_snapshot",{
-    method:"POST",
-    body:JSON.stringify({p_player_id:Number(playerId)})
-  });
+  const [snapshot,visibilityResult]=await Promise.all([
+    supabase("rpc/nexora_npc_camps_snapshot",{
+      method:"POST",
+      body:JSON.stringify({p_player_id:Number(playerId)})
+    }),
+    getWorldVisibilitySnapshot(playerId)
+  ]);
 
   if(!snapshot.ok||snapshot.data?.success!==true){
     console.error("NPC kamp snapshot RPC hatası:",snapshot.data);
     return send(res,503,{success:false,message:"NPC kampları şu anda kullanılamıyor."});
   }
+  if(!visibilityResult.ok){
+    console.error("NPC görüş snapshot hatası:",visibilityResult.data);
+    return send(res,503,{success:false,message:"NPC görüş bilgisi şu anda alınamıyor."});
+  }
 
-  return send(res,200,snapshot.data);
+  const visibility=visibilityResult.data||{};
+  const liveIds=new Set((visibility.liveNpcIds||[]).map(Number));
+  const current=Array.isArray(snapshot.data.camps)?snapshot.data.camps:[];
+  const live=current
+    .filter(camp=>liveIds.has(Number(camp.id)))
+    .map(camp=>({...camp,liveVisible:true,stale:false}));
+
+  const liveReturned=new Set(live.map(camp=>Number(camp.id)));
+  const stale=worldMemoryRows(visibility,"npc")
+    .filter(row=>!liveReturned.has(Number(row.targetId)))
+    .map(row=>{
+      const snap=row.snapshot&&typeof row.snapshot==="object"&&!Array.isArray(row.snapshot)
+        ?row.snapshot
+        :{};
+      return {
+        ...snap,
+        id:Number(row.targetId),
+        coordinateX:Number(row.coordinateX??snap.coordinateX),
+        coordinateY:Number(row.coordinateY??snap.coordinateY),
+        liveVisible:false,
+        stale:true,
+        lastSeenAt:row.lastSeenAt||null,
+        canAttack:false,
+        activeMissionId:null
+      };
+    });
+
+  return send(res,200,{
+    ...snapshot.data,
+    camps:[...live,...stale],
+    vision:{
+      radius:Number(visibility.visionRadius||18),
+      watchtowerLevel:Number(visibility.watchtowerLevel||0)
+    }
+  });
 }
 
 async function createNpcMission(req,res){
@@ -3156,6 +3209,18 @@ async function createNpcMission(req,res){
   const campId=Number(body.campId);
   if(!Number.isSafeInteger(campId)||campId<=0){
     return send(res,400,{success:false,message:"Geçersiz NPC kampı."});
+  }
+
+  const npcVisibility=await getWorldTargetVisibility(playerId,"npc",campId);
+  if(!npcVisibility.ok){
+    return send(res,404,{success:false,message:"NPC kampı bulunamadı veya aktif değil."});
+  }
+  if(npcVisibility.data.liveVisible!==true){
+    return send(res,403,{
+      success:false,
+      code:"NPC_NOT_VISIBLE",
+      message:"Bu NPC kampı artık güncel görüş alanında değil."
+    });
   }
 
   const battleTactic=String(body.battleTactic||"balanced").trim().toLowerCase();
@@ -4718,20 +4783,97 @@ async function upgradeBuilding(req,res){
   const label=buildingType+(slot===2?" II":"");
   return send(res,200,{success:true,message:label+" için seviye "+(current+1)+" inşaatı başlatıldı.",city:spentCity,building:spend.data.building,finishAt:spend.data.finishAt,duration,cost,nextLevel:current+1,maxLevel,slot});
 }
-async function getWorldPlayers(req,res){
-  const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const citiesResult=await supabase("cities?select=id,player_id,name,level,coordinate_x,coordinate_y"); if(!citiesResult.ok)return send(res,500,{success:false,message:"Koloniler alınamadı."});
-  const playersResult=await supabase("players?select=id,username"); if(!playersResult.ok)return send(res,500,{success:false,message:"Oyuncular alınamadı."});
+async function getWorldVisibilitySnapshot(playerId){
+  const result=await supabase("rpc/nexora_world_refresh_memory",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:Number(playerId)})
+  });
+  if(!result.ok||result.data?.success!==true){
+    return {ok:false,data:result.data||null};
+  }
+  return {ok:true,data:result.data};
+}
 
-  const protectionPlayerIds=Array.from(new Set([
+async function getWorldTargetVisibility(playerId,targetType,targetId){
+  const result=await supabase("rpc/nexora_world_target_visibility",{
+    method:"POST",
+    body:JSON.stringify({
+      p_player_id:Number(playerId),
+      p_target_type:String(targetType||""),
+      p_target_id:Number(targetId)
+    })
+  });
+  if(!result.ok||result.data?.success!==true){
+    return {ok:false,data:result.data||null};
+  }
+  return {ok:true,data:result.data};
+}
+
+function worldMemoryRows(visibility,targetType){
+  const rows=Array.isArray(visibility?.memory)?visibility.memory:[];
+  return rows.filter(row=>String(row?.targetType||"")===String(targetType||""));
+}
+
+function staleWorldSiteFromMemory(site,memoryRow){
+  const snap=memoryRow?.snapshot&&typeof memoryRow.snapshot==="object"&&!Array.isArray(memoryRow.snapshot)
+    ?memoryRow.snapshot
+    :{};
+  return {
+    ...snap,
+    id:Number(site.id),
+    site_type:String(snap.site_type||site.site_type||"neutral"),
+    name:String(snap.name||site.name||"Dünya Noktası"),
+    coordinate_x:Number(memoryRow?.coordinateX??site.coordinate_x),
+    coordinate_y:Number(memoryRow?.coordinateY??site.coordinate_y),
+    liveVisible:false,
+    stale:true,
+    lastSeenAt:memoryRow?.lastSeenAt||null,
+    can_explore:false,
+    can_claim:false,
+    resource_collector_mission_id:null,
+    resource_collector_player_id:null,
+    resource_collector_username:null,
+    resource_collector_alliance_id:null,
+    resource_gather_complete_at:null,
+    resource_under_attack:false,
+    resource_attack_conflict_id:null,
+    resource_attack_arrive_at:null
+  };
+}
+
+async function getWorldPlayers(req,res){
+  const playerId=authPlayerId(req);
+  if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
+
+  const visibilityResult=await getWorldVisibilitySnapshot(playerId);
+  if(!visibilityResult.ok){
+    console.error("Dünya görüş snapshot alınamadı:",visibilityResult.data);
+    return send(res,503,{success:false,message:"Dünya görüş bilgisi şu anda alınamıyor."});
+  }
+  const visibility=visibilityResult.data||{};
+  const livePlayerIds=new Set((visibility.livePlayerIds||[]).map(Number));
+  const liveSiteIds=new Set((visibility.liveSiteIds||[]).map(Number));
+  const playerMemories=worldMemoryRows(visibility,"player");
+  const siteMemories=worldMemoryRows(visibility,"site");
+  const playerMemoryMap=new Map(playerMemories.map(row=>[Number(row.targetId),row]));
+  const siteMemoryMap=new Map(siteMemories.map(row=>[Number(row.targetId),row]));
+
+  const [citiesResult,playersResult]=await Promise.all([
+    supabase("cities?select=id,player_id,name,level,coordinate_x,coordinate_y"),
+    supabase("players?select=id,username")
+  ]);
+  if(!citiesResult.ok)return send(res,500,{success:false,message:"Koloniler alınamadı."});
+  if(!playersResult.ok)return send(res,500,{success:false,message:"Oyuncular alınamadı."});
+
+  const currentVisibleIds=Array.from(new Set([
     Number(playerId),
-    ...(citiesResult.data||[]).map(c=>Number(c.player_id))
+    ...Array.from(livePlayerIds)
   ].filter(id=>Number.isSafeInteger(id)&&id>0)));
 
-  const protectionResult=protectionPlayerIds.length
+  const protectionResult=currentVisibleIds.length
     ?await supabase(
       "player_pvp_protection?select=player_id,protected_until,ended_at"+
-      "&player_id=in.("+protectionPlayerIds.join(",")+")"
+      "&player_id=in.("+currentVisibleIds.join(",")+")"
     )
     :{ok:true,data:[]};
 
@@ -4765,10 +4907,112 @@ async function getWorldPlayers(req,res){
       remainingSeconds:0
     };
 
-  const map={}; for(const p of playersResult.data||[])map[p.id]=p.username;
-  const players=(citiesResult.data||[]).map(c=>{const region=regionForCoordinates(Number(c.coordinate_x||0),Number(c.coordinate_y||0));return {id:c.id,player_id:c.player_id,username:map[c.player_id]||"Oyuncu",name:c.name,level:c.level,coordinate_x:c.coordinate_x,coordinate_y:c.coordinate_y,region:region.name,region_bonus:region.bonus,pvpProtection:protectionFor(c.player_id)};});
-  let sitesResult=await supabase("rpc/nexora_world_control_sites",{method:"POST",body:JSON.stringify({p_player_id:playerId})});
-  if(!sitesResult.ok)sitesResult=await supabase("world_sites?select=id,site_type,name,coordinate_x,coordinate_y,reward&active=eq.true&site_type=neq.npc_camp");
+  const usernameMap={};
+  for(const p of playersResult.data||[])usernameMap[p.id]=p.username;
+
+  const livePlayers=(citiesResult.data||[])
+    .filter(city=>
+      Number(city.player_id)===Number(playerId)||
+      livePlayerIds.has(Number(city.player_id))
+    )
+    .map(city=>{
+      const region=regionForCoordinates(Number(city.coordinate_x||0),Number(city.coordinate_y||0));
+      const memory=playerMemoryMap.get(Number(city.player_id));
+      return {
+        id:city.id,
+        player_id:city.player_id,
+        username:usernameMap[city.player_id]||"Oyuncu",
+        name:city.name,
+        level:city.level,
+        coordinate_x:city.coordinate_x,
+        coordinate_y:city.coordinate_y,
+        region:region.name,
+        region_bonus:region.bonus,
+        pvpProtection:protectionFor(city.player_id),
+        liveVisible:true,
+        stale:false,
+        lastSeenAt:memory?.lastSeenAt||null
+      };
+    });
+
+  const liveReturnedIds=new Set(livePlayers.map(player=>Number(player.player_id)));
+  const stalePlayers=playerMemories
+    .filter(row=>{
+      const id=Number(row.targetId);
+      return id>0&&id!==Number(playerId)&&!liveReturnedIds.has(id);
+    })
+    .map(row=>{
+      const snap=row.snapshot&&typeof row.snapshot==="object"&&!Array.isArray(row.snapshot)
+        ?row.snapshot
+        :{};
+      const x=Number(row.coordinateX??snap.coordinate_x);
+      const y=Number(row.coordinateY??snap.coordinate_y);
+      const region=regionForCoordinates(x,y);
+      return {
+        ...snap,
+        player_id:Number(row.targetId),
+        username:String(snap.username||"Oyuncu"),
+        coordinate_x:x,
+        coordinate_y:y,
+        region:region.name,
+        region_bonus:region.bonus,
+        pvpProtection:{protected:false,protectedUntil:null,remainingSeconds:0},
+        liveVisible:false,
+        stale:true,
+        lastSeenAt:row.lastSeenAt||null
+      };
+    });
+
+  const players=[...livePlayers,...stalePlayers];
+
+  let sitesResult=await supabase("rpc/nexora_world_control_sites",{
+    method:"POST",
+    body:JSON.stringify({p_player_id:playerId})
+  });
+  if(!sitesResult.ok){
+    sitesResult=await supabase(
+      "world_sites?select=id,site_type,name,description,coordinate_x,coordinate_y,reward,resource_type,resource_rarity,resource_capacity&active=eq.true&site_type=neq.npc_camp"
+    );
+  }
+
+  const rawSites=sitesResult.ok?(sitesResult.data||[]):[];
+  const sites=rawSites.map(site=>{
+    const siteId=Number(site.id);
+    const liveVisible=liveSiteIds.has(siteId);
+    const discovered=
+      site.has_explored===true||
+      site.alliance_has_explored===true||
+      site.is_owned_by_viewer===true;
+    const memory=siteMemoryMap.get(siteId);
+
+    if(!discovered){
+      return {
+        id:siteId,
+        site_type:"unknown",
+        name:"Bilinmeyen Sinyal",
+        description:"Bu noktanın kimliği henüz keşfedilmedi.",
+        coordinate_x:Number(site.coordinate_x),
+        coordinate_y:Number(site.coordinate_y),
+        unknownSignal:true,
+        liveVisible,
+        stale:!liveVisible,
+        lastSeenAt:null,
+        can_explore:true,
+        can_claim:false
+      };
+    }
+
+    if(!liveVisible){
+      return staleWorldSiteFromMemory(site,memory);
+    }
+
+    return {
+      ...site,
+      liveVisible:true,
+      stale:false,
+      lastSeenAt:memory?.lastSeenAt||null
+    };
+  });
 
   const regionControlResult=await supabase("rpc/nexora_alliance_region_control",{
     method:"POST",
@@ -4781,9 +5025,28 @@ async function getWorldPlayers(req,res){
     ?regionControlResult.data
     :{success:false,playerAllianceId:null,regions:[]};
 
-  return send(res,200,{success:true,players,viewerPvpProtection:protectionFor(playerId),sites:sitesResult.ok?(sitesResult.data||[]):[],regions:[
-    {name:"Çöl Bölgesi",bonus:"Metal üretimi +5%"},{name:"Orman Bölgesi",bonus:"Alaşım üretimi +5%"},{name:"Buz Bölgesi",bonus:"Enerji üretimi +5%"},{name:"Dağ Bölgesi",bonus:"Savunma +5%"},{name:"Volkanik Bölge",bonus:"Kristal üretimi +5%"},{name:"Okyanus",bonus:"Seyahat süresi -5%"}
-  ],regionControl});
+  return send(res,200,{
+    success:true,
+    players,
+    viewerPvpProtection:protectionFor(playerId),
+    sites,
+    vision:{
+      radius:Number(visibility.visionRadius||18),
+      watchtowerLevel:Number(visibility.watchtowerLevel||0),
+      viewerX:Number(visibility.viewerX||0),
+      viewerY:Number(visibility.viewerY||0),
+      activeIntelScans:Array.isArray(visibility.activeIntelScans)?visibility.activeIntelScans:[]
+    },
+    regions:[
+      {name:"Çöl Bölgesi",bonus:"Metal üretimi +5%"},
+      {name:"Orman Bölgesi",bonus:"Alaşım üretimi +5%"},
+      {name:"Buz Bölgesi",bonus:"Enerji üretimi +5%"},
+      {name:"Dağ Bölgesi",bonus:"Savunma +5%"},
+      {name:"Volkanik Bölge",bonus:"Kristal üretimi +5%"},
+      {name:"Okyanus",bonus:"Seyahat süresi -5%"}
+    ],
+    regionControl
+  });
 }
 
 async function claimWorldSite(req,res){
@@ -5998,6 +6261,24 @@ async function startResourceGather(req,res){
   const requested=body?.units&&typeof body.units==="object"&&!Array.isArray(body.units)?body.units:null;
 
   if(!Number.isSafeInteger(siteId)||siteId<=0)return send(res,400,{success:false,message:"Geçersiz kaynak noktası."});
+
+  const resourceVisibility=await getWorldTargetVisibility(playerId,"site",siteId);
+  if(!resourceVisibility.ok)return send(res,404,{success:false,message:"Kaynak noktası bulunamadı."});
+  if(resourceVisibility.data.seen!==true){
+    return send(res,403,{
+      success:false,
+      code:"RESOURCE_NOT_DISCOVERED",
+      message:"Bu kaynak noktasını önce keşfetmelisin."
+    });
+  }
+  if(resourceVisibility.data.liveVisible!==true){
+    return send(res,403,{
+      success:false,
+      code:"RESOURCE_NOT_VISIBLE",
+      message:"Kaynak noktası güncel görüş alanında değil."
+    });
+  }
+
   if(!tactic)return send(res,400,{success:false,message:"Geçersiz savaş taktiği."});
   if(!requested)return send(res,400,{success:false,message:"Geçersiz birlik seçimi."});
 
@@ -6137,6 +6418,16 @@ async function startResourceConflict(req,res){
   if(!targetR.ok||!targetR.data?.[0])return send(res,404,{success:false,message:"Kaynak ordusu artık bu noktada değil."});
   const target=targetR.data[0];
 
+  const conflictVisibility=await getWorldTargetVisibility(playerId,"site",Number(target.site_id));
+  if(!conflictVisibility.ok)return send(res,404,{success:false,message:"Kaynak noktası bulunamadı."});
+  if(conflictVisibility.data.seen!==true||conflictVisibility.data.liveVisible!==true){
+    return send(res,403,{
+      success:false,
+      code:"RESOURCE_TARGET_NOT_VISIBLE",
+      message:"Bu kaynak ordusuna saldırmak için noktanın güncel görüş alanında olması gerekir."
+    });
+  }
+
   const [cityR,siteR,attackerResearchSync,defenderResearchSync,attackerRegion,defenderRegion]=await Promise.all([
     supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
     supabase("world_sites?select=id,resource_type,resource_rarity,resource_gather_seconds,coordinate_x,coordinate_y,active&id=eq."+encodeURIComponent(target.site_id)+"&limit=1"),
@@ -6250,6 +6541,16 @@ async function startEspionage(req,res){
   const targetPlayerId=Number(body?.targetPlayerId);
   if(!Number.isSafeInteger(targetPlayerId)||targetPlayerId<=0)return send(res,400,{success:false,message:"Geçersiz casusluk hedefi."});
   if(targetPlayerId===Number(playerId))return send(res,400,{success:false,message:"Kendi kolonine casus gönderemezsin."});
+
+  const spyVisibility=await getWorldTargetVisibility(playerId,"player",targetPlayerId);
+  if(!spyVisibility.ok)return send(res,404,{success:false,message:"Hedef koloni bulunamadı."});
+  if(spyVisibility.data.seen!==true){
+    return send(res,403,{
+      success:false,
+      code:"SPY_TARGET_UNKNOWN",
+      message:"Casus göndermek için hedef koloniyi önce haritada görmüş olmalısın."
+    });
+  }
 
   const [attackerCityR,targetCityR,researchR,regionBonusResult]=await Promise.all([
     supabase("cities?select=id,coordinate_x,coordinate_y&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"),
