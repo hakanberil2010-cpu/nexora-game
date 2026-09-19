@@ -305,6 +305,58 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   .scene-controls .fit-button{margin-right:auto}
 }
 
+/* TERYNDIS Command UI */
+:root{--ty-bg:#040a12;--ty-line:rgba(87,163,203,.24);--ty-line-strong:rgba(93,205,255,.48);--ty-text:#e8f4fb;--ty-muted:#7897ad;--ty-cyan:#42cfff;--ty-amber:#f4c86a}
+body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transparent 34%),radial-gradient(circle at 5% 40%,rgba(24,70,94,.10),transparent 28%),var(--ty-bg);color:var(--ty-text)}
+.topbar{height:70px;padding:0 24px;background:rgba(4,12,21,.94);border-bottom:1px solid var(--ty-line);box-shadow:0 8px 30px rgba(0,0,0,.28);backdrop-filter:blur(14px)}
+.logo{position:relative;padding-left:14px;color:#dff7ff;font-size:27px;letter-spacing:7px;text-shadow:0 0 22px rgba(66,207,255,.24)}
+.logo::before{content:"";position:absolute;left:0;top:5px;bottom:5px;width:3px;border-radius:999px;background:linear-gradient(180deg,#83e5ff,#168fc2);box-shadow:0 0 14px rgba(66,207,255,.45)}
+.logo::after{content:"COMMAND CORE";position:absolute;left:15px;bottom:-9px;color:#5e8298;font-size:7px;letter-spacing:2.4px;font-weight:700;text-shadow:none}
+.player{display:flex;align-items:center;gap:7px;color:#8eafc2;font-size:13px}.player strong{color:#dff6ff}
+.logout{margin-left:9px;border:1px solid rgba(93,205,255,.28);background:rgba(13,43,62,.72);color:#d9f3ff}.logout:hover{background:#103b57}
+.layout{min-height:calc(100vh - 70px)}
+.sidebar{width:220px;padding:21px 12px;background:linear-gradient(180deg,rgba(8,22,35,.98),rgba(5,14,24,.98));border-right:1px solid var(--ty-line);box-shadow:10px 0 34px rgba(0,0,0,.16)}
+.sidebar h3{margin:4px 11px 10px;color:#587a91;font-size:10px;letter-spacing:1.8px}.menu{margin-bottom:22px}
+.menu li{position:relative;margin-bottom:4px;padding:10px 11px;border:1px solid transparent;border-radius:8px;color:#93afc2;font-size:13px;transition:.15s ease}
+.menu li:hover{background:rgba(22,61,85,.48);border-color:rgba(89,181,224,.12);color:#d5f2ff}
+.menu li.active{background:linear-gradient(90deg,rgba(25,118,158,.24),rgba(13,43,62,.52));border-color:rgba(72,187,237,.26);color:#8de3ff;box-shadow:inset 3px 0 0 #36c5ff}
+.activityBadge{min-width:20px;height:20px;background:#167eaa}.main{max-width:1600px;padding:22px}
+.mobileNav{border-color:var(--ty-line-strong);background:#071723;color:#dff5ff}
+.welcome{margin-bottom:15px;align-items:center}.welcome h1{margin:0 0 2px;color:#eefaff;font-size:28px}.welcome p{color:#6e8ea3;font-size:12px}
+.beginner-guide{border-color:rgba(72,187,237,.28);background:linear-gradient(135deg,rgba(11,37,55,.97),rgba(6,20,32,.97));box-shadow:0 14px 32px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.035)}
+.colony-panel{padding:10px;border:1px solid rgba(74,165,207,.26);border-radius:16px;background:linear-gradient(180deg,rgba(8,24,37,.96),rgba(5,16,26,.96));box-shadow:0 20px 52px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.025)}
+.colony-scene{border:1px solid rgba(82,177,219,.32);border-radius:13px;background:#030b12;box-shadow:inset 0 0 90px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.015)}
+.colony-scene::after{content:"";position:absolute;inset:0;z-index:10;pointer-events:none;border-radius:inherit;background:linear-gradient(180deg,rgba(1,6,11,.28),transparent 16%,transparent 80%,rgba(1,6,11,.26)),radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.27) 100%)}
+.colony-world{background:radial-gradient(circle at 18% 24%,rgba(22,71,54,.72) 0 10%,transparent 19%),radial-gradient(circle at 76% 20%,rgba(45,83,55,.62) 0 12%,transparent 22%),radial-gradient(circle at 44% 71%,rgba(80,66,41,.52) 0 12%,transparent 23%),radial-gradient(circle at 83% 76%,rgba(43,69,91,.58) 0 13%,transparent 22%),radial-gradient(circle at 50% 47%,rgba(26,77,95,.24),transparent 28%),linear-gradient(145deg,#0a2028,#071722 54%,#081b24);box-shadow:inset 0 0 180px rgba(0,0,0,.42)}
+.colony-world::before{background-image:linear-gradient(rgba(111,184,210,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(111,184,210,.05) 1px,transparent 1px);background-size:72px 72px}
+.scene-title{padding:8px 11px;border:1px solid rgba(89,191,235,.30);background:rgba(3,14,23,.84);color:#bcecff;font-size:10px;font-weight:800;letter-spacing:1.4px;box-shadow:0 8px 22px rgba(0,0,0,.22);backdrop-filter:blur(10px)}
+.scene-hint{border:1px solid rgba(255,255,255,.06);background:rgba(3,13,22,.72);color:#607f94;font-size:10px}
+.scene-hud{gap:6px;padding:5px;border:1px solid rgba(83,172,212,.24);background:rgba(3,14,23,.88);box-shadow:0 9px 25px rgba(0,0,0,.28);backdrop-filter:blur(12px)}
+.scene-hud span{min-height:34px;padding:6px 9px;border:1px solid rgba(255,255,255,.055);border-radius:7px;background:linear-gradient(180deg,rgba(17,43,58,.82),rgba(8,26,39,.82));color:#d8eff9;font-size:11px}
+.scene-hud b{color:#f1fbff;font-size:12px;font-variant-numeric:tabular-nums}.scene-hud small{color:#65869b;font-size:9px}
+.scene-controls{border-color:rgba(85,178,220,.28);background:rgba(3,14,23,.90);box-shadow:0 10px 28px rgba(0,0,0,.30);backdrop-filter:blur(12px)}
+.scene-controls button{border-color:rgba(95,187,228,.24);background:linear-gradient(180deg,#0d3248,#082437);color:#dff5ff}.scene-controls button:hover{background:#10415e;border-color:rgba(100,211,255,.48)}.scene-zoom-label{color:#7fbad6}
+.road-map line{stroke:#6f9aaa;stroke-width:2.2;opacity:.38;filter:drop-shadow(0 0 3px rgba(95,196,223,.22))}
+.building-node{width:128px;min-height:92px;padding:10px 9px 9px;overflow:hidden;border:1px solid rgba(93,169,203,.38);border-radius:14px;background:linear-gradient(180deg,rgba(13,44,61,.97),rgba(5,22,33,.98));color:#e6f5fb;box-shadow:0 14px 28px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.04)}
+.building-node::before{content:"";position:absolute;left:16px;right:16px;top:0;height:2px;border-radius:999px;background:linear-gradient(90deg,transparent,#38bfe9,transparent);opacity:.46}
+.building-node:hover{transform:translate(-50%,-50%) scale(1.045);border-color:rgba(86,210,255,.68);box-shadow:0 16px 34px rgba(0,0,0,.42),0 0 24px rgba(36,166,214,.16)}
+.building-node.selected{border-color:#62d9ff;box-shadow:0 0 0 2px rgba(67,202,247,.18),0 0 32px rgba(44,183,232,.28),0 16px 35px rgba(0,0,0,.44)}
+.building-node.command-core{width:148px;min-height:106px;border-color:rgba(109,221,255,.62);background:radial-gradient(circle at 50% 0%,rgba(47,173,218,.18),transparent 52%),linear-gradient(180deg,rgba(14,55,72,.98),rgba(5,24,36,.99));box-shadow:0 18px 38px rgba(0,0,0,.46),0 0 32px rgba(43,176,224,.18),inset 0 1px 0 rgba(255,255,255,.05)}
+.building-node.command-core::before{left:20px;right:20px;height:3px;background:linear-gradient(90deg,transparent,#8ce9ff,transparent);opacity:.85}
+.building-node.locked{opacity:.48;filter:saturate(.28) brightness(.78)}
+.building-node.pending{border-color:rgba(244,200,106,.72);box-shadow:0 14px 30px rgba(0,0,0,.40),0 0 24px rgba(244,200,106,.13)}
+.building-icon{width:42px;height:42px;margin-bottom:6px;border:1px solid rgba(85,177,218,.34);border-radius:11px;background:linear-gradient(180deg,rgba(19,64,85,.92),rgba(8,31,46,.92));box-shadow:inset 0 0 18px rgba(45,182,230,.08),0 6px 14px rgba(0,0,0,.24);font-size:22px}
+.command-core .building-icon{width:48px;height:48px;border-color:rgba(112,218,255,.52);background:radial-gradient(circle,rgba(30,132,174,.28),rgba(9,35,50,.92));font-size:25px}
+.building-node-name{color:#e7f5fb;font-size:11px}.building-node-level{color:#75a9c3;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}.building-node-time{color:#f4ce79;font-variant-numeric:tabular-nums}.building-node-unlock{color:#d6a85a}
+.colony-status-row{gap:10px;margin-top:10px}.status{position:relative;min-height:58px;padding:26px 13px 11px;border:1px solid rgba(75,157,195,.20);border-radius:10px;background:linear-gradient(180deg,rgba(8,26,40,.94),rgba(5,18,29,.94));color:#93b8ca;font-size:11px;line-height:1.5}
+.status::before{position:absolute;left:13px;top:8px;color:#557d94;font-size:8px;font-weight:800;letter-spacing:1.5px}#colonyStats::before{content:"KOLONİ DURUMU"}#productionStats::before{content:"ÜRETİM AĞI"}
+.building-popover{width:330px;padding:17px;border:1px solid rgba(91,190,232,.42);border-radius:14px;background:linear-gradient(180deg,rgba(5,22,34,.985),rgba(3,15,25,.985));box-shadow:0 24px 58px rgba(0,0,0,.62),0 0 28px rgba(48,177,223,.12);backdrop-filter:blur(14px)}
+.popover-close{border:1px solid rgba(92,178,215,.18);background:#0a273a;color:#9bcde2}.inspector-kicker{color:#56859d;font-size:9px;letter-spacing:1.6px}.building-popover h2{color:#ecfaff;font-size:22px}.inspector-level{color:#76cbe9;font-size:11px;letter-spacing:.6px;text-transform:uppercase}.inspector-copy{color:#789caf;font-size:11px}
+.inspector-effect,.inspector-meta div,.queue{border-color:rgba(80,153,187,.18);background:rgba(7,26,39,.72)}.inspector-effect{color:#a7c8d7}
+.upgrade{border:1px solid rgba(99,217,255,.50);border-radius:9px;background:linear-gradient(180deg,#1687b4,#0f668c);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 20px rgba(0,0,0,.22);letter-spacing:.3px}.upgrade:hover:not(:disabled){filter:none;background:linear-gradient(180deg,#1b9bcf,#11769e);border-color:#73deff}
+@media(max-width:900px){.sidebar{width:190px}.main{padding:16px}}
+@media(max-width:600px){.topbar{padding:11px 13px}.logo{font-size:22px;letter-spacing:5px}.logo::after{display:none}.main{padding:10px}.welcome{margin-bottom:10px}.welcome h1{font-size:23px}.colony-panel{padding:6px}.colony-scene{height:520px}.scene-hud span{padding:6px 8px}.scene-controls{padding:5px}.building-popover{width:min(300px,calc(100% - 20px))}}
+
 </style></head><body>
 
 <header class="topbar">
@@ -2395,7 +2447,7 @@ function renderBuildings(buildings){
 
       return `
         <button
-          class="building-node ${locked&&!pending?'locked':''} ${pending?'pending':''} ${selectedBuildingName===name&&selectedBuildingSlot===slot?'selected':''}"
+          class="building-node ${name==='Merkez Bina'?'command-core':''} ${locked&&!pending?'locked':''} ${pending?'pending':''} ${selectedBuildingName===name&&selectedBuildingSlot===slot?'selected':''}"
           style="left:${site.x}%;top:${site.y}%"
           type="button"
           onclick="selectBuilding('${name.replace(/'/g,"\\'")}',${slot})"
