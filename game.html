@@ -2617,6 +2617,14 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
     brightness(1.06)
     drop-shadow(0 18px 18px rgba(0,0,0,.46));
 }
+.building-node.has-sprite[aria-label^="Merkez Bina "] img.building-sprite{
+  filter:
+    saturate(1.12)
+    contrast(1.10)
+    brightness(1.10)
+    drop-shadow(0 22px 22px rgba(0,0,0,.50))
+    drop-shadow(0 0 15px rgba(75,210,241,.20));
+}
 
 /* Building visual evolution: Sv5+ auxiliary modules */
 .building-node.has-sprite[aria-label^="Merkez Bina "].visual-tier-2::before{
@@ -4075,22 +4083,22 @@ const BUILDING_INFO={
 
 const BUILDING_VISUALS={
   "Merkez Bina":{
-    asset:"assets/colony/buildings/command-center.webp",
-    width:300,
-    offsetY:-74,
-    labelY:74
+    asset:"assets/colony/buildings/command-center.svg",
+    width:350,
+    offsetY:-84,
+    labelY:86
   },
   "Metal Madeni":{
-    asset:"assets/colony/buildings/metal-mine.webp",
-    width:220,
-    offsetY:-54,
-    labelY:60
+    asset:"assets/colony/buildings/metal-mine.svg",
+    width:255,
+    offsetY:-62,
+    labelY:70
   },
   "Enerji Santrali":{
-    asset:"assets/colony/buildings/energy-plant.webp",
-    width:225,
-    offsetY:-56,
-    labelY:62
+    asset:"assets/colony/buildings/energy-plant.svg",
+    width:260,
+    offsetY:-64,
+    labelY:72
   },
   "Depo":{
     asset:"assets/colony/buildings/storage.svg",
