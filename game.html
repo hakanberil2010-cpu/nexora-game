@@ -801,10 +801,207 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   opacity:.94;
   filter:saturate(.9) contrast(1.04) brightness(.86);
 }
-.colony-world::before{opacity:.26}
-.road-map{opacity:.34}
-.command-core-zone{opacity:.30}
-.colony-decor{opacity:.58}
+.colony-world::before{opacity:.20}
+.road-map{opacity:.58}
+.command-core-zone{opacity:.34}
+.colony-decor{opacity:.64}
+
+/* Integrated colony environment */
+.colony-environment{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  overflow:hidden;
+  pointer-events:none;
+}
+.colony-district{
+  position:absolute;
+  border:1px solid rgba(115,166,181,.12);
+  border-radius:34px;
+  opacity:.72;
+  background:
+    linear-gradient(135deg,rgba(35,63,72,.18),rgba(5,18,25,.06)),
+    repeating-linear-gradient(90deg,rgba(122,171,184,.035) 0 2px,transparent 2px 28px);
+  box-shadow:
+    inset 0 0 46px rgba(0,0,0,.18),
+    0 18px 34px rgba(0,0,0,.08);
+  clip-path:polygon(4% 13%,92% 0,100% 77%,86% 100%,8% 91%,0 35%);
+}
+.colony-district::after{
+  content:"";
+  position:absolute;
+  inset:12px;
+  border:1px solid rgba(126,187,203,.08);
+  border-radius:26px;
+}
+.colony-district.west-industry{
+  left:3%;
+  top:10%;
+  width:36%;
+  height:47%;
+  background:
+    radial-gradient(circle at 30% 42%,rgba(62,128,92,.12),transparent 46%),
+    linear-gradient(135deg,rgba(28,67,65,.20),rgba(5,19,24,.05));
+}
+.colony-district.east-industry{
+  left:62%;
+  top:10%;
+  width:35%;
+  height:48%;
+  background:
+    radial-gradient(circle at 62% 45%,rgba(47,118,140,.14),transparent 45%),
+    linear-gradient(135deg,rgba(28,65,77,.22),rgba(5,18,25,.05));
+}
+.colony-district.logistics{
+  left:24%;
+  top:62%;
+  width:71%;
+  height:21%;
+  border-color:rgba(196,159,81,.12);
+  background:
+    radial-gradient(ellipse at 58% 48%,rgba(153,115,49,.10),transparent 55%),
+    linear-gradient(135deg,rgba(66,57,35,.17),rgba(15,20,21,.04));
+}
+.colony-district.military{
+  left:3%;
+  top:61%;
+  width:24%;
+  height:23%;
+  border-color:rgba(190,103,91,.12);
+  background:
+    radial-gradient(circle at 40% 46%,rgba(152,73,62,.11),transparent 55%),
+    linear-gradient(135deg,rgba(68,39,37,.18),rgba(17,16,20,.04));
+}
+.colony-district.defense{
+  left:31%;
+  top:84%;
+  width:38%;
+  height:13%;
+  border-color:rgba(139,152,212,.14);
+  background:linear-gradient(180deg,rgba(58,61,94,.14),rgba(8,15,24,.03));
+}
+.colony-plaza{
+  position:absolute;
+  left:50%;
+  top:48%;
+  width:430px;
+  height:286px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(94,184,211,.22);
+  border-radius:42%;
+  background:
+    radial-gradient(ellipse at center,rgba(22,74,91,.20) 0 38%,rgba(9,30,40,.13) 39% 62%,transparent 68%),
+    repeating-radial-gradient(ellipse at center,rgba(109,190,210,.08) 0 1px,transparent 1px 27px);
+  box-shadow:
+    inset 0 0 54px rgba(21,105,131,.10),
+    0 0 48px rgba(0,0,0,.12);
+}
+.colony-plaza::before,
+.colony-plaza::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  pointer-events:none;
+}
+.colony-plaza::before{
+  width:294px;
+  height:184px;
+  border:1px solid rgba(94,204,232,.17);
+  box-shadow:0 0 0 14px rgba(34,108,128,.035);
+}
+.colony-plaza::after{
+  width:164px;
+  height:98px;
+  border:1px dashed rgba(105,215,242,.18);
+}
+.colony-artery{
+  position:absolute;
+  border:1px solid rgba(87,130,145,.14);
+  background:
+    linear-gradient(180deg,rgba(6,17,22,.48),rgba(29,48,55,.36) 46%,rgba(7,19,25,.48)),
+    repeating-linear-gradient(90deg,transparent 0 72px,rgba(116,180,197,.10) 72px 77px,transparent 77px 145px);
+  box-shadow:
+    inset 0 1px rgba(142,187,199,.06),
+    inset 0 -1px rgba(0,0,0,.24),
+    0 8px 18px rgba(0,0,0,.10);
+}
+.colony-artery::after{
+  content:"";
+  position:absolute;
+  left:3%;
+  right:3%;
+  top:50%;
+  height:1px;
+  transform:translateY(-50%);
+  background:linear-gradient(90deg,transparent,rgba(76,190,215,.20),transparent);
+}
+.colony-artery.main{
+  left:5%;
+  top:46.4%;
+  width:90%;
+  height:46px;
+  transform:rotate(-.35deg);
+}
+.colony-artery.south{
+  left:8%;
+  top:72.1%;
+  width:84%;
+  height:38px;
+  transform:rotate(.25deg);
+}
+.colony-artery.spine{
+  left:49%;
+  top:9%;
+  width:40px;
+  height:82%;
+  background:
+    linear-gradient(90deg,rgba(6,17,22,.48),rgba(29,48,55,.34) 46%,rgba(7,19,25,.48)),
+    repeating-linear-gradient(180deg,transparent 0 66px,rgba(116,180,197,.09) 66px 71px,transparent 71px 138px);
+}
+.colony-artery.spine::after{
+  left:50%;
+  right:auto;
+  top:3%;
+  bottom:3%;
+  width:1px;
+  height:auto;
+  transform:translateX(-50%);
+  background:linear-gradient(180deg,transparent,rgba(76,190,215,.18),transparent);
+}
+.building-pad{
+  background:
+    radial-gradient(ellipse at center,rgba(16,45,56,.56) 0 42%,rgba(5,18,26,.22) 64%,transparent 72%);
+}
+.building-pad.selected{
+  border-color:rgba(112,228,255,.88);
+  background:
+    radial-gradient(ellipse at center,rgba(76,205,238,.19) 0 26%,rgba(21,73,91,.19) 42%,rgba(4,18,26,.05) 67%,transparent 72%);
+}
+.building-focus-lines{
+  width:286px;
+  height:176px;
+}
+.building-focus-lines::before,
+.building-focus-lines::after{
+  background:none;
+  opacity:.66;
+  filter:drop-shadow(0 0 7px rgba(89,215,247,.28));
+}
+.building-focus-lines::before{
+  width:100%;
+  height:100%;
+  border:1px solid rgba(111,226,255,.50);
+  border-radius:50%;
+}
+.building-focus-lines::after{
+  width:74%;
+  height:62%;
+  border:1px dashed rgba(111,226,255,.34);
+  border-radius:50%;
+}
 
 .building-node.has-sprite{
   min-height:0;
@@ -1022,6 +1219,17 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
 
       <div class="colony-world" id="colonyWorld">
         <div class="colony-terrain-layer" id="colonyTerrainLayer" aria-hidden="true"></div>
+        <div class="colony-environment" aria-hidden="true">
+          <span class="colony-district west-industry"></span>
+          <span class="colony-district east-industry"></span>
+          <span class="colony-district logistics"></span>
+          <span class="colony-district military"></span>
+          <span class="colony-district defense"></span>
+          <span class="colony-artery main"></span>
+          <span class="colony-artery south"></span>
+          <span class="colony-artery spine"></span>
+          <span class="colony-plaza"></span>
+        </div>
         <div class="command-core-zone" aria-hidden="true"></div>
         <div class="colony-decor" id="colonyDecor" aria-hidden="true"></div>
         <svg class="road-map" id="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
