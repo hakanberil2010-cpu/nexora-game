@@ -1687,6 +1687,216 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   .life-drone{opacity:.38}
 }
 
+/* Colony active logistics traffic */
+.colony-logistics-traffic{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  overflow:hidden;
+  pointer-events:none;
+}
+.logistics-convoy{
+  position:absolute;
+  width:28px;
+  height:11px;
+  margin:-6px 0 0 -14px;
+  border:1px solid rgba(108,145,153,.42);
+  border-radius:5px 4px 4px 5px;
+  background:
+    linear-gradient(90deg,#17262c 0 28%,#3b4b50 29% 72%,#15262d 73%);
+  box-shadow:0 6px 9px rgba(0,0,0,.28),0 0 7px rgba(89,204,229,.08);
+  opacity:.82;
+  transform-origin:50% 50%;
+}
+.logistics-convoy::before{
+  content:"";
+  position:absolute;
+  right:-4px;
+  top:2px;
+  width:4px;
+  height:5px;
+  border-radius:1px;
+  background:#35474d;
+  box-shadow:2px 0 0 rgba(111,218,239,.58);
+}
+.logistics-convoy::after{
+  content:"";
+  position:absolute;
+  left:5px;
+  right:7px;
+  bottom:1px;
+  height:2px;
+  border-radius:999px;
+  background:rgba(230,164,78,.44);
+}
+.logistics-convoy.metal::after{background:rgba(225,167,83,.56)}
+.logistics-convoy.alloy::after{background:rgba(237,128,65,.54)}
+.logistics-convoy.crystal::after{background:rgba(105,220,244,.62)}
+.logistics-convoy.energy::after{background:rgba(92,215,241,.58)}
+
+.logistics-convoy.metal-a{animation:convoyMetalA 18s linear -3s infinite}
+.logistics-convoy.metal-b{animation:convoyMetalB 23s linear -12s infinite}
+.logistics-convoy.alloy-a{animation:convoyAlloyA 20s linear -7s infinite}
+.logistics-convoy.alloy-b{animation:convoyAlloyB 25s linear -17s infinite}
+.logistics-convoy.crystal-a{animation:convoyCrystalA 24s linear -6s infinite}
+.logistics-convoy.energy-a{animation:convoyEnergyA 21s linear -14s infinite}
+
+.colony-world.state-pause-metal .logistics-convoy.metal,
+.colony-world.state-pause-alloy .logistics-convoy.alloy,
+.colony-world.state-pause-crystal .logistics-convoy.crystal,
+.colony-world.state-pause-energy .logistics-convoy.energy{
+  animation-play-state:paused;
+  opacity:.10;
+  filter:saturate(.20) brightness(.62);
+}
+
+.logistics-holding-yard{
+  position:absolute;
+  width:128px;
+  height:48px;
+  transform:translate(-50%,-50%);
+  border:1px dashed rgba(214,160,78,.28);
+  border-radius:8px;
+  background:
+    repeating-linear-gradient(135deg,rgba(227,166,78,.07) 0 5px,transparent 5px 14px),
+    rgba(14,23,24,.30);
+  opacity:.18;
+  transition:opacity .18s ease,border-color .18s ease;
+}
+.logistics-holding-yard.main-yard{left:60%;top:78.5%}
+.logistics-holding-yard.crystal-yard{
+  left:88%;top:80%;
+  width:88px;
+  border-color:rgba(105,211,236,.20);
+}
+.logistics-holding-yard .parked-convoy{
+  position:absolute;
+  width:27px;
+  height:10px;
+  border:1px solid rgba(104,135,143,.38);
+  border-radius:4px;
+  background:linear-gradient(90deg,#17262c,#3b494e 58%,#18292f);
+  box-shadow:0 5px 7px rgba(0,0,0,.24);
+}
+.logistics-holding-yard .parked-convoy::after{
+  content:"";
+  position:absolute;
+  right:2px;top:2px;
+  width:3px;height:3px;border-radius:50%;
+  background:#e0a158;
+  box-shadow:0 0 5px rgba(224,161,88,.38);
+}
+.logistics-holding-yard .p1{left:10px;top:9px}
+.logistics-holding-yard .p2{left:47px;top:9px}
+.logistics-holding-yard .p3{left:84px;top:9px}
+.logistics-holding-yard .p4{left:28px;top:27px}
+.logistics-holding-yard .p5{left:66px;top:27px}
+.logistics-holding-yard.crystal-yard .p1{left:10px;top:9px}
+.logistics-holding-yard.crystal-yard .p2{left:46px;top:9px}
+.logistics-holding-yard.crystal-yard .p3{left:28px;top:27px}
+.logistics-holding-yard.crystal-yard .p4,
+.logistics-holding-yard.crystal-yard .p5{display:none}
+.logistics-holding-yard.crystal-yard .parked-convoy::after{
+  background:#70dff4;
+  box-shadow:0 0 6px rgba(112,223,244,.54);
+}
+.colony-world.state-storage-full .logistics-holding-yard.main-yard{
+  opacity:.86;
+  border-color:rgba(230,168,79,.54);
+  box-shadow:inset 0 0 17px rgba(207,137,54,.06);
+}
+.colony-world.state-crystal-storage-full .logistics-holding-yard.crystal-yard{
+  opacity:.86;
+  border-color:rgba(100,215,240,.48);
+  box-shadow:inset 0 0 17px rgba(83,194,220,.07);
+}
+
+.sector-live-status{
+  position:absolute;
+  min-width:72px;
+  padding:4px 7px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(102,164,177,.24);
+  border-radius:5px;
+  background:rgba(6,18,23,.76);
+  color:#91c9d5;
+  font:800 7px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.7px;
+  text-align:center;
+  white-space:nowrap;
+  box-shadow:0 5px 12px rgba(0,0,0,.18);
+}
+.sector-live-status::before{
+  content:"";
+  display:inline-block;
+  width:5px;height:5px;
+  margin-right:5px;
+  border-radius:50%;
+  vertical-align:0;
+  background:#6fd9ee;
+  box-shadow:0 0 6px rgba(111,217,238,.48);
+}
+.sector-live-status[data-state="full"]{
+  border-color:rgba(227,164,76,.46);
+  color:#eac083;
+}
+.sector-live-status[data-state="full"]::before{
+  background:#e5a354;
+  box-shadow:0 0 6px rgba(229,163,84,.46);
+}
+.sector-live-status[data-state="paused"]{
+  border-color:rgba(137,134,111,.32);
+  color:#9d9c8b;
+  filter:saturate(.45);
+}
+.sector-live-status[data-state="paused"]::before{
+  background:#70746d;
+  box-shadow:none;
+}
+.sector-live-status.met{left:17%;top:31%}
+.sector-live-status.enr{left:69%;top:31%}
+.sector-live-status.aly{left:82%;top:31%}
+.sector-live-status.cry{left:87%;top:55%}
+
+@keyframes convoyMetalA{
+  0%{left:12%;top:24%;transform:rotate(48deg)}
+  30%{left:28%;top:49%;transform:rotate(54deg)}
+  62%{left:31%;top:72%;transform:rotate(4deg)}
+  100%{left:50%;top:75%;transform:rotate(2deg)}
+}
+@keyframes convoyMetalB{
+  0%{left:28%;top:49%;transform:rotate(99deg)}
+  46%{left:30%;top:72%;transform:rotate(6deg)}
+  100%{left:51%;top:75%;transform:rotate(1deg)}
+}
+@keyframes convoyAlloyA{
+  0%{left:88%;top:24%;transform:rotate(132deg)}
+  42%{left:72%;top:49%;transform:rotate(150deg)}
+  100%{left:69%;top:74%;transform:rotate(92deg)}
+}
+@keyframes convoyAlloyB{
+  0%{left:30%;top:74%;transform:rotate(1deg)}
+  52%{left:50%;top:74%;transform:rotate(1deg)}
+  100%{left:70%;top:74%;transform:rotate(1deg)}
+}
+@keyframes convoyCrystalA{
+  0%{left:90%;top:49%;transform:rotate(118deg)}
+  50%{left:82%;top:61%;transform:rotate(108deg)}
+  100%{left:88%;top:74%;transform:rotate(82deg)}
+}
+@keyframes convoyEnergyA{
+  0%{left:70%;top:23%;transform:rotate(126deg)}
+  50%{left:60%;top:35%;transform:rotate(136deg)}
+  100%{left:51%;top:49%;transform:rotate(151deg)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .logistics-convoy{
+    animation:none !important;
+    display:none;
+  }
+}
+
 /* Colony depth, perimeter defense and foreground occlusion */
 .colony-perimeter{
   position:absolute;
@@ -3154,6 +3364,35 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
           <span class="life-sector-marker sec">SEC-A</span>
           <span class="life-bollards bollards-a"></span>
           <span class="life-bollards bollards-b"></span>
+
+          <div class="colony-logistics-traffic">
+            <span class="logistics-convoy metal metal-a"></span>
+            <span class="logistics-convoy metal metal-b"></span>
+            <span class="logistics-convoy alloy alloy-a"></span>
+            <span class="logistics-convoy alloy alloy-b"></span>
+            <span class="logistics-convoy crystal crystal-a"></span>
+            <span class="logistics-convoy energy energy-a"></span>
+
+            <span class="logistics-holding-yard main-yard">
+              <i class="parked-convoy p1"></i>
+              <i class="parked-convoy p2"></i>
+              <i class="parked-convoy p3"></i>
+              <i class="parked-convoy p4"></i>
+              <i class="parked-convoy p5"></i>
+            </span>
+            <span class="logistics-holding-yard crystal-yard">
+              <i class="parked-convoy p1"></i>
+              <i class="parked-convoy p2"></i>
+              <i class="parked-convoy p3"></i>
+              <i class="parked-convoy p4"></i>
+              <i class="parked-convoy p5"></i>
+            </span>
+
+            <span class="sector-live-status met" id="sectorMetalStatus" data-state="active">MET · AKTİF</span>
+            <span class="sector-live-status enr" id="sectorEnergyStatus" data-state="active">ENR · AKTİF</span>
+            <span class="sector-live-status aly" id="sectorAlloyStatus" data-state="active">ALY · AKTİF</span>
+            <span class="sector-live-status cry" id="sectorCrystalStatus" data-state="active">CRY · AKTİF</span>
+          </div>
         </div>
         <div class="colony-atmosphere" aria-hidden="true">
           <span class="atmosphere-vignette"></span>
@@ -5264,6 +5503,32 @@ function updateColonyOperationalState(city,production,capacities,buildings){
     'state-pause-crystal',
     productionPaused['Kristal Madeni']===true
   );
+  world?.classList.toggle(
+    'state-storage-full',
+    latestColonyVisualState.storageFull===true
+  );
+  world?.classList.toggle(
+    'state-crystal-storage-full',
+    latestColonyVisualState.crystalStorageFull===true
+  );
+
+  const sectorStates=[
+    ['sectorMetalStatus','MET',full.metal,productionPaused['Metal Madeni']],
+    ['sectorEnergyStatus','ENR',full.energy,productionPaused['Enerji Santrali']],
+    ['sectorAlloyStatus','ALY',full.alloy,productionPaused['Alaşım Rafinerisi']],
+    ['sectorCrystalStatus','CRY',full.crystal,productionPaused['Kristal Madeni']]
+  ];
+
+  sectorStates.forEach(([id,label,isFull,isPaused])=>{
+    const node=document.getElementById(id);
+    if(!node)return;
+
+    const state=isFull?'full':isPaused?'paused':'active';
+    const text=isFull?'DOLU':isPaused?'DURDU':'AKTİF';
+
+    node.dataset.state=state;
+    node.textContent=label+' · '+text;
+  });
 }
 
 function incomingColonyThreat(missions){
