@@ -1003,6 +1003,234 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   border-radius:50%;
 }
 
+/* Colony infrastructure network */
+.colony-infrastructure{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  pointer-events:none;
+  opacity:.82;
+}
+.colony-infrastructure .infra-line{
+  fill:none;
+  vector-effect:non-scaling-stroke;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.colony-infrastructure .power-base{
+  stroke:rgba(36,72,84,.78);
+  stroke-width:5.2;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.34));
+}
+.colony-infrastructure .power-edge{
+  stroke:rgba(100,172,190,.24);
+  stroke-width:2.2;
+}
+.colony-infrastructure .power-active{
+  stroke:rgba(87,220,247,.72);
+  stroke-width:.95;
+  stroke-dasharray:3 4.5;
+  filter:drop-shadow(0 0 3px rgba(72,207,236,.46));
+  animation:infraPowerFlow 4.2s linear infinite;
+}
+.colony-infrastructure .pipe-base{
+  stroke:rgba(68,75,72,.88);
+  stroke-width:6.4;
+  filter:drop-shadow(0 3px 2px rgba(0,0,0,.28));
+}
+.colony-infrastructure .pipe-highlight{
+  stroke:rgba(207,163,92,.34);
+  stroke-width:1.3;
+  stroke-dasharray:10 5 2 5;
+}
+.colony-infrastructure .logistics-base{
+  stroke:rgba(87,91,78,.46);
+  stroke-width:4.2;
+}
+.colony-infrastructure .logistics-mark{
+  stroke:rgba(236,176,78,.58);
+  stroke-width:1.15;
+  stroke-dasharray:7 7;
+  animation:infraLogisticsFlow 7.8s linear infinite;
+}
+.colony-infrastructure .crystal-feed{
+  stroke:rgba(118,116,198,.38);
+  stroke-width:3.2;
+}
+.colony-infrastructure .crystal-feed-active{
+  stroke:rgba(109,222,247,.52);
+  stroke-width:.9;
+  stroke-dasharray:2 5;
+  animation:infraCrystalFlow 5.6s linear infinite;
+}
+.colony-infrastructure-nodes{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+}
+.infra-node{
+  position:absolute;
+  width:30px;
+  height:24px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(100,143,154,.28);
+  border-radius:6px;
+  background:
+    linear-gradient(180deg,rgba(55,75,81,.88),rgba(18,32,38,.94)),
+    repeating-linear-gradient(90deg,transparent 0 7px,rgba(89,203,226,.08) 8px 10px);
+  box-shadow:0 7px 13px rgba(0,0,0,.24),inset 0 1px rgba(203,218,222,.06);
+}
+.infra-node::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:5px;
+  height:5px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:#69d7ed;
+  box-shadow:0 0 9px rgba(105,215,237,.56);
+  animation:infraNodePulse 3.4s ease-in-out infinite;
+}
+.infra-node::after{
+  content:"";
+  position:absolute;
+  left:5px;
+  right:5px;
+  bottom:4px;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(90deg,rgba(239,169,77,.58),transparent 38%,rgba(91,211,235,.46));
+}
+.infra-node.sub-a{left:60%;top:34%}
+.infra-node.sub-b{left:64%;top:59%}
+.infra-node.sub-c{left:39%;top:59%}
+.infra-node.sub-d{left:32%;top:34%}
+
+.infra-pipe-station{
+  position:absolute;
+  width:42px;
+  height:22px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(147,118,73,.28);
+  border-radius:999px;
+  background:
+    linear-gradient(180deg,rgba(85,78,60,.90),rgba(30,34,31,.95));
+  box-shadow:0 7px 12px rgba(0,0,0,.22),inset 0 1px rgba(232,198,137,.05);
+}
+.infra-pipe-station::before,
+.infra-pipe-station::after{
+  content:"";
+  position:absolute;
+  top:50%;
+  width:9px;
+  height:9px;
+  transform:translateY(-50%);
+  border:2px solid rgba(203,157,83,.32);
+  border-radius:50%;
+}
+.infra-pipe-station::before{left:5px}
+.infra-pipe-station::after{right:5px}
+.infra-pipe-station.pipe-a{left:79%;top:34%}
+.infra-pipe-station.pipe-b{left:46%;top:74%}
+
+.infra-route-label{
+  position:absolute;
+  padding:2px 5px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(193,151,75,.20);
+  border-radius:4px;
+  background:rgba(10,18,20,.66);
+  color:rgba(230,190,117,.70);
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.8px;
+  white-space:nowrap;
+}
+.infra-route-label.route-a{left:58%;top:68%}
+.infra-route-label.route-b{left:35%;top:67%}
+.infra-route-label.route-c{left:80%;top:68%}
+
+.infra-service-light{
+  position:absolute;
+  width:5px;
+  height:5px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:#72dcf3;
+  box-shadow:0 0 8px rgba(114,220,243,.48);
+  opacity:.66;
+  animation:infraServiceLight 4s ease-in-out infinite;
+}
+.infra-service-light.amber{
+  background:#e3a15b;
+  box-shadow:0 0 8px rgba(227,161,91,.42);
+}
+.infra-service-light.l1{left:20%;top:46%}
+.infra-service-light.l2{left:32%;top:46%;animation-delay:-.7s}
+.infra-service-light.l3{left:44%;top:46%;animation-delay:-1.4s}
+.infra-service-light.l4{left:56%;top:46%;animation-delay:-2.1s}
+.infra-service-light.l5{left:68%;top:46%;animation-delay:-2.8s}
+.infra-service-light.l6{left:80%;top:46%;animation-delay:-3.5s}
+.infra-service-light.l7{left:36%;top:72%;animation-delay:-1s}
+.infra-service-light.l8{left:50%;top:72%;animation-delay:-2s}
+.infra-service-light.l9{left:64%;top:72%;animation-delay:-3s}
+.infra-service-light.l10{left:78%;top:72%;animation-delay:-.4s}
+
+.colony-world.state-pause-energy .colony-infrastructure .power-active,
+.colony-world.state-pause-energy .colony-infrastructure .crystal-feed-active{
+  animation:none !important;
+  opacity:.10;
+  filter:saturate(.18) brightness(.58);
+}
+.colony-world.state-pause-energy .infra-node::before{
+  animation:none !important;
+  background:#38535a;
+  box-shadow:none;
+  opacity:.46;
+}
+.colony-world.state-pause-energy .infra-service-light:not(.amber){
+  animation:none !important;
+  opacity:.16;
+  box-shadow:none;
+}
+.colony-world.state-pause-alloy .colony-infrastructure .pipe-highlight{
+  opacity:.14;
+}
+.colony-world.state-pause-alloy .infra-pipe-station{
+  filter:saturate(.42) brightness(.72);
+}
+
+@keyframes infraPowerFlow{
+  to{stroke-dashoffset:-30}
+}
+@keyframes infraLogisticsFlow{
+  to{stroke-dashoffset:-56}
+}
+@keyframes infraCrystalFlow{
+  to{stroke-dashoffset:-42}
+}
+@keyframes infraNodePulse{
+  50%{opacity:.46;box-shadow:0 0 4px rgba(105,215,237,.28)}
+}
+@keyframes infraServiceLight{
+  50%{opacity:.30}
+}
+@media(prefers-reduced-motion:reduce){
+  .colony-infrastructure .power-active,
+  .colony-infrastructure .logistics-mark,
+  .colony-infrastructure .crystal-feed-active,
+  .infra-node::before,
+  .infra-service-light{
+    animation:none !important;
+  }
+}
+
 /* Colony ambient motion */
 .colony-ambient{
   position:absolute;
@@ -2833,6 +3061,67 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
         </div>
         <div class="colony-decor" id="colonyDecor" aria-hidden="true"></div>
         <svg class="road-map" id="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+
+        <svg class="colony-infrastructure" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path class="infra-line power-base" d="M70 22 L60 34 L50 48 L64 59 L72 48"></path>
+          <path class="infra-line power-edge" d="M70 22 L60 34 L50 48 L64 59 L72 48"></path>
+          <path class="infra-line power-active" d="M70 22 L60 34 L50 48 L64 59 L72 48"></path>
+
+          <path class="infra-line power-base" d="M70 22 L79 34 L88 22"></path>
+          <path class="infra-line power-edge" d="M70 22 L79 34 L88 22"></path>
+          <path class="infra-line power-active" d="M70 22 L79 34 L88 22"></path>
+
+          <path class="infra-line power-base" d="M72 48 L80 59 L88 74"></path>
+          <path class="infra-line power-edge" d="M72 48 L80 59 L88 74"></path>
+          <path class="infra-line power-active" d="M72 48 L80 59 L88 74"></path>
+
+          <path class="infra-line power-base" d="M50 48 L39 59 L30 74"></path>
+          <path class="infra-line power-edge" d="M50 48 L39 59 L30 74"></path>
+          <path class="infra-line power-active" d="M50 48 L39 59 L30 74"></path>
+
+          <path class="infra-line pipe-base" d="M88 22 L79 34 L72 48 L64 59 L70 74"></path>
+          <path class="infra-line pipe-highlight" d="M88 22 L79 34 L72 48 L64 59 L70 74"></path>
+
+          <path class="infra-line pipe-base" d="M30 74 L46 74 L50 74"></path>
+          <path class="infra-line pipe-highlight" d="M30 74 L46 74 L50 74"></path>
+
+          <path class="infra-line logistics-base" d="M12 22 L28 48 L30 74 L50 74 L70 74 L88 74"></path>
+          <path class="infra-line logistics-mark" d="M12 22 L28 48 L30 74 L50 74 L70 74 L88 74"></path>
+
+          <path class="infra-line logistics-base" d="M50 74 L50 91"></path>
+          <path class="infra-line logistics-mark" d="M50 74 L50 91"></path>
+
+          <path class="infra-line crystal-feed" d="M10 48 L39 59 L50 74 L88 74"></path>
+          <path class="infra-line crystal-feed-active" d="M10 48 L39 59 L50 74 L88 74"></path>
+          <path class="infra-line crystal-feed" d="M90 48 L80 59 L88 74"></path>
+          <path class="infra-line crystal-feed-active" d="M90 48 L80 59 L88 74"></path>
+        </svg>
+
+        <div class="colony-infrastructure-nodes" aria-hidden="true">
+          <span class="infra-node sub-a"></span>
+          <span class="infra-node sub-b"></span>
+          <span class="infra-node sub-c"></span>
+          <span class="infra-node sub-d"></span>
+
+          <span class="infra-pipe-station pipe-a"></span>
+          <span class="infra-pipe-station pipe-b"></span>
+
+          <span class="infra-route-label route-a">LOG-A</span>
+          <span class="infra-route-label route-b">IND-B</span>
+          <span class="infra-route-label route-c">CRY-C</span>
+
+          <span class="infra-service-light l1"></span>
+          <span class="infra-service-light amber l2"></span>
+          <span class="infra-service-light l3"></span>
+          <span class="infra-service-light amber l4"></span>
+          <span class="infra-service-light l5"></span>
+          <span class="infra-service-light amber l6"></span>
+          <span class="infra-service-light l7"></span>
+          <span class="infra-service-light amber l8"></span>
+          <span class="infra-service-light l9"></span>
+          <span class="infra-service-light amber l10"></span>
+        </div>
+
         <div class="colony-ambient" aria-hidden="true">
           <span class="ambient-vehicle main-a"></span>
           <span class="ambient-vehicle main-b"></span>
