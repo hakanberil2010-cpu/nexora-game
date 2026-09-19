@@ -329,7 +329,7 @@ BEGIN
       'draws',COALESCE(st.draws,0),
       'lastBattleAt',st.last_battle_at,
       'availableAt',st.available_at,
-      'remainingSeconds',GREATEST(0,CEIL(EXTRACT(EPOCH FROM(COALESCE(st.available_at,'epoch'::timestamptz)-v_now))::integer),
+      'remainingSeconds',GREATEST(0,CEIL(EXTRACT(EPOCH FROM (COALESCE(st.available_at,'epoch'::timestamptz)-v_now)))::integer),
       'activeMissionId',(SELECT m.id FROM public.npc_missions m WHERE m.npc_camp_id=c.id AND m.status IN ('traveling','resolving','returning') ORDER BY m.id DESC LIMIT 1),
       'canAttack',COALESCE(st.available_at,'epoch'::timestamptz)<=v_now
         AND NOT EXISTS(SELECT 1 FROM public.npc_missions m WHERE m.npc_camp_id=c.id AND m.status IN ('traveling','resolving','returning'))
