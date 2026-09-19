@@ -837,6 +837,13 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   filter:drop-shadow(0 18px 18px rgba(0,0,0,.46));
   transition:transform .16s ease,filter .16s ease,opacity .16s ease;
 }
+.building-atlas-sprite{
+  height:100%;
+  background-image:url('assets/colony/buildings/buildings-atlas-v1.webp');
+  background-repeat:no-repeat;
+  background-size:500% 100%;
+  background-position:var(--atlas-position,0%) 0;
+}
 .building-node.has-sprite:hover .building-sprite{
   transform:translate(-50%,-50%) translateY(var(--sprite-offset-y,0px)) scale(1.035);
   filter:drop-shadow(0 20px 20px rgba(0,0,0,.50)) drop-shadow(0 0 12px rgba(69,205,245,.16));
@@ -1100,6 +1107,36 @@ const BUILDING_VISUALS={
     width:225,
     offsetY:-56,
     labelY:62
+  },
+  "Depo":{
+    atlasPosition:"0%",
+    width:205,
+    offsetY:-48,
+    labelY:58
+  },
+  "Kışla":{
+    atlasPosition:"25%",
+    width:210,
+    offsetY:-50,
+    labelY:60
+  },
+  "Gözcü Kulesi":{
+    atlasPosition:"50%",
+    width:175,
+    offsetY:-66,
+    labelY:66
+  },
+  "Kristal Madeni":{
+    atlasPosition:"75%",
+    width:220,
+    offsetY:-54,
+    labelY:62
+  },
+  "Alaşım Rafinerisi":{
+    atlasPosition:"100%",
+    width:215,
+    offsetY:-52,
+    labelY:61
   }
 };
 
@@ -3101,12 +3138,20 @@ function renderBuildings(buildings){
           aria-label="${esc(buildingLabel(name,slot))} Seviye ${level}"
         >
           ${buildingVisual?`
-            <img
-              class="building-sprite"
-              src="${buildingVisual.asset}"
-              alt=""
-              draggable="false"
-            >
+            ${buildingVisual.asset?`
+              <img
+                class="building-sprite"
+                src="${buildingVisual.asset}"
+                alt=""
+                draggable="false"
+              >
+            `:`
+              <span
+                class="building-sprite building-atlas-sprite"
+                style="--atlas-position:${buildingVisual.atlasPosition}"
+                aria-hidden="true"
+              ></span>
+            `}
             <span class="building-sprite-label">
               <span class="building-node-name">${esc(buildingLabel(name,slot))}</span>
               <span class="building-node-level">Sv. ${level}</span>
