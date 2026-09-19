@@ -403,39 +403,43 @@ BEGIN
     last_seen_at=EXCLUDED.last_seen_at,
     updated_at=EXCLUDED.updated_at;
 
-  SELECT COALESCE(jsonb_agg(c.player_id ORDER BY c.player_id),'[]'::jsonb)
-  INTO v_live_players
-  FROM public.cities c
-  WHERE c.player_id<>p_player_id
-    AND public.nexora_world_point_live_visible(p_player_id,c.coordinate_x,c.coordinate_y);
+  v_live_players:=COALESCE((
+    SELECT jsonb_agg(c.player_id ORDER BY c.player_id)
+    FROM public.cities c
+    WHERE c.player_id<>p_player_id
+      AND public.nexora_world_point_live_visible(p_player_id,c.coordinate_x,c.coordinate_y)
+  ),'[]'::jsonb);
 
-  SELECT COALESCE(jsonb_agg(c.id ORDER BY c.id),'[]'::jsonb)
-  INTO v_live_npcs
-  FROM public.npc_camps c
-  JOIN public.world_sites s ON s.id=c.world_site_id
-  WHERE c.active=true AND s.active=true
-    AND public.nexora_world_point_live_visible(p_player_id,s.coordinate_x,s.coordinate_y);
+  v_live_npcs:=COALESCE((
+    SELECT jsonb_agg(c.id ORDER BY c.id)
+    FROM public.npc_camps c
+    JOIN public.world_sites s ON s.id=c.world_site_id
+    WHERE c.active=true AND s.active=true
+      AND public.nexora_world_point_live_visible(p_player_id,s.coordinate_x,s.coordinate_y)
+  ),'[]'::jsonb);
 
-  SELECT COALESCE(jsonb_agg(s.id ORDER BY s.id),'[]'::jsonb)
-  INTO v_live_sites
-  FROM public.world_sites s
-  WHERE s.active=true
-    AND s.site_type<>'npc_camp'
-    AND public.nexora_world_point_live_visible(p_player_id,s.coordinate_x,s.coordinate_y);
+  v_live_sites:=COALESCE((
+    SELECT jsonb_agg(s.id ORDER BY s.id)
+    FROM public.world_sites s
+    WHERE s.active=true
+      AND s.site_type<>'npc_camp'
+      AND public.nexora_world_point_live_visible(p_player_id,s.coordinate_x,s.coordinate_y)
+  ),'[]'::jsonb);
 
-  SELECT COALESCE(jsonb_agg(jsonb_build_object(
-    'targetType',m.target_type,
-    'targetId',m.target_id,
-    'coordinateX',m.coordinate_x,
-    'coordinateY',m.coordinate_y,
-    'snapshot',m.snapshot,
-    'source',m.source,
-    'firstSeenAt',m.first_seen_at,
-    'lastSeenAt',m.last_seen_at
-  ) ORDER BY m.target_type,m.target_id),'[]'::jsonb)
-  INTO v_memory
-  FROM public.world_discovery_memory m
-  WHERE m.player_id=p_player_id;
+  v_memory:=COALESCE((
+    SELECT jsonb_agg(jsonb_build_object(
+      'targetType',m.target_type,
+      'targetId',m.target_id,
+      'coordinateX',m.coordinate_x,
+      'coordinateY',m.coordinate_y,
+      'snapshot',m.snapshot,
+      'source',m.source,
+      'firstSeenAt',m.first_seen_at,
+      'lastSeenAt',m.last_seen_at
+    ) ORDER BY m.target_type,m.target_id)
+    FROM public.world_discovery_memory m
+    WHERE m.player_id=p_player_id
+  ),'[]'::jsonb);
 
   RETURN jsonb_build_object(
     'success',true,
