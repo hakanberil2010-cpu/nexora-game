@@ -1263,6 +1263,94 @@ body {
   margin:0;
 }
 
+.world-intel-history {
+  margin-top:10px;
+  border-top:1px solid rgba(255,255,255,.10);
+  padding-top:8px;
+}
+
+.world-intel-history summary {
+  padding:0;
+  font-size:12px;
+}
+
+.world-intel-filter {
+  width:100%;
+  margin-top:8px;
+  padding:7px 8px;
+  border:1px solid #315879;
+  border-radius:7px;
+  background:#061321;
+  color:#eaf6ff;
+}
+
+.world-intel-list {
+  display:grid;
+  gap:6px;
+  max-height:220px;
+  margin-top:8px;
+  overflow-y:auto;
+}
+
+.world-intel-entry {
+  width:100%;
+  padding:8px 9px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:8px;
+  background:rgba(255,255,255,.045);
+  color:#eaf6ff;
+  text-align:left;
+  cursor:pointer;
+}
+
+.world-intel-entry:hover {
+  background:rgba(103,216,255,.10);
+  border-color:rgba(103,216,255,.35);
+}
+
+.world-intel-entry.stale {
+  opacity:.68;
+}
+
+.world-intel-entry-title {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:12px;
+  font-weight:800;
+}
+
+.world-intel-entry-meta {
+  margin-top:4px;
+  font-size:10px;
+  line-height:1.4;
+  color:#9fc8e8;
+}
+
+.world-intel-entry-status {
+  white-space:nowrap;
+  font-size:10px;
+  font-weight:700;
+}
+
+.world-intel-entry-status.live {
+  color:#78f0c0;
+}
+
+.world-intel-entry-status.stale {
+  color:#d7a6ff;
+}
+
+.world-intel-empty {
+  padding:9px;
+  border:1px dashed rgba(255,255,255,.16);
+  border-radius:8px;
+  color:#8faec5;
+  font-size:11px;
+  text-align:center;
+}
+
 @media (max-width:700px) {
   .world-tools-panel {
     top:58px;
@@ -1456,6 +1544,22 @@ body {
           <label><input type="checkbox" checked onchange="setWorldFilter('resource-elite',this.checked)"> 👑 Elit</label>
           <label><input type="checkbox" checked onchange="setWorldFilter('alliance',this.checked)"> İttifak</label>
         </div>
+
+        <details class="world-intel-history" id="worldIntelHistory">
+          <summary>🛰️ İstihbarat · <span id="worldIntelCount">0</span></summary>
+          <select
+            class="world-intel-filter"
+            id="worldIntelFilter"
+            onchange="renderWorldIntelPanel()"
+          >
+            <option value="all">Tümü</option>
+            <option value="player">Oyuncular</option>
+            <option value="npc">NPC</option>
+            <option value="resource">Kaynaklar</option>
+            <option value="site">Stratejik Noktalar</option>
+          </select>
+          <div class="world-intel-list" id="worldIntelList"></div>
+        </details>
       </div>
     </details>
 
@@ -1819,6 +1923,283 @@ function applyWorldVisibilityFilters() {
   );
 
   renderWorldMiniMap();
+  renderWorldIntelPanel();
+}
+
+function worldIntelEntryLive(item) {
+  return item?.liveVisible !== false && item?.stale !== true;
+}
+
+function worldIntelEntryTime(value) {
+  const ms=value?new Date(value).getTime():NaN;
+  return Number.isFinite(ms)?ms:0;
+}
+
+function focusWorldIntelTarget(type,id,x,y) {
+  const targetX=Number(x);
+  const targetY=Number(y);
+
+  if(
+    !Number.isFinite(targetX)||
+    !Number.isFinite(targetY)
+  ){
+    return;
+  }
+
+  centerWorldOnCoordinates(
+    targetX,
+    targetY
+  );
+
+  if(type==="player"){
+    const player=(worldPlayersCache||[]).find(function(item){
+      return Number(item.player_id)===Number(id);
+    });
+    const element=document.querySelector(
+      '.colony[data-player-id="'+Number(id)+'"]'
+    );
+    if(player&&element){
+      selectPlayerColony(
+        element,
+        player,
+        targetX,
+        targetY
+      );
+    }
+    return;
+  }
+
+  if(type==="npc"){
+    const camp=(npcCamps||[]).find(function(item){
+      return Number(item.id)===Number(id);
+    });
+    const element=document.querySelector(
+      '.world-site[data-npc-camp-id="'+Number(id)+'"]'
+    );
+    if(camp&&element){
+      selectNpcCamp(
+        camp,
+        element
+      );
+    }
+    return;
+  }
+
+  const site=(worldSites||[]).find(function(item){
+    return Number(item.id)===Number(id);
+  });
+  const element=document.querySelector(
+    '.world-site[data-world-site-id="'+Number(id)+'"]'
+  );
+
+  if(site){
+    selectWorldSite(
+      site,
+      element
+    );
+  }
+}
+
+function renderWorldIntelPanel() {
+  const list=document.getElementById("worldIntelList");
+  const count=document.getElementById("worldIntelCount");
+  const filterElement=document.getElementById("worldIntelFilter");
+
+  if(!list||!count){
+    return;
+  }
+
+  const entries=[];
+
+  (worldPlayersCache||[]).forEach(function(player){
+    if(
+      savedUser&&
+      Number(player.player_id)===Number(savedUser.id)
+    ){
+      return;
+    }
+
+    const x=Number(player.coordinate_x);
+    const y=Number(player.coordinate_y);
+    if(!Number.isFinite(x)||!Number.isFinite(y)){
+      return;
+    }
+
+    entries.push({
+      type:"player",
+      id:Number(player.player_id),
+      icon:"🏰",
+      title:String(player.username||"Oyuncu"),
+      x:x,
+      y:y,
+      live:worldIntelEntryLive(player),
+      lastSeenAt:player.lastSeenAt||null,
+      subtitle:"Oyuncu Kolonisi"
+    });
+  });
+
+  (npcCamps||[]).forEach(function(camp){
+    const x=Number(camp.coordinateX);
+    const y=Number(camp.coordinateY);
+    if(!Number.isFinite(x)||!Number.isFinite(y)){
+      return;
+    }
+
+    entries.push({
+      type:"npc",
+      id:Number(camp.id),
+      icon:"👹",
+      title:String(camp.name||"NPC Kampı"),
+      x:x,
+      y:y,
+      live:worldIntelEntryLive(camp),
+      lastSeenAt:camp.lastSeenAt||null,
+      subtitle:
+        "NPC · Sv."+
+        Number(camp.level||camp.tier||1)
+    });
+  });
+
+  (worldSites||[]).forEach(function(site){
+    if(
+      site.unknownSignal===true||
+      site.site_type==="unknown"
+    ){
+      return;
+    }
+
+    const x=Number(site.coordinate_x);
+    const y=Number(site.coordinate_y);
+    if(!Number.isFinite(x)||!Number.isFinite(y)){
+      return;
+    }
+
+    const isResource=site.site_type==="resource";
+
+    entries.push({
+      type:isResource?"resource":"site",
+      id:Number(site.id),
+      icon:isResource
+        ?siteIcon("resource",site.resource_type)
+        :siteIcon(site.site_type),
+      title:String(
+        site.name||
+        siteTypeLabel(site.site_type)
+      ),
+      x:x,
+      y:y,
+      live:worldIntelEntryLive(site),
+      lastSeenAt:site.lastSeenAt||null,
+      subtitle:isResource
+        ?resourceRarityLabel(site.resource_rarity)+
+          " "+
+          resourceTypeLabel(site.resource_type)
+        :siteTypeLabel(site.site_type)
+    });
+  });
+
+  entries.sort(function(a,b){
+    if(a.live!==b.live){
+      return a.live?-1:1;
+    }
+
+    const timeDiff=
+      worldIntelEntryTime(b.lastSeenAt)-
+      worldIntelEntryTime(a.lastSeenAt);
+
+    if(timeDiff!==0){
+      return timeDiff;
+    }
+
+    return a.title.localeCompare(
+      b.title,
+      "tr"
+    );
+  });
+
+  const filter=String(
+    filterElement?.value||
+    "all"
+  );
+  const filtered=
+    filter==="all"
+      ?entries
+      :entries.filter(function(entry){
+          return entry.type===filter;
+        });
+
+  count.textContent=String(filtered.length);
+  list.innerHTML="";
+
+  if(filtered.length===0){
+    const empty=document.createElement("div");
+    empty.className="world-intel-empty";
+    empty.textContent="Bu kategoride kayıtlı istihbarat yok.";
+    list.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach(function(entry){
+    const button=document.createElement("button");
+    button.type="button";
+    button.className=
+      "world-intel-entry"+
+      (entry.live?"":" stale");
+
+    const title=document.createElement("div");
+    title.className="world-intel-entry-title";
+
+    const name=document.createElement("span");
+    name.textContent=
+      entry.icon+
+      " "+
+      entry.title;
+
+    const status=document.createElement("span");
+    status.className=
+      "world-intel-entry-status "+
+      (entry.live?"live":"stale");
+    status.textContent=
+      entry.live
+        ?"● Canlı"
+        :"● Eski";
+
+    title.appendChild(name);
+    title.appendChild(status);
+
+    const meta=document.createElement("div");
+    meta.className="world-intel-entry-meta";
+    meta.textContent=
+      entry.subtitle+
+      " · X:"+
+      entry.x+
+      " Y:"+
+      entry.y+
+      (
+        !entry.live&&entry.lastSeenAt
+          ?" · Son görüldü: "+
+            worldLastSeenLabel(entry.lastSeenAt)
+          :""
+      );
+
+    button.appendChild(title);
+    button.appendChild(meta);
+
+    button.addEventListener(
+      "click",
+      function(event){
+        event.stopPropagation();
+        focusWorldIntelTarget(
+          entry.type,
+          entry.id,
+          entry.x,
+          entry.y
+        );
+      }
+    );
+
+    list.appendChild(button);
+  });
 }
 
 function miniMapPercent(value) {
@@ -7372,6 +7753,11 @@ function renderWorldSites() {
           ) +
           allianceTag +
           '</span>';
+
+        el.dataset.worldSiteId =
+          String(
+            site.id
+          );
 
         if (
           site.site_type ===
