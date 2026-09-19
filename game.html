@@ -2481,8 +2481,193 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
 @keyframes stateSignalBlink{50%{opacity:.58}}
 @keyframes colonyAlertFrame{50%{border-color:rgba(255,100,88,.62);box-shadow:inset 0 0 64px rgba(186,40,37,.18),0 0 38px rgba(226,58,51,.14)}}
 @keyframes colonyAlertSweep{from{left:-25%}to{left:110%}}
+
+/* Colony physical state reactions */
+.colony-state-physical{
+  position:absolute;
+  left:50%;
+  top:50%;
+  z-index:2;
+  pointer-events:none;
+}
+.construction-rig{
+  width:76%;
+  height:48%;
+  transform:translate(-50%,-50%) translateY(var(--sprite-offset-y,0px));
+  border:1px solid rgba(239,188,88,.54);
+  border-radius:7px;
+  background:
+    repeating-linear-gradient(90deg,rgba(236,184,82,.16) 0 2px,transparent 2px 31px),
+    repeating-linear-gradient(180deg,rgba(236,184,82,.13) 0 2px,transparent 2px 25px);
+  box-shadow:0 8px 18px rgba(0,0,0,.16),inset 0 0 18px rgba(234,174,72,.05);
+  opacity:.84;
+}
+.construction-rig::before,
+.construction-rig::after{
+  content:"";
+  position:absolute;
+  top:-9px;
+  bottom:-9px;
+  width:7px;
+  border:1px solid rgba(231,181,81,.50);
+  background:
+    repeating-linear-gradient(180deg,rgba(239,192,94,.46) 0 3px,rgba(45,42,31,.38) 3px 8px);
+  box-shadow:0 0 9px rgba(230,168,62,.10);
+}
+.construction-rig::before{left:-8px}
+.construction-rig::after{right:-8px}
+.building-node.pending .construction-rig{
+  animation:constructionRigWork 2.2s ease-in-out infinite;
+}
+.building-node.pending .construction-rig::before{
+  box-shadow:0 0 7px rgba(239,177,66,.18),0 -5px 0 -1px #f2b65b,0 -5px 9px rgba(242,182,91,.40);
+}
+.building-node.pending .construction-rig::after{
+  box-shadow:0 0 7px rgba(239,177,66,.18),0 -5px 0 -1px #73d9ef,0 -5px 9px rgba(115,217,239,.35);
+}
+.cargo-overflow{
+  top:67%;
+  width:48%;
+  min-width:78px;
+  height:32px;
+  transform:translate(-50%,-50%) translateY(var(--sprite-offset-y,0px));
+  border-bottom:3px solid rgba(74,85,87,.55);
+  opacity:.92;
+}
+.cargo-overflow::before,
+.cargo-overflow::after{
+  content:"";
+  position:absolute;
+  bottom:3px;
+  width:24px;
+  height:18px;
+  border:1px solid rgba(161,121,62,.54);
+  border-radius:3px;
+  background:
+    linear-gradient(135deg,rgba(236,173,72,.20),transparent 48%),
+    linear-gradient(180deg,#55452c,#2b2b26);
+  box-shadow:
+    27px 5px 0 -1px #38362c,
+    27px 5px 0 0 rgba(161,121,62,.35),
+    54px -2px 0 -1px #454032,
+    54px -2px 0 0 rgba(161,121,62,.32);
+}
+.cargo-overflow::before{left:4%}
+.cargo-overflow::after{right:4%;transform:scaleX(-1)}
+.cargo-overflow.crystal::before,
+.cargo-overflow.crystal::after{
+  border-color:rgba(103,211,241,.50);
+  background:
+    linear-gradient(135deg,rgba(113,226,249,.28),transparent 48%),
+    linear-gradient(180deg,#294753,#1c2931);
+  box-shadow:
+    27px 5px 0 -1px #263942,
+    27px 5px 0 0 rgba(101,202,229,.34),
+    54px -2px 0 -1px #304853,
+    54px -2px 0 0 rgba(127,105,219,.30);
+}
+.building-node.state-storage-full .cargo-overflow{
+  animation:cargoOverflowPulse 2.8s ease-in-out infinite;
+}
+
+.colony-world.state-pause-energy .ambient-energy-flow,
+.colony-world.state-pause-energy .ambient-power-pulse{
+  animation:none !important;
+  opacity:.08;
+  filter:saturate(.20) brightness(.60);
+}
+.colony-world.state-pause-alloy .ambient-steam{
+  opacity:.06;
+}
+.colony-world.state-pause-alloy .ambient-steam::before,
+.colony-world.state-pause-alloy .ambient-steam::after{
+  animation:none !important;
+  opacity:0;
+}
+.colony-world.state-pause-energy .ambient-power-pulse{
+  transform:translate(-50%,-50%) scale(.62);
+}
+.colony-world.state-pause-energy .ambient-energy-flow{
+  background-position:0 0;
+}
+
+.perimeter-siren{
+  position:absolute;
+  z-index:5;
+  width:18px;
+  height:25px;
+  opacity:0;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(127,151,159,.24);
+  border-radius:5px 5px 3px 3px;
+  background:linear-gradient(180deg,#44545a,#14242a 58%,#0a171c);
+  box-shadow:0 7px 12px rgba(0,0,0,.22);
+  transition:opacity .15s ease;
+}
+.perimeter-siren::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:3px;
+  width:8px;
+  height:8px;
+  transform:translateX(-50%);
+  border-radius:50% 50% 3px 3px;
+  background:#7c3433;
+}
+.perimeter-siren::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:7px;
+  width:20px;
+  height:20px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(255,82,72,.55);
+  border-radius:50%;
+  opacity:0;
+}
+.perimeter-siren.nw{left:7%;top:9%}
+.perimeter-siren.ne{left:93%;top:9%}
+.perimeter-siren.sw{left:8%;top:90%}
+.perimeter-siren.se{left:92%;top:90%}
+.colony-world.state-under-attack .perimeter-siren{
+  opacity:1;
+}
+.colony-world.state-under-attack .perimeter-siren::before{
+  background:#ff6257;
+  box-shadow:0 0 13px rgba(255,77,68,.82);
+  animation:defenseSirenLamp .72s steps(2,end) infinite;
+}
+.colony-world.state-under-attack .perimeter-siren::after{
+  animation:defenseSirenRing 1.45s ease-out infinite;
+}
+.colony-world.state-under-attack .perimeter-node::after{
+  background:#ff685d;
+  box-shadow:0 0 14px rgba(255,86,77,.72);
+}
+
+@keyframes constructionRigWork{
+  0%,100%{opacity:.68;filter:brightness(.92)}
+  50%{opacity:.94;filter:brightness(1.10)}
+}
+@keyframes cargoOverflowPulse{
+  50%{filter:brightness(1.14);opacity:1}
+}
+@keyframes defenseSirenLamp{
+  0%,48%{opacity:.40}
+  49%,100%{opacity:1}
+}
+@keyframes defenseSirenRing{
+  0%{transform:translate(-50%,-50%) scale(.30);opacity:.60}
+  100%{transform:translate(-50%,-50%) scale(2.1);opacity:0}
+}
+
 @media(prefers-reduced-motion:reduce){
-  .scene-hud span.resource-full,.building-state-signal,.building-pad.state-storage-full,.building-pad.state-alert,.colony-alert-layer::before,.colony-alert-sweep{animation:none !important}
+  .scene-hud span.resource-full,.building-state-signal,.building-pad.state-storage-full,.building-pad.state-alert,.colony-alert-layer::before,.colony-alert-sweep,
+  .construction-rig,.cargo-overflow,.perimeter-siren::before,.perimeter-siren::after{
+    animation:none !important;
+  }
 }
 @media(max-width:600px){
   .colony-state-banner{top:54px;min-width:190px;max-width:calc(100% - 118px);padding:7px 10px;font-size:8px}
@@ -2638,6 +2823,10 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
           <span class="perimeter-node ne"></span>
           <span class="perimeter-node sw"></span>
           <span class="perimeter-node se"></span>
+          <span class="perimeter-siren nw"></span>
+          <span class="perimeter-siren ne"></span>
+          <span class="perimeter-siren sw"></span>
+          <span class="perimeter-siren se"></span>
           <span class="service-trench trench-a"></span>
           <span class="service-trench trench-b"></span>
           <span class="service-trench trench-c"></span>
@@ -4767,6 +4956,25 @@ function updateColonyOperationalState(city,production,capacities,buildings){
     'state-alert',
     latestColonyVisualState.incomingAttack
   );
+
+  const world=document.getElementById('colonyWorld');
+
+  world?.classList.toggle(
+    'state-pause-metal',
+    productionPaused['Metal Madeni']===true
+  );
+  world?.classList.toggle(
+    'state-pause-energy',
+    productionPaused['Enerji Santrali']===true
+  );
+  world?.classList.toggle(
+    'state-pause-alloy',
+    productionPaused['Alaşım Rafinerisi']===true
+  );
+  world?.classList.toggle(
+    'state-pause-crystal',
+    productionPaused['Kristal Madeni']===true
+  );
 }
 
 function incomingColonyThreat(missions){
@@ -5039,6 +5247,15 @@ function renderBuildings(buildings){
           ?'<span class="building-state-signal '+stateSignal.className+'">'+stateSignal.text+'</span>'
           :'';
 
+      const physicalStateHtml=
+        pending
+          ?'<span class="colony-state-physical construction-rig" aria-hidden="true"></span>'
+          :storageFull
+            ?'<span class="colony-state-physical cargo-overflow'+
+              (name==='Kristal Deposu'?' crystal':'')+
+              '" aria-hidden="true"></span>'
+            :'';
+
       const buildingVisual=
         BUILDING_VISUALS[name]||
         null;
@@ -5068,6 +5285,7 @@ function renderBuildings(buildings){
           onclick="selectBuilding('${name.replace(/'/g,"\\'")}',${slot})"
           aria-label="${esc(buildingLabel(name,slot))} Seviye ${level}"
         >
+          ${physicalStateHtml}
           ${stateSignalHtml}
           ${buildingVisual?`
             ${buildingVisual.asset?`
