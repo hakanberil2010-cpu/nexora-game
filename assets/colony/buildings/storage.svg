@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 430">
+<defs>
+  <linearGradient id="m" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7f9099"/><stop offset=".45" stop-color="#34434b"/><stop offset="1" stop-color="#111b21"/></linearGradient>
+  <linearGradient id="r" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#5c6c73"/><stop offset="1" stop-color="#1c2930"/></linearGradient>
+  <filter id="s"><feDropShadow dx="0" dy="15" stdDeviation="10" flood-color="#000" flood-opacity=".6"/></filter>
+  <filter id="c"><feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#58dcff" flood-opacity=".75"/></filter>
+</defs>
+<g filter="url(#s)">
+  <ellipse cx="260" cy="355" rx="210" ry="44" fill="#050d12" opacity=".62"/>
+  <path d="M64 285 174 222 455 280 337 359 89 335Z" fill="#17242a" stroke="#5d7079" stroke-width="5"/>
+  <path d="M104 290V195l100-50 104 39v104l-101 56Z" fill="url(#m)" stroke="#82939a" stroke-width="6"/>
+  <path d="m104 195 100-50 104 39-101 57Z" fill="url(#r)" stroke="#9aa8ad" stroke-width="5"/>
+  <path d="M322 298v-82l73-36 56 25v77l-65 39Z" fill="url(#m)" stroke="#798b93" stroke-width="5"/>
+  <path d="m322 216 73-36 56 25-65 37Z" fill="url(#r)" stroke="#8e9da3" stroke-width="4"/>
+  <rect x="140" y="226" width="126" height="79" rx="7" fill="#0d171c" stroke="#536b75" stroke-width="5"/>
+  <path d="M150 295V238h106v57" fill="#16252c" stroke="#6f828a" stroke-width="3"/>
+  <g stroke="#40545d" stroke-width="4"><path d="M171 240v53"/><path d="M203 240v53"/><path d="M235 240v53"/></g>
+  <g fill="#57dcff" filter="url(#c)">
+    <rect x="116" y="226" width="8" height="38" rx="3"/>
+    <rect x="286" y="217" width="8" height="40" rx="3"/>
+    <rect x="351" y="237" width="8" height="32" rx="3"/>
+  </g>
+  <g fill="#f2a84e">
+    <circle cx="123" cy="306" r="6"/><circle cx="294" cy="310" r="6"/><circle cx="381" cy="306" r="6"/><circle cx="438" cy="282" r="5"/>
+  </g>
+  <path d="M150 317h112" stroke="#e5a455" stroke-width="5" opacity=".65"/>
+  <path d="M346 286h68" stroke="#58d9ff" stroke-width="4" opacity=".55"/>
+</g>
+</svg>

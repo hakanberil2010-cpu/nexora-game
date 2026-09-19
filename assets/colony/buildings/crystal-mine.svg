@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 430">
+<defs>
+  <linearGradient id="m" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#768890"/><stop offset=".48" stop-color="#2d3c44"/><stop offset="1" stop-color="#10191f"/></linearGradient>
+  <linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d2fbff"/><stop offset=".24" stop-color="#62e8ff"/><stop offset=".6" stop-color="#237ed6"/><stop offset="1" stop-color="#6b3fb0"/></linearGradient>
+  <filter id="s"><feDropShadow dx="0" dy="15" stdDeviation="10" flood-color="#000" flood-opacity=".6"/></filter>
+  <filter id="g"><feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#3ddcff" flood-opacity=".9"/></filter>
+</defs>
+<g filter="url(#s)">
+  <ellipse cx="260" cy="355" rx="210" ry="44" fill="#050d13" opacity=".62"/>
+  <path d="M61 283 176 215 459 278 335 360 87 336Z" fill="#15242c" stroke="#5d727c" stroke-width="5"/>
+  <path d="M88 286 137 203 203 173 244 215 211 305 139 334Z" fill="url(#m)" stroke="#7c9099" stroke-width="6"/>
+  <path d="M319 304 292 219 339 178 409 199 449 279 383 334Z" fill="url(#m)" stroke="#7c9099" stroke-width="6"/>
+  <path d="M154 302c31-83 75-126 126-126 55 0 97 43 119 123-40 31-80 45-120 44-45 0-87-14-125-41Z" fill="#0b1820" stroke="#3e7188" stroke-width="5"/>
+  <path d="M182 294c26-64 58-96 97-96 40 0 72 32 94 95-32 18-63 27-94 27-33 0-65-9-97-26Z" fill="#102733"/>
+  <g filter="url(#g)">
+    <path d="m222 301 19-130 28-49 21 66-8 112Z" fill="url(#b)" stroke="#c8f8ff" stroke-width="4"/>
+    <path d="m282 303 16-90 28-39 16 61-20 68Z" fill="url(#b)" stroke="#aaf2ff" stroke-width="4"/>
+    <path d="m186 302 10-70 21-35 13 59-13 46Z" fill="url(#b)" stroke="#94eaff" stroke-width="3"/>
+  </g>
+  <path d="M111 283 180 248" stroke="#6e8088" stroke-width="13"/><path d="M112 283 180 248" stroke="#e1a04c" stroke-width="4" stroke-dasharray="12 7"/>
+  <path d="M340 247 416 279" stroke="#687b83" stroke-width="13"/><path d="M340 247 416 279" stroke="#5de0f8" stroke-width="4" stroke-dasharray="11 7"/>
+  <g fill="#f2aa52"><circle cx="113" cy="306" r="5"/><circle cx="414" cy="305" r="5"/></g>
+</g>
+</svg>
