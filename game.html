@@ -200,6 +200,111 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   .building-popover{width:270px}
 }
 
+/* Büyük, sürüklenebilir koloni görünümü */
+.main{max-width:1600px}
+.colony-panel{overflow:hidden}
+.colony-scene{
+  width:100%;
+  height:clamp(520px,68vh,780px);
+  min-height:0;
+  overflow:hidden;
+  cursor:grab;
+  touch-action:none;
+  background:#06111d;
+}
+.colony-scene.is-panning{cursor:grabbing}
+.colony-world{
+  position:absolute;
+  left:0;
+  top:0;
+  width:1800px;
+  height:1100px;
+  transform-origin:0 0;
+  will-change:transform;
+  background:
+    radial-gradient(circle at 18% 24%,rgba(22,75,56,.92) 0 11%,transparent 12%),
+    radial-gradient(circle at 76% 22%,rgba(49,91,57,.82) 0 13%,transparent 14%),
+    radial-gradient(circle at 43% 72%,rgba(81,70,44,.68) 0 15%,transparent 16%),
+    radial-gradient(circle at 84% 75%,rgba(52,78,109,.70) 0 15%,transparent 16%),
+    linear-gradient(145deg,#0d252c 0%,#0a1a28 100%);
+  box-shadow:inset 0 0 140px rgba(0,0,0,.36);
+}
+.colony-world::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(89,155,184,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(89,155,184,.045) 1px,transparent 1px);
+  background-size:72px 72px;
+}
+.scene-title,.scene-hint,.scene-hud{z-index:20}
+.scene-controls{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  z-index:22;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px;
+  border:1px solid rgba(56,110,145,.72);
+  border-radius:10px;
+  background:rgba(5,13,24,.88);
+  box-shadow:0 8px 24px rgba(0,0,0,.28);
+  backdrop-filter:blur(6px);
+}
+.scene-controls button{
+  min-width:38px;
+  height:36px;
+  padding:0 10px;
+  border:1px solid #285476;
+  border-radius:8px;
+  background:#0b2940;
+  color:#eaf4ff;
+  font-weight:800;
+  cursor:pointer;
+}
+.scene-controls button:hover{background:#123d5d}
+.scene-controls .fit-button{min-width:auto}
+.scene-zoom-label{
+  min-width:48px;
+  color:#9fd8f6;
+  font-size:11px;
+  font-weight:800;
+  text-align:center;
+}
+.road-map{z-index:2}
+.building-map{z-index:3}
+.building-popover{z-index:25}
+
+@media(max-width:600px){
+  .colony-panel{overflow:hidden}
+  .colony-scene{
+    min-width:0;
+    width:100%;
+    height:520px;
+  }
+  .scene-title{left:10px;top:10px}
+  .scene-hud{
+    left:10px;
+    right:10px;
+    top:48px;
+    transform:none;
+    max-width:none;
+    overflow-x:auto;
+  }
+  .scene-controls{
+    left:10px;
+    right:10px;
+    bottom:10px;
+    justify-content:flex-end;
+  }
+  .scene-controls .fit-button{margin-right:auto}
+}
+
 </style></head><body>
 
 <header class="topbar">
@@ -305,7 +410,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
   <div class="colony-panel">
     <div class="colony-scene" id="colonyScene">
       <div class="scene-title">🏙️ KOLONİ YERLEŞİMİ</div>
-      <div class="scene-hint">Bir binaya tıkla</div>
+      <div class="scene-hint">Sürükle · Tekerlek / +/- ile yakınlaştır</div>
 
       <div class="scene-hud" aria-label="Kaynaklar">
         <span>⛏️ <b id="metal">0</b> <small id="metalCap">/ 0</small></span>
@@ -314,8 +419,17 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
         <span>💎 <b id="crystal">0</b> <small id="crystalCap">/ 0</small></span>
       </div>
 
-      <svg class="road-map" id="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
-      <div class="building-map" id="buildings"></div>
+      <div class="scene-controls" aria-label="Koloni haritası kontrolleri">
+        <button class="fit-button" type="button" onclick="fitColonyWorld()" title="Tüm koloniyi ekrana sığdır">⤢ Sığdır</button>
+        <button type="button" onclick="colonyZoomBy(1/1.2)" title="Uzaklaştır" aria-label="Uzaklaştır">−</button>
+        <span class="scene-zoom-label" id="colonyZoomLabel">100%</span>
+        <button type="button" onclick="colonyZoomBy(1.2)" title="Yakınlaştır" aria-label="Yakınlaştır">+</button>
+      </div>
+
+      <div class="colony-world" id="colonyWorld">
+        <svg class="road-map" id="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="building-map" id="buildings"></div>
+      </div>
 
       <div class="building-popover" id="buildingPopup" role="dialog" aria-modal="false" aria-label="Bina seçenekleri">
         <button class="popover-close" type="button" onclick="closeBuildingPopup()" aria-label="Kapat">×</button>
@@ -425,6 +539,460 @@ const ROAD_LINKS=[
 let selectedBuildingName=null;
 let selectedBuildingSlot=1;
 let latestBuildings=[];
+
+const COLONY_WORLD_WIDTH=1800;
+const COLONY_WORLD_HEIGHT=1100;
+let colonyViewX=0;
+let colonyViewY=0;
+let colonyViewScale=1;
+let colonyViewInitialized=false;
+let colonyViewUserAdjusted=false;
+let colonyDragMoved=false;
+let colonySuppressClickUntil=0;
+let colonyPinchDistance=0;
+const colonyPointers=new Map();
+
+function colonyFitScale(){
+  const scene=document.getElementById('colonyScene');
+  if(!scene)return 1;
+
+  return Math.max(
+    .08,
+    Math.min(
+      scene.clientWidth/COLONY_WORLD_WIDTH,
+      scene.clientHeight/COLONY_WORLD_HEIGHT
+    )
+  );
+}
+
+function colonyMaxScale(){
+  const fit=colonyFitScale();
+  return Math.max(
+    1.15,
+    fit*2.8
+  );
+}
+
+function clampColonyView(){
+  const scene=document.getElementById('colonyScene');
+  if(!scene)return;
+
+  const scaledWidth=
+    COLONY_WORLD_WIDTH*colonyViewScale;
+  const scaledHeight=
+    COLONY_WORLD_HEIGHT*colonyViewScale;
+
+  if(scaledWidth<=scene.clientWidth){
+    colonyViewX=
+      (scene.clientWidth-scaledWidth)/2;
+  }else{
+    colonyViewX=Math.max(
+      scene.clientWidth-scaledWidth,
+      Math.min(0,colonyViewX)
+    );
+  }
+
+  if(scaledHeight<=scene.clientHeight){
+    colonyViewY=
+      (scene.clientHeight-scaledHeight)/2;
+  }else{
+    colonyViewY=Math.max(
+      scene.clientHeight-scaledHeight,
+      Math.min(0,colonyViewY)
+    );
+  }
+}
+
+function applyColonyView(){
+  const world=document.getElementById('colonyWorld');
+  if(!world)return;
+
+  clampColonyView();
+
+  world.style.transform=
+    'translate3d('+
+    colonyViewX+
+    'px,'+
+    colonyViewY+
+    'px,0) scale('+
+    colonyViewScale+
+    ')';
+
+  const label=document.getElementById(
+    'colonyZoomLabel'
+  );
+
+  if(label){
+    label.textContent=
+      Math.round(
+        colonyViewScale*100
+      )+
+      '%';
+  }
+
+  if(selectedBuildingName){
+    positionBuildingPopup(
+      selectedBuildingName,
+      selectedBuildingSlot
+    );
+  }
+}
+
+function fitColonyWorld(){
+  const scene=document.getElementById('colonyScene');
+  if(!scene)return;
+
+  colonyViewScale=colonyFitScale();
+  colonyViewX=
+    (scene.clientWidth-
+      COLONY_WORLD_WIDTH*colonyViewScale)/2;
+  colonyViewY=
+    (scene.clientHeight-
+      COLONY_WORLD_HEIGHT*colonyViewScale)/2;
+  colonyViewInitialized=true;
+  colonyViewUserAdjusted=false;
+  applyColonyView();
+}
+
+function setColonyZoom(
+  nextScale,
+  focusX,
+  focusY
+){
+  const scene=document.getElementById('colonyScene');
+  if(!scene)return;
+
+  const rect=scene.getBoundingClientRect();
+  const localX=Number.isFinite(focusX)
+    ?focusX
+    :rect.width/2;
+  const localY=Number.isFinite(focusY)
+    ?focusY
+    :rect.height/2;
+  const fit=colonyFitScale();
+  const next=Math.max(
+    fit,
+    Math.min(
+      colonyMaxScale(),
+      Number(nextScale)||fit
+    )
+  );
+
+  const worldX=
+    (localX-colonyViewX)/
+    Math.max(.0001,colonyViewScale);
+  const worldY=
+    (localY-colonyViewY)/
+    Math.max(.0001,colonyViewScale);
+
+  colonyViewX=
+    localX-worldX*next;
+  colonyViewY=
+    localY-worldY*next;
+  colonyViewScale=next;
+  colonyViewInitialized=true;
+  colonyViewUserAdjusted=true;
+  applyColonyView();
+}
+
+function colonyZoomBy(factor){
+  const scene=document.getElementById('colonyScene');
+  if(!scene)return;
+
+  setColonyZoom(
+    colonyViewScale*
+      (Number(factor)||1),
+    scene.clientWidth/2,
+    scene.clientHeight/2
+  );
+}
+
+function focusColonyBuilding(
+  name,
+  slot=1
+){
+  const scene=document.getElementById('colonyScene');
+  const site=BUILDING_SITES.find(
+    item=>
+      item.name===name&&
+      item.slot===slot
+  );
+
+  if(!scene||!site)return;
+
+  const minFocusScale=Math.min(
+    colonyMaxScale(),
+    Math.max(
+      colonyFitScale()*1.65,
+      colonyViewScale
+    )
+  );
+
+  colonyViewScale=minFocusScale;
+  colonyViewX=
+    scene.clientWidth/2-
+    (
+      COLONY_WORLD_WIDTH*
+      site.x/100
+    )*
+    colonyViewScale;
+  colonyViewY=
+    scene.clientHeight/2-
+    (
+      COLONY_WORLD_HEIGHT*
+      site.y/100
+    )*
+    colonyViewScale;
+  colonyViewInitialized=true;
+  colonyViewUserAdjusted=true;
+  applyColonyView();
+}
+
+function colonyPointerDistance(){
+  const points=Array.from(
+    colonyPointers.values()
+  );
+
+  if(points.length<2)return 0;
+
+  return Math.hypot(
+    points[1].x-points[0].x,
+    points[1].y-points[0].y
+  );
+}
+
+function colonyPointerMidpoint(){
+  const points=Array.from(
+    colonyPointers.values()
+  );
+
+  if(points.length<2){
+    return null;
+  }
+
+  return {
+    x:(points[0].x+points[1].x)/2,
+    y:(points[0].y+points[1].y)/2
+  };
+}
+
+function initColonyNavigation(){
+  const scene=document.getElementById('colonyScene');
+  if(!scene)return;
+
+  scene.addEventListener(
+    'wheel',
+    function(event){
+      if(
+        event.target.closest(
+          '.building-popover,.scene-controls'
+        )
+      ){
+        return;
+      }
+
+      event.preventDefault();
+
+      const rect=
+        scene.getBoundingClientRect();
+      const factor=
+        event.deltaY<0
+          ?1.12
+          :1/1.12;
+
+      setColonyZoom(
+        colonyViewScale*factor,
+        event.clientX-rect.left,
+        event.clientY-rect.top
+      );
+    },
+    {passive:false}
+  );
+
+  scene.addEventListener(
+    'pointerdown',
+    function(event){
+      if(
+        event.target.closest(
+          '.building-popover,.scene-controls'
+        )
+      ){
+        return;
+      }
+
+      colonyPointers.set(
+        event.pointerId,
+        {
+          x:event.clientX,
+          y:event.clientY
+        }
+      );
+
+      try{
+        scene.setPointerCapture(
+          event.pointerId
+        );
+      }catch(error){}
+
+      if(colonyPointers.size===1){
+        colonyDragMoved=false;
+        colonyPinchDistance=0;
+      }else if(colonyPointers.size===2){
+        colonyPinchDistance=
+          colonyPointerDistance();
+      }
+
+      scene.classList.add(
+        'is-panning'
+      );
+    }
+  );
+
+  scene.addEventListener(
+    'pointermove',
+    function(event){
+      const previous=
+        colonyPointers.get(
+          event.pointerId
+        );
+
+      if(!previous)return;
+
+      colonyPointers.set(
+        event.pointerId,
+        {
+          x:event.clientX,
+          y:event.clientY
+        }
+      );
+
+      if(colonyPointers.size>=2){
+        const distance=
+          colonyPointerDistance();
+        const midpoint=
+          colonyPointerMidpoint();
+
+        if(
+          midpoint&&
+          colonyPinchDistance>0&&
+          distance>0
+        ){
+          const rect=
+            scene.getBoundingClientRect();
+
+          setColonyZoom(
+            colonyViewScale*
+              distance/
+              colonyPinchDistance,
+            midpoint.x-rect.left,
+            midpoint.y-rect.top
+          );
+
+          colonyDragMoved=true;
+        }
+
+        colonyPinchDistance=distance;
+        return;
+      }
+
+      const dx=
+        event.clientX-previous.x;
+      const dy=
+        event.clientY-previous.y;
+
+      if(
+        Math.abs(dx)+Math.abs(dy)>1
+      ){
+        colonyViewX+=dx;
+        colonyViewY+=dy;
+        colonyViewInitialized=true;
+        colonyViewUserAdjusted=true;
+
+        if(
+          Math.hypot(dx,dy)>2
+        ){
+          colonyDragMoved=true;
+        }
+
+        applyColonyView();
+      }
+    }
+  );
+
+  const endPointer=function(event){
+    if(
+      !colonyPointers.has(
+        event.pointerId
+      )
+    ){
+      return;
+    }
+
+    colonyPointers.delete(
+      event.pointerId
+    );
+
+    if(colonyDragMoved){
+      colonySuppressClickUntil=
+        performance.now()+250;
+    }
+
+    if(colonyPointers.size<2){
+      colonyPinchDistance=0;
+    }
+
+    if(colonyPointers.size===0){
+      scene.classList.remove(
+        'is-panning'
+      );
+    }
+  };
+
+  scene.addEventListener(
+    'pointerup',
+    endPointer
+  );
+  scene.addEventListener(
+    'pointercancel',
+    endPointer
+  );
+
+  scene.addEventListener(
+    'click',
+    function(event){
+      if(
+        performance.now()<
+        colonySuppressClickUntil&&
+        !event.target.closest(
+          '.scene-controls,.building-popover'
+        )
+      ){
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      }
+    },
+    true
+  );
+
+  window.addEventListener(
+    'resize',
+    function(){
+      if(
+        !colonyViewInitialized||
+        !colonyViewUserAdjusted
+      ){
+        fitColonyWorld();
+      }else{
+        applyColonyView();
+      }
+    }
+  );
+
+  requestAnimationFrame(
+    fitColonyWorld
+  );
+}
 
 const BUILDING_RULES={
   "Merkez Bina":{
@@ -1081,6 +1649,11 @@ function focusGuideBuilding(
   );
 
   if(scene){
+    focusColonyBuilding(
+      name,
+      slot
+    );
+
     scene.scrollIntoView({
       behavior:'smooth',
       block:'start'
@@ -1667,12 +2240,33 @@ function positionBuildingPopup(name,slot=1){
   );
   if(!site)return;
 
-  const desiredX=Math.min(82,Math.max(18,site.x));
-  const desiredY=site.y<46
-    ?Math.min(72,site.y+23)
-    :Math.max(27,site.y-23);
-
   popup.classList.add('open');
+
+  const nodeX=
+    colonyViewX+
+    (
+      COLONY_WORLD_WIDTH*
+      site.x/100
+    )*
+    colonyViewScale;
+  const nodeY=
+    colonyViewY+
+    (
+      COLONY_WORLD_HEIGHT*
+      site.y/100
+    )*
+    colonyViewScale;
+
+  const offsetY=
+    site.y<50
+      ?Math.max(
+          90,
+          115*colonyViewScale
+        )
+      :-Math.max(
+          90,
+          115*colonyViewScale
+        );
 
   const margin=12;
   const halfWidth=popup.offsetWidth/2;
@@ -1681,8 +2275,8 @@ function positionBuildingPopup(name,slot=1){
   const maxX=scene.clientWidth-halfWidth-margin;
   const minY=halfHeight+margin;
   const maxY=scene.clientHeight-halfHeight-margin;
-  const targetX=scene.clientWidth*desiredX/100;
-  const targetY=scene.clientHeight*desiredY/100;
+  const targetX=nodeX;
+  const targetY=nodeY+offsetY;
 
   const clampedX=maxX>=minX
     ?Math.max(minX,Math.min(maxX,targetX))
@@ -2296,6 +2890,7 @@ async function loadInitialColony(){
 
 
 /* İlk yükleme */
+initColonyNavigation();
 loadInitialColony();
 loadBeginnerGuide();
 loadHeaderBadges();
