@@ -1300,6 +1300,37 @@ body {
   fill:rgba(1,7,15,.72);
 }
 
+.world-intel-ring-layer {
+  position:absolute;
+  inset:0;
+  z-index:4;
+  pointer-events:none;
+}
+
+.world-intel-ring {
+  position:absolute;
+  transform:translate(-50%,-50%);
+  border:2px dashed rgba(215,156,255,.72);
+  border-radius:50%;
+  background:rgba(215,156,255,.025);
+  box-shadow:0 0 20px rgba(215,156,255,.22);
+}
+
+.world-intel-ring-label {
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,14px);
+  padding:3px 7px;
+  border:1px solid rgba(215,156,255,.54);
+  border-radius:999px;
+  background:rgba(20,8,32,.88);
+  color:#efdcff;
+  font-size:11px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
 .world-mini-dot.stale {
   opacity:.38;
   box-shadow:none;
@@ -1356,6 +1387,13 @@ body {
   color:#b9d8ee;
 }
 
+.world-intel-status {
+  display:none;
+  margin-top:5px;
+  font-size:11px;
+  color:#e6c9ff;
+}
+
 </style>
 </head>
 
@@ -1402,6 +1440,7 @@ body {
           👁️ Görüş: <span id="worldVisionRadiusLabel">18</span> koordinat
           · Gözcü Kulesi Sv.<span id="worldWatchtowerLevelLabel">0</span>
         </div>
+        <div class="world-intel-status" id="worldIntelStatus"></div>
 
         <form class="world-coordinate-jump" onsubmit="jumpToWorldCoordinate(event)">
           <input id="worldJumpX" type="number" min="1" max="200" step="1" placeholder="X">
@@ -1457,6 +1496,7 @@ body {
                 mask="url(#worldFogMask)"
               ></rect>
             </svg>
+            <div class="world-intel-ring-layer" id="worldIntelRingLayer"></div>
             <div id="worldSites"></div>
             <div id="npcCamps"></div>
 
@@ -1848,12 +1888,135 @@ function worldLastSeenLabel(value) {
   return Math.floor(hours/24)+" gün önce";
 }
 
+function getActiveWorldIntelScans() {
+  const now=Date.now();
+
+  return (Array.isArray(worldIntelScans)?worldIntelScans:[])
+    .filter(function(scan){
+      const expiresAt=Date.parse(scan?.expiresAt||"");
+      return Number.isFinite(expiresAt)&&expiresAt>now;
+    });
+}
+
+function worldIntelRemainingLabel(value) {
+  const expiresAt=Date.parse(value||"");
+
+  if(!Number.isFinite(expiresAt)){
+    return "";
+  }
+
+  const seconds=Math.max(
+    0,
+    Math.ceil(
+      (expiresAt-Date.now())/1000
+    )
+  );
+  const minutes=Math.floor(seconds/60);
+  const remainder=seconds%60;
+
+  return minutes+":"+String(remainder).padStart(2,"0");
+}
+
 function updateWorldVisionLabels() {
   const radius=document.getElementById("worldVisionRadiusLabel");
   const tower=document.getElementById("worldWatchtowerLevelLabel");
   if(radius)radius.textContent=String(Math.max(0,Number(worldVisionRadius||18)));
   if(tower)tower.textContent=String(Math.max(0,Number(worldWatchtowerLevel||0)));
   renderWorldFog();
+  renderWorldIntelVision();
+}
+
+function renderWorldIntelVision() {
+  const layer=document.getElementById("worldIntelRingLayer");
+  const status=document.getElementById("worldIntelStatus");
+
+  if(!layer)return;
+
+  const scans=getActiveWorldIntelScans();
+  layer.innerHTML="";
+
+  scans.forEach(function(scan){
+    const x=Number(scan.centerX);
+    const y=Number(scan.centerY);
+    const radius=Number(scan.radius);
+
+    if(
+      !Number.isFinite(x)||
+      !Number.isFinite(y)||
+      !Number.isFinite(radius)||
+      radius<=0
+    ){
+      return;
+    }
+
+    const ring=document.createElement("div");
+    const diameter=Math.max(
+      1,
+      Math.min(WORLD_MAX_COORD,radius*2)
+    )/WORLD_MAX_COORD*100;
+
+    ring.className="world-intel-ring";
+    ring.style.left=worldPercent(x)+"%";
+    ring.style.top=worldPercent(y)+"%";
+    ring.style.width=diameter+"%";
+    ring.style.height=diameter+"%";
+    ring.title="🕵️ Geçici istihbarat görüşü";
+
+    const label=document.createElement("span");
+    label.className="world-intel-ring-label";
+    label.textContent=
+      "🕵️ "+
+      worldIntelRemainingLabel(scan.expiresAt);
+
+    ring.appendChild(label);
+    layer.appendChild(ring);
+  });
+
+  if(status){
+    if(scans.length===0){
+      status.style.display="none";
+      status.textContent="";
+    }else{
+      const soonest=scans
+        .map(function(scan){
+          return Date.parse(scan.expiresAt||"");
+        })
+        .filter(Number.isFinite)
+        .sort(function(a,b){
+          return a-b;
+        })[0];
+
+      status.style.display="block";
+      status.textContent=
+        "🕵️ Aktif istihbarat: "+
+        scans.length+
+        " alan"+
+        (
+          Number.isFinite(soonest)
+            ?" · en yakın bitiş "+
+              worldIntelRemainingLabel(
+                new Date(soonest).toISOString()
+              )
+            :""
+        );
+    }
+  }
+}
+
+function refreshWorldIntelTimers() {
+  const previousCount=
+    Array.isArray(worldIntelScans)
+      ?worldIntelScans.length
+      :0;
+  const active=getActiveWorldIntelScans();
+
+  worldIntelScans=active;
+  renderWorldIntelVision();
+
+  if(active.length!==previousCount){
+    renderWorldFog();
+    renderWorldMiniMap();
+  }
 }
 
 function renderWorldFog() {
@@ -1907,7 +2070,7 @@ function renderWorldFog() {
     worldVisionRadius
   );
 
-  (Array.isArray(worldIntelScans)?worldIntelScans:[])
+  getActiveWorldIntelScans()
     .forEach(function(scan){
       appendOpening(
         scan.centerX,
@@ -1947,7 +2110,7 @@ function renderWorldMiniMap() {
   const intelLayer=document.getElementById("worldMiniIntelLayer");
   if(intelLayer){
     intelLayer.innerHTML="";
-    (Array.isArray(worldIntelScans)?worldIntelScans:[]).forEach(function(scan){
+    getActiveWorldIntelScans().forEach(function(scan){
       const circle=document.createElement("span");
       const diameter=Math.max(1,Math.min(200,Number(scan.radius||0)*2))/WORLD_MAX_COORD*100;
       circle.className="world-mini-intel-scan";
@@ -1955,7 +2118,9 @@ function renderWorldMiniMap() {
       circle.style.top=miniMapPercent(scan.centerY)+"%";
       circle.style.width=diameter+"%";
       circle.style.height=diameter+"%";
-      circle.title="🕵️ Geçici istihbarat görüşü";
+      circle.title=
+        "🕵️ Geçici istihbarat görüşü · "+
+        worldIntelRemainingLabel(scan.expiresAt);
       intelLayer.appendChild(circle);
     });
   }
@@ -8978,6 +9143,11 @@ loadMyCoordinates()
 
       setInterval(
         refreshResourceMapTimers,
+        1000
+      );
+
+      setInterval(
+        refreshWorldIntelTimers,
         1000
       );
 
