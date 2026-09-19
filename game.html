@@ -888,6 +888,13 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   margin-top:2px;
   font-size:8px;
 }
+.building-node.has-sprite[aria-label^="Sur "] .building-sprite{
+  transform:translate(-50%,-50%) translateY(var(--sprite-offset-y,0px));
+  transform-origin:50% 70%;
+}
+.building-node.has-sprite[aria-label^="Sur "]:hover .building-sprite{
+  transform:translate(-50%,-50%) translateY(var(--sprite-offset-y,0px)) scale(1.02);
+}
 @media(max-width:600px){
   .building-sprite-label{transform:translateX(-50%) scale(.9)}
 }
@@ -1137,6 +1144,24 @@ const BUILDING_VISUALS={
     width:215,
     offsetY:-52,
     labelY:61
+  },
+  "Konut":{
+    asset:"assets/colony/buildings/housing.svg",
+    width:220,
+    offsetY:-50,
+    labelY:62
+  },
+  "Kristal Deposu":{
+    asset:"assets/colony/buildings/crystal-storage.svg",
+    width:220,
+    offsetY:-52,
+    labelY:63
+  },
+  "Sur":{
+    asset:"assets/colony/buildings/wall.svg",
+    width:360,
+    offsetY:-34,
+    labelY:58
   }
 };
 
