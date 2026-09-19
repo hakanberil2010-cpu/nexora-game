@@ -3427,6 +3427,197 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   .building-sprite-label{transform:translateX(-50%) scale(.9)}
 }
 
+/* Mobile City Readability Pass */
+.building-node.has-sprite.locked{
+  opacity:1;
+  filter:none;
+}
+.building-node.has-sprite.locked:not(.unbuilt) .building-sprite{
+  opacity:.92;
+  filter:
+    saturate(.88)
+    contrast(1.08)
+    brightness(.91)
+    drop-shadow(0 16px 18px rgba(0,0,0,.46));
+}
+.building-pad.locked:not(.unbuilt){
+  opacity:.70;
+  filter:saturate(.70);
+}
+
+.building-node.has-sprite.unbuilt .building-sprite{
+  opacity:.88;
+  filter:
+    saturate(.92)
+    contrast(1.12)
+    brightness(1.02)
+    drop-shadow(0 16px 18px rgba(0,0,0,.45))
+    drop-shadow(0 0 13px rgba(78,205,236,.26));
+}
+.building-node.has-sprite.unbuilt::after{
+  opacity:.42 !important;
+  animation:blueprintPresence 3.8s ease-in-out infinite !important;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(103,226,251,.34) 0 12%,
+      rgba(65,173,205,.15) 30%,
+      rgba(38,112,137,.07) 48%,
+      transparent 70%
+    ) !important;
+  box-shadow:
+    0 0 20px rgba(75,204,235,.16),
+    inset 0 0 16px rgba(75,204,235,.08);
+  filter:none !important;
+}
+.building-pad.unbuilt{
+  opacity:.66;
+  filter:saturate(.72);
+  border-color:rgba(90,205,233,.34);
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(31,92,110,.34) 0 38%,
+      rgba(10,38,49,.24) 58%,
+      transparent 74%
+    );
+  box-shadow:
+    inset 0 0 30px rgba(52,176,207,.07),
+    0 0 20px rgba(49,162,193,.07);
+}
+.building-pad.unbuilt::before{
+  border-style:dashed;
+  border-color:rgba(100,214,240,.28);
+}
+.building-node.has-sprite.unbuilt .building-sprite-label{
+  border-color:rgba(84,206,235,.34);
+  background:rgba(4,26,34,.90);
+}
+.building-node.has-sprite.unbuilt .building-node-level{
+  color:#78d9ed;
+}
+
+@keyframes blueprintPresence{
+  0%,100%{
+    opacity:.28;
+    transform:translate(-50%,-50%) scale(.92);
+  }
+  50%{
+    opacity:.52;
+    transform:translate(-50%,-50%) scale(1.06);
+  }
+}
+
+@media(max-width:600px){
+  .colony-world.compact-overview .building-node.has-sprite .building-sprite{
+    transform:
+      translate(-50%,-50%)
+      translateY(var(--sprite-offset-y,0px))
+      scale(1.28);
+    filter:
+      saturate(1.12)
+      contrast(1.12)
+      brightness(1.12)
+      drop-shadow(0 20px 20px rgba(0,0,0,.50))
+      drop-shadow(0 0 10px rgba(65,190,220,.13));
+  }
+
+  .colony-world.compact-overview
+  .building-node.has-sprite.unbuilt
+  .building-sprite{
+    opacity:.92;
+    filter:
+      saturate(1.02)
+      contrast(1.13)
+      brightness(1.10)
+      drop-shadow(0 20px 20px rgba(0,0,0,.48))
+      drop-shadow(0 0 17px rgba(82,215,244,.34));
+  }
+
+  .colony-world.compact-overview
+  .building-node.has-sprite[aria-label^="Merkez Bina "]
+  .building-sprite{
+    transform:
+      translate(-50%,-50%)
+      translateY(var(--sprite-offset-y,0px))
+      scale(1.52);
+    filter:
+      saturate(1.16)
+      contrast(1.14)
+      brightness(1.18)
+      drop-shadow(0 23px 24px rgba(0,0,0,.52))
+      drop-shadow(0 0 22px rgba(69,211,243,.34));
+  }
+
+  .colony-world.compact-overview
+  .building-node.has-sprite[aria-label^="Sur "]
+  .building-sprite{
+    transform:
+      translate(-50%,-50%)
+      translateY(var(--sprite-offset-y,0px))
+      scale(1.16);
+  }
+
+  .colony-world.compact-overview .building-sprite-label{
+    transform:
+      translateX(-50%)
+      scale(var(--overview-label-scale,1.8));
+    transform-origin:50% 0;
+    min-width:98px;
+    padding:4px 6px;
+    border-color:rgba(82,179,209,.36);
+    background:rgba(2,14,20,.91);
+    box-shadow:0 7px 15px rgba(0,0,0,.32);
+    opacity:.90;
+  }
+
+  .colony-world.compact-overview
+  .building-sprite-label
+  .building-node-level,
+  .colony-world.compact-overview
+  .building-sprite-label
+  .building-node-time,
+  .colony-world.compact-overview
+  .building-sprite-label
+  .building-node-unlock{
+    display:none;
+  }
+
+  .colony-world.compact-overview
+  .building-sprite-label
+  .building-node-name{
+    font-size:11px;
+    line-height:1;
+  }
+
+  .colony-world.compact-overview .city-aux,
+  .colony-world.compact-overview .city-utility-stack,
+  .colony-world.compact-overview .infra-route-label,
+  .colony-world.compact-overview .life-sector-marker,
+  .colony-world.compact-overview .sector-live-status{
+    opacity:.22;
+  }
+
+  .colony-world.compact-overview .building-foundation{
+    opacity:.96;
+  }
+
+  .colony-world.compact-overview
+  .building-foundation.command{
+    border-color:rgba(93,218,246,.42);
+    box-shadow:
+      inset 0 0 34px rgba(57,185,214,.10),
+      0 0 28px rgba(49,188,220,.12),
+      0 16px 26px rgba(0,0,0,.20);
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .building-node.has-sprite.unbuilt::after{
+    animation:none !important;
+  }
+}
+
 </style></head><body>
 
 <header class="topbar">
@@ -4113,6 +4304,41 @@ function applyColonyView(){
       )+
       '%';
   }
+
+  const compactOverview=
+    window.matchMedia(
+      '(max-width:600px)'
+    ).matches&&
+    colonyViewScale<=
+      Math.max(
+        .28,
+        colonyFitScale()*1.28
+      );
+
+  world.classList.toggle(
+    'compact-overview',
+    compactOverview
+  );
+
+  const overviewLabelScale=
+    compactOverview
+      ?Math.min(
+          2.8,
+          Math.max(
+            1.55,
+            .50/
+              Math.max(
+                .16,
+                colonyViewScale
+              )
+          )
+        )
+      :1;
+
+  world.style.setProperty(
+    '--overview-label-scale',
+    overviewLabelScale.toFixed(2)
+  );
 
   if(selectedBuildingName){
     positionBuildingPopup(
@@ -6182,10 +6408,15 @@ function renderBuildings(buildings){
         (productionPaused?' state-production-paused':'')+
         (defenseAlert?' state-alert':'');
 
+      const unbuilt=
+        level===0&&
+        !pending;
+
       const visualState=
         (isSelected?' selected':'')+
         (pending?' pending':'')+
         (locked&&!pending?' locked':'')+
+        (unbuilt?' unbuilt':'')+
         operationalState;
 
       const stateSignal=
