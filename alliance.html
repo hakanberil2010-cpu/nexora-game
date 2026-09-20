@@ -68,16 +68,21 @@ body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at 
 .allianceXpSources{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
 .allianceXpSource{padding:8px;border:1px solid #3b2c50;border-radius:8px;background:#0a0710;text-align:center;color:#9a85ae;font-size:8px}
 .allianceXpSource strong{display:block;margin-top:3px;color:#e4d0f7;font-size:10px}
-.allianceLevelGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px}
-.allianceLevelCard{padding:9px;border:1px solid #342845;border-radius:9px;background:#0b0810}
+.allianceLevelGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:7px}
+.allianceLevelCard{padding:7px 9px;border:1px solid #342845;border-radius:8px;background:#0b0810;min-height:0}
 .allianceLevelCard.reached{border-color:#446856;background:#0a1913}
 .allianceLevelCard.current{box-shadow:inset 3px 0 #b26fff,0 0 17px rgba(178,111,255,.045)}
 .allianceLevelCard.claimable{border-color:#927025;background:#211907}
 .allianceLevelCard.claimed{border-color:#2f7657;background:#0a211a}
-.allianceLevelCard h4{margin:0 0 5px;font-size:11px}
-.allianceLevelReward,.allianceLevelState{margin-top:6px;color:#bdaecc;font-size:9px;line-height:1.4}
-.allianceLevelCard button{margin-top:7px}
-.allianceXpHistory{margin-top:10px}
+.allianceLevelCard h4{margin:0 0 3px;font-size:10px;line-height:1.2}
+.allianceLevelMeta{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap;overflow:hidden}
+.allianceLevelXp{flex:0 0 auto;color:#79aee0;font-size:9px}
+.allianceLevelReward{min-width:0;flex:1;margin:0;color:#cdbadd;font-size:8px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.allianceLevelState{flex:0 0 auto;margin:0;color:#a994ba;font-size:8px;line-height:1.25;white-space:nowrap}
+.allianceLevelCard.claimable .allianceLevelState{color:#f0ca70}
+.allianceLevelCard.claimed .allianceLevelState,.allianceLevelCard.reached .allianceLevelState{color:#78c9a2}
+.allianceLevelCard button{margin-top:5px;padding:5px 7px;font-size:8px}
+.allianceXpHistory{margin-top:7px}
 .allianceXpHistoryItem{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #30243f;font-size:9px}
 .allianceXpHistoryItem:last-child{border-bottom:0}
 
@@ -143,6 +148,9 @@ body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at 
   .allianceProgressionMeta{text-align:left}
   .allianceXpSources{grid-template-columns:repeat(2,minmax(0,1fr))}
   .allianceLevelGrid{grid-template-columns:1fr}
+  .allianceLevelMeta{flex-wrap:wrap;white-space:normal;gap:5px 8px}
+  .allianceLevelReward{white-space:normal;overflow:visible;text-overflow:clip}
+  .allianceLevelState{white-space:normal}
   .territory{align-items:flex-start;flex-direction:column}
 }
 @media(max-width:430px){
@@ -585,9 +593,11 @@ function renderAllianceProgression(data){
       :'';
     return `<div class="${classes}">
       <h4>Sv.${itemLevel} · ${esc(item.title||'İttifak Seviyesi')}</h4>
-      <div class="muted">${allianceProgressionNumber(item.xpRequired).toLocaleString('tr-TR')} XP</div>
-      ${itemLevel>=2?`<div class="allianceLevelReward">🎁 ${esc(allianceProgressionRewardText(item.reward))}</div>`:''}
-      <div class="allianceLevelState">${state}</div>
+      <div class="allianceLevelMeta">
+        <span class="allianceLevelXp">${allianceProgressionNumber(item.xpRequired).toLocaleString('tr-TR')} XP</span>
+        ${itemLevel>=2?`<span class="allianceLevelReward">🎁 ${esc(allianceProgressionRewardText(item.reward))}</span>`:'<span class="allianceLevelReward">Kuruluş seviyesi</span>'}
+        <span class="allianceLevelState">${state}</span>
+      </div>
       ${button}
     </div>`;
   }).join('')||'<div class="empty">Seviye bilgisi bulunamadı.</div>';
