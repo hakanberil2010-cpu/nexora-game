@@ -1,15 +1,154 @@
 <!DOCTYPE html>
 <html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Teryndis - Ticaret</title>
 <style>
-body{margin:0;background:#0b1020;color:#eaf1ff;font-family:Arial,sans-serif}.wrap{max-width:1100px;margin:30px auto;padding:20px}.card{background:#131b31;border:1px solid #2a395f;border-radius:14px;padding:18px;margin-bottom:16px}h1,h2{margin-top:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}label{display:block;font-size:13px;color:#9fb1d4;margin-bottom:6px}input,select{width:100%;box-sizing:border-box;padding:11px;border-radius:9px;border:1px solid #34466f;background:#0c1427;color:#fff}.btn{border:0;border-radius:9px;padding:11px 14px;background:#2b67f6;color:#fff;cursor:pointer}.btn.danger{background:#8d3145}.btn:disabled{opacity:.5;cursor:not-allowed}.offer{border:1px solid #2a395f;border-radius:12px;padding:14px;margin-top:10px;background:#0e162a}.muted{color:#9fb1d4;font-size:13px}.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}.msg{padding:10px;border-radius:8px;background:#0e162a;margin-bottom:12px;min-height:18px}.resource{font-weight:700}.history{font-size:13px;border-top:1px solid #263555;padding-top:10px;margin-top:10px}
-.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}.topBack:hover{filter:brightness(1.08)}</style></head><body><div class="wrap"><a class="topBack" href="game.html">← Koloniye Dön</a><h1>🤝 Ticaret Pazarı</h1><div class="msg" id="msg"></div>
-<div class="card"><h2>Yeni Teklif</h2><div class="grid"><div><label>Verilecek kaynak</label><select id="give"><option value="metal">Metal</option><option value="energy">Enerji</option><option value="alloy">Alaşım</option><option value="crystal">Kristal</option></select></div><div><label>Miktar</label><input id="giveAmount" type="number" min="10" max="100000000" value="500"></div><div><label>İstenen kaynak</label><select id="want"><option value="energy">Enerji</option><option value="metal">Metal</option><option value="alloy">Alaşım</option><option value="crystal">Kristal</option></select></div><div><label>Miktar</label><input id="wantAmount" type="number" min="10" max="100000000" value="300"></div><div><label>Teklif süresi</label><select id="hours"><option value="6">6 saat</option><option value="24" selected>24 saat</option><option value="48">48 saat</option><option value="72">72 saat</option></select></div></div><br><button class="btn" onclick="createOffer()">Teklif Oluştur</button><p class="muted">Verdiğin kaynak teklif açık kaldığı sürece koloninden ayrılır. Trade V2: işlem başına %5 pazar vergisi, oyuncu başına en fazla 5 açık teklif ve güvenli değer oranı uygulanır.</p><div class="muted" id="tradeInfo"></div></div>
-<div class="card"><div class="row"><h2>Açık Teklifler</h2><button class="btn" onclick="loadOffers()">Yenile</button></div><div id="offers"></div></div>
-<div class="card"><h2>Ticaret Geçmişi</h2><div id="history"></div></div></div>
+*{box-sizing:border-box}
+:root{--bg:#050d18;--panel:#091a2c;--line:#173b5d;--cyan:#18bfff;--text:#eaf4ff;--muted:#7897b6}
+body{margin:0;background:radial-gradient(circle at 20% -10%,rgba(24,191,255,.085),transparent 34%),radial-gradient(circle at 82% 8%,rgba(55,186,143,.055),transparent 27%),#050d18;color:var(--text);font-family:Arial,sans-serif;min-height:100vh}
+.top{height:76px;background:rgba(7,21,38,.97);border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.18);backdrop-filter:blur(12px)}
+.logo{font-size:30px;font-weight:900;letter-spacing:6px;color:#18bfff;text-shadow:0 0 20px rgba(24,191,255,.18)}
+.player{color:#9fc0df;font-size:14px}
+.wrap{max-width:1180px;margin:26px auto 38px;padding:0 20px}
+.topBack{display:inline-flex;align-items:center;gap:7px;margin:0 0 14px;padding:9px 14px;border-radius:8px;background:#0d3552;color:#dff5ff;text-decoration:none;font-size:13px;font-weight:800;border:1px solid #245b80;box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.topBack:hover{background:#124565;border-color:#1aa9ee}
+
+.exchangeHead{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:12px;padding:17px 19px;border:1px solid #1a4568;border-radius:14px;background:linear-gradient(135deg,rgba(12,37,60,.96),rgba(7,22,38,.96));box-shadow:0 15px 36px rgba(0,0,0,.21),inset 0 1px rgba(255,255,255,.03);position:relative;overflow:hidden}
+.exchangeHead:after{content:"";position:absolute;right:-95px;top:-135px;width:300px;height:300px;border:1px solid rgba(72,219,171,.065);border-radius:50%;box-shadow:0 0 0 34px rgba(72,219,171,.018),0 0 0 68px rgba(72,219,171,.01);pointer-events:none}
+.exchangeTitle{display:flex;align-items:center;gap:12px;min-width:0;position:relative;z-index:1}
+.exchangeIcon{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border:1px solid rgba(24,191,255,.34);border-radius:11px;background:rgba(24,191,255,.075);font-size:20px}
+.eyebrow{color:#5dbce7;font-size:9px;font-weight:900;letter-spacing:1.55px;text-transform:uppercase;margin-bottom:4px}
+.exchangeHead h1{margin:0 0 4px;font-size:25px;letter-spacing:-.3px;line-height:1.05}
+.sub{color:#7897b6;font-size:12px;line-height:1.45}
+.marketState{flex:0 0 auto;padding:8px 10px;border:1px solid #245574;border-radius:9px;background:rgba(5,16,29,.72);position:relative;z-index:1;text-align:right}
+.marketState small{display:block;color:#5c7d98;font-size:7px;font-weight:900;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.marketState b{display:block;color:#76e1bf;font-size:12px;letter-spacing:.45px}
+
+.card{background:linear-gradient(155deg,rgba(12,31,49,.98),rgba(7,22,36,.98));border:1px solid #173b5d;border-radius:13px;padding:15px;margin-bottom:12px;box-shadow:0 12px 28px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.022)}
+.card h2{margin:0;font-size:16px}
+.cardHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.cardHeadText small{display:block;margin-top:3px;color:#6787a1;font-size:9px}
+.createCard{border-color:#225170;background:linear-gradient(145deg,rgba(10,37,57,.98),rgba(7,22,36,.98))}
+.createCard:before{content:"EXCHANGE TERMINAL";display:block;margin-bottom:6px;color:#5eaed5;font-size:8px;font-weight:900;letter-spacing:1.3px}
+.grid{display:grid;grid-template-columns:minmax(145px,1fr) minmax(130px,.8fr) 40px minmax(145px,1fr) minmax(130px,.8fr) minmax(125px,.75fr);gap:8px;align-items:end}
+.swapMark{height:38px;display:grid;place-items:center;color:#6bd6f8;font-size:18px;font-weight:900}
+label{display:block;font-size:9px;color:#7193ad;margin-bottom:5px;font-weight:900;letter-spacing:.65px;text-transform:uppercase}
+input,select{width:100%;padding:9px 10px;border-radius:8px;border:1px solid #294e6c;background:#061522;color:#fff;outline:none}
+input:focus,select:focus{border-color:#1aa9ee;box-shadow:0 0 0 2px rgba(24,191,255,.07)}
+.btn{border:1px solid #1e9bd4;border-radius:7px;padding:9px 13px;background:linear-gradient(180deg,#17a9df,#0d7eae);color:#fff;font-size:10px;font-weight:900;cursor:pointer;box-shadow:inset 0 1px rgba(255,255,255,.12)}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn.danger{background:#6f292c;border-color:#a2474b;color:#ffdcdc}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.createAction{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #15364e}
+.createNote{max-width:760px;color:#7193ad;font-size:9px;line-height:1.45}
+.msg{min-height:0;padding:9px 12px;border:1px solid #1d4666;border-radius:9px;background:rgba(9,35,54,.8);margin-bottom:10px;color:#a9d8ef;font-size:11px;font-weight:800}
+.msg:empty{display:none}
+
+.tradeInfo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:9px}
+.infoChip{padding:7px 8px;border:1px solid #1b3e59;border-radius:8px;background:#061522}
+.infoChip small{display:block;color:#5f7f99;font-size:7px;font-weight:900;letter-spacing:.7px;text-transform:uppercase;margin-bottom:3px}
+.infoChip b{display:block;color:#bfe9f9;font-size:10px}
+
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.offer{position:relative;overflow:hidden;border:1px solid #1c425f;border-radius:11px;padding:11px;margin-top:7px;background:linear-gradient(145deg,#081b2c,#061522)}
+.offer:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#18bfff}
+.offer.own{border-color:#584674;background:linear-gradient(145deg,rgba(47,29,67,.72),#081522)}
+.offer.own:before{background:#b47aff}
+.offerHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.offerOwner{display:flex;align-items:center;gap:7px;min-width:0}
+.offerOwner strong{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.offerBadge{padding:3px 6px;border:1px solid #28506e;border-radius:999px;color:#7fdcff;background:#0a2539;font-size:7px;font-weight:900;letter-spacing:.55px;text-transform:uppercase;white-space:nowrap}
+.offer.own .offerBadge{border-color:#654a83;color:#dfc5ff;background:#231832}
+.offerExpiry{color:#6688a2;font-size:8px;white-space:nowrap}
+.offerExchange{display:grid;grid-template-columns:1fr 36px 1fr auto;gap:7px;align-items:center}
+.resourceBox{min-width:0;padding:8px 9px;border:1px solid #173b56;border-radius:8px;background:#05131f}
+.resourceBox small{display:block;color:#5d7b92;font-size:7px;font-weight:900;letter-spacing:.7px;text-transform:uppercase;margin-bottom:3px}
+.resourceBox b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resourceBox.metal b{color:#d0d7df}.resourceBox.energy b{color:#ffd567}.resourceBox.alloy b{color:#e19763}.resourceBox.crystal b{color:#6fe2ff}
+.exchangeArrow{display:grid;place-items:center;color:#5ecff4;font-size:16px}
+.offerAction{min-width:92px;text-align:right}
+.muted{color:#7897b6;font-size:10px}
+
+.history{position:relative;margin-top:7px;padding:10px 11px;border:1px solid #173b56;border-radius:10px;background:#061522;font-size:10px}
+.historyHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.historyHead strong{font-size:11px}
+.statusBadge{padding:3px 7px;border:1px solid #28506e;border-radius:999px;font-size:7px;font-weight:900;letter-spacing:.45px;text-transform:uppercase}
+.statusBadge.transit{border-color:#315c81;color:#83d8ff;background:#0c2840}
+.statusBadge.blocked{border-color:#876526;color:#f0cb70;background:#2b210b}
+.statusBadge.delivered{border-color:#2d7459;color:#83dfba;background:#0b281f}
+.statusBadge.other{color:#9db5c7;background:#0a1c2a}
+.historyDeal{display:grid;grid-template-columns:1fr 34px 1fr;gap:7px;align-items:center}
+.historyMeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;padding-top:7px;border-top:1px solid #143248}
+.metaPill{padding:4px 6px;border:1px solid #17384f;border-radius:7px;background:#071827;color:#8facbf;font-size:8px}
+.metaPill strong{color:#dceef8}
+.deliveryLine{margin-top:6px;color:#78a7c1;font-size:8px}
+.deliveryLine.blocked{color:#d0ad5d}
+
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr 1fr 40px 1fr 1fr}.grid>div:last-child{grid-column:1/-1}.offerExchange{grid-template-columns:1fr 32px 1fr}.offerAction{grid-column:1/-1;text-align:left}
+}
+@media(max-width:650px){
+  .top{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:23px;letter-spacing:4px}.player{font-size:12px}
+  .wrap{margin:18px auto 28px;padding:0 12px}
+  .exchangeHead{padding:14px 13px;align-items:flex-start}.exchangeHead h1{font-size:21px}.exchangeIcon{width:38px;height:38px;flex-basis:38px;font-size:17px}.marketState{padding:7px 8px}
+  .grid{grid-template-columns:1fr 1fr}.swapMark{display:none}.grid>div:last-child{grid-column:1/-1}
+  .createAction{align-items:stretch;flex-direction:column}.createAction .btn{width:100%}
+  .tradeInfo{grid-template-columns:1fr}
+  .offerExchange,.historyDeal{grid-template-columns:1fr}.exchangeArrow{transform:rotate(90deg);height:20px}
+  .offerAction .btn{width:100%}
+}
+@media(max-width:430px){
+  .marketState{display:none}.grid{grid-template-columns:1fr}
+}
+</style></head><body>
+<div class="top"><div class="logo">TERYNDIS</div><div class="player">Oyuncu: <strong id="playerName">Oyuncu</strong></div></div>
+<div class="wrap">
+  <a class="topBack" href="game.html">← Koloniye Dön</a>
+  <section class="exchangeHead">
+    <div class="exchangeTitle">
+      <div class="exchangeIcon">⇄</div>
+      <div>
+        <div class="eyebrow">Galactic Exchange // Trade Network</div>
+        <h1>Ticaret Komuta Merkezi</h1>
+        <div class="sub">Kaynak teklifleri oluştur, açık pazarı izle ve galaktik teslimat ağını yönet.</div>
+      </div>
+    </div>
+    <div class="marketState"><small>PAZAR DURUMU</small><b>CANLI AĞ</b></div>
+  </section>
+  <div class="msg" id="msg"></div>
+
+  <section class="card createCard">
+    <div class="cardHead"><div class="cardHeadText"><h2>Yeni Ticaret Teklifi</h2><small>Escrow korumalı pazar emri oluştur.</small></div></div>
+    <div class="grid">
+      <div><label>Verilecek Kaynak</label><select id="give"><option value="metal">Metal</option><option value="energy">Enerji</option><option value="alloy">Alaşım</option><option value="crystal">Kristal</option></select></div>
+      <div><label>Verilecek Miktar</label><input id="giveAmount" type="number" min="10" max="100000000" value="500"></div>
+      <div class="swapMark">→</div>
+      <div><label>İstenen Kaynak</label><select id="want"><option value="energy">Enerji</option><option value="metal">Metal</option><option value="alloy">Alaşım</option><option value="crystal">Kristal</option></select></div>
+      <div><label>İstenen Miktar</label><input id="wantAmount" type="number" min="10" max="100000000" value="300"></div>
+      <div><label>Teklif Süresi</label><select id="hours"><option value="6">6 saat</option><option value="24" selected>24 saat</option><option value="48">48 saat</option><option value="72">72 saat</option></select></div>
+    </div>
+    <div id="tradeInfo" class="tradeInfo"></div>
+    <div class="createAction">
+      <div class="createNote">Verdiğin kaynak teklif açık kaldığı sürece koloninden ayrılır. Pazar vergisi, açık teklif limiti ve güvenli değer oranı backend tarafından uygulanır.</div>
+      <button class="btn" onclick="createOffer()">TEKLİF OLUŞTUR</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="cardHead"><div class="cardHeadText"><h2>Açık Teklifler</h2><small>Aktif pazar emirleri ve kendi escrow tekliflerin.</small></div><button class="btn" onclick="loadOffers()">YENİLE</button></div>
+    <div id="offers"></div>
+  </section>
+
+  <section class="card">
+    <div class="cardHead"><div class="cardHeadText"><h2>Ticaret Geçmişi</h2><small>Teslimat, vergi ve mesafe kayıtları.</small></div></div>
+    <div id="history"></div>
+  </section>
+</div>
 <script>
 const API="/api/auth.js";let token=localStorage.getItem("nexora_token")||localStorage.getItem("token")||"";
 if(!token)location.href="login.html";
 const names={metal:"Metal",energy:"Enerji",alloy:"Alaşım",crystal:"Kristal"};
+const resourceIcons={metal:"⛏️",energy:"⚡",alloy:"🧱",crystal:"💎"};
+const storedPlayer=JSON.parse(localStorage.getItem("nexora_player")||"null");
+if(storedPlayer?.username)document.getElementById("playerName").textContent=storedPlayer.username;
 let serverOffsetMs=0,currentPlayerId=null,tradeConfig={};
 let offersLoadPromise=null,historyLoadPromise=null;
 
@@ -21,13 +160,18 @@ function serverNow(){return Date.now()+serverOffsetMs}
 function setServerTime(value){const t=new Date(value||"").getTime();if(Number.isFinite(t))serverOffsetMs=t-Date.now()}
 function fmtDate(value){const d=new Date(value||"");return Number.isNaN(d.getTime())?"-":d.toLocaleString("tr-TR")}
 function fmtNumber(value){return Math.max(0,n(value)).toLocaleString("tr-TR")}
+function resourceClass(value){return ["metal","energy","alloy","crystal"].includes(String(value))?String(value):""}
+function resourceLabel(resource,amount){return `${resourceIcons[resource]||"◈"} ${fmtNumber(amount)} ${esc(names[resource]||resource)}`}
+function statusClass(status){if(status==="in_transit")return"transit";if(status==="blocked")return"blocked";if(status==="delivered")return"delivered";return"other"}
 function remainingText(seconds){let s=Math.max(0,Math.floor(n(seconds)));const h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);const sec=s%60;return h>0?`${h}sa ${m}dk ${sec}sn`:`${m}dk ${sec}sn`}
 function statusText(status){if(status==="in_transit")return"🚚 Yolda";if(status==="blocked")return"⏸️ Teslimat Bekliyor";if(status==="delivered")return"✅ Teslim Edildi";return status||"-"}
 function updateTradeInfo(){
   const tax=Math.round(n(tradeConfig.taxRate)*100);
   const maxOpen=Math.max(0,n(tradeConfig.maxOpenOffers));
-  document.getElementById("tradeInfo").textContent=
-    `Vergi: %${tax||5} · Açık teklif limiti: ${maxOpen||5} · Miktar: ${fmtNumber(tradeConfig.minOfferAmount||10)}-${fmtNumber(tradeConfig.maxOfferAmount||100000000)}`;
+  document.getElementById("tradeInfo").innerHTML=
+    '<div class="infoChip"><small>Pazar Vergisi</small><b>%'+(tax||5)+'</b></div>'+
+    '<div class="infoChip"><small>Açık Teklif Limiti</small><b>'+(maxOpen||5)+'</b></div>'+
+    '<div class="infoChip"><small>Miktar Aralığı</small><b>'+fmtNumber(tradeConfig.minOfferAmount||10)+' – '+fmtNumber(tradeConfig.maxOfferAmount||100000000)+'</b></div>';
 }
 function updateCountdowns(){
   document.querySelectorAll("[data-delivery-at]").forEach(el=>{
@@ -107,7 +251,7 @@ async function loadOffers(){
           :own&&o.status==="open"
             ?`<button class="btn danger" onclick="cancelOffer(${Number(o.id)},${expired})">${expired?"Kaynağı İade Al":"İptal Et"}</button>`
             :"";
-        return `<div class="offer"><div class="row"><strong>${esc(o.creator_username||"Oyuncu")}</strong><span class="muted">${expired?"Süresi doldu":fmtDate(o.expires_at)}</span></div><p><span class="resource">${fmtNumber(o.give_amount)} ${esc(names[o.give_resource]||o.give_resource)}</span> ➜ <span class="resource">${fmtNumber(o.want_amount)} ${esc(names[o.want_resource]||o.want_resource)}</span></p>${action}</div>`
+        return `<div class="offer ${own?"own":"market"}"><div class="offerHead"><div class="offerOwner"><strong>${esc(o.creator_username||"Oyuncu")}</strong><span class="offerBadge">${own?"Senin Teklifin":"Pazar Teklifi"}</span></div><span class="offerExpiry">${expired?"Süresi doldu":fmtDate(o.expires_at)}</span></div><div class="offerExchange"><div class="resourceBox ${resourceClass(o.give_resource)}"><small>Veriyor</small><b>${resourceLabel(o.give_resource,o.give_amount)}</b></div><div class="exchangeArrow">→</div><div class="resourceBox ${resourceClass(o.want_resource)}"><small>İstiyor</small><b>${resourceLabel(o.want_resource,o.want_amount)}</b></div><div class="offerAction">${action}</div></div></div>`
       }).join("")
     }catch(e){document.getElementById("offers").textContent="❌ "+e.message}
   })().finally(()=>{
@@ -138,7 +282,7 @@ async function loadHistory(){
           ?` · ⏳ <span data-delivery-at="${esc(x.delivery_at)}"></span>`
           :"";
         const blocked=x.status==="blocked"?" · Depo alanı açıldığında yeniden kontrol edilir.":"";
-        return `<div class="history"><div class="row"><strong>${esc(other)}</strong><span>${esc(status)}</span></div>${fmtDate(x.created_at)} — ${fmtNumber(x.give_amount)} ${esc(names[x.give_resource]||x.give_resource)} karşılığında ${fmtNumber(x.want_amount)} ${esc(names[x.want_resource]||x.want_resource)}<br><span class="muted">Net alacağın: ${fmtNumber(myReceive)} ${esc(names[receiveResource]||receiveResource)} · Vergi: ${fmtNumber(myTax)} · Mesafe: ${n(x.distance).toFixed(2)}${countdown}${blocked}</span></div>`
+        return `<div class="history"><div class="historyHead"><strong>${esc(other)}</strong><span class="statusBadge ${statusClass(x.status)}">${esc(status)}</span></div><div class="historyDeal"><div class="resourceBox ${resourceClass(x.give_resource)}"><small>Gönderilen</small><b>${resourceLabel(x.give_resource,x.give_amount)}</b></div><div class="exchangeArrow">→</div><div class="resourceBox ${resourceClass(x.want_resource)}"><small>Karşılık</small><b>${resourceLabel(x.want_resource,x.want_amount)}</b></div></div><div class="historyMeta"><span class="metaPill">Net: <strong>${fmtNumber(myReceive)} ${esc(names[receiveResource]||receiveResource)}</strong></span><span class="metaPill">Vergi: <strong>${fmtNumber(myTax)}</strong></span><span class="metaPill">Mesafe: <strong>${n(x.distance).toFixed(2)}</strong></span><span class="metaPill">${fmtDate(x.created_at)}</span></div>${countdown?`<div class="deliveryLine">⏳ Teslimat${countdown}</div>`:""}${blocked?`<div class="deliveryLine blocked">${blocked.replace(/^ · /,"")}</div>`:""}</div>`
       }).join("");
       updateCountdowns()
     }catch(e){document.getElementById("history").textContent="❌ "+e.message}
