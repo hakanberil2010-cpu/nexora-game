@@ -413,6 +413,19 @@ body{
   box-shadow:0 0 18px var(--unit-glow);
   font-size:30px;
 }
+.icon{
+  color:var(--unit-accent);
+}
+.unit-emblem{
+  display:block;
+  width:34px;
+  height:34px;
+  filter:drop-shadow(0 0 7px var(--unit-glow));
+}
+.tank-emblem{
+  width:38px;
+  height:38px;
+}
 .card h2{
   margin:3px 0 0;
   color:#f3fbff;
@@ -699,7 +712,7 @@ if(user?.username){
 const defaults={
 
   piyade:[
-    '🪖',
+    '<svg class="unit-emblem infantry-emblem" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M12 35c0-13 9-23 20-23s20 10 20 23v4H12v-4Zm6 6h28v7H18v-7Zm7 9h14v5H25v-5Z"/><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M20 32h24"/></svg>',
     'Piyade',
     85,
     0,
@@ -739,7 +752,7 @@ const defaults={
   ],
 
   tank:[
-    '🛡️',
+    '<svg class="unit-emblem tank-emblem" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M11 38h42l5 7v8H8v-8l3-7Zm8-10h25l5 10H15l4-10Zm8-8h16v8H27v-8Z"/><path fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" d="M43 24h14"/><circle cx="18" cy="49" r="4" fill="#04111c"/><circle cx="32" cy="49" r="4" fill="#04111c"/><circle cx="46" cy="49" r="4" fill="#04111c"/></svg>',
     'Tank',
     600,
     275,
