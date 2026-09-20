@@ -3897,7 +3897,7 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
 .colony-world.overview-density
 .building-node.secondary-slot
 .building-sprite-label{
-  display:none;
+  display:none !important;
 }
 
 .colony-world.overview-density
@@ -3906,7 +3906,7 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
 .colony-world.overview-density
 .building-node.command-core
 .building-sprite-label{
-  display:block;
+  display:block !important;
 }
 
 .colony-world.overview-density
@@ -4483,9 +4483,9 @@ const BUILDING_VISUALS={
   },
   "Sur":{
     asset:"assets/colony/buildings/wall.svg",
-    width:360,
-    offsetY:-34,
-    labelY:58
+    width:340,
+    offsetY:-36,
+    labelY:56
   }
 };
 
@@ -4500,12 +4500,12 @@ const BUILDING_SITES=[
   {name:"Merkez Bina",slot:1,icon:"🏛️",x:50,y:48},
   {name:"Enerji Santrali",slot:2,icon:"⚡",x:72,y:48},
   {name:"Kristal Madeni",slot:2,icon:"💎",x:90,y:48},
-  {name:"Kışla",slot:1,icon:"🪖",x:12,y:74},
-  {name:"Alaşım Rafinerisi",slot:2,icon:"🧱",x:30,y:74},
-  {name:"Depo",slot:1,icon:"📦",x:50,y:74},
-  {name:"Depo",slot:2,icon:"📦",x:70,y:74},
-  {name:"Kristal Deposu",slot:1,icon:"🔷",x:88,y:74},
-  {name:"Sur",slot:1,icon:"🧱",x:50,y:91}
+  {name:"Kışla",slot:1,icon:"🪖",x:12,y:72.5},
+  {name:"Alaşım Rafinerisi",slot:2,icon:"🧱",x:30,y:72.5},
+  {name:"Depo",slot:1,icon:"📦",x:50,y:72.5},
+  {name:"Depo",slot:2,icon:"📦",x:70,y:72.5},
+  {name:"Kristal Deposu",slot:1,icon:"🔷",x:88,y:72.5},
+  {name:"Sur",slot:1,icon:"🧱",x:50,y:89}
 ];
 
 const ROAD_LINKS=[
@@ -4670,8 +4670,8 @@ function applyColonyView(){
   const overviewDensity=
     colonyViewScale<=
       Math.max(
-        .58,
-        colonyFitScale()*1.22
+        .60,
+        colonyFitScale()*1.25
       );
 
   world.classList.toggle(
