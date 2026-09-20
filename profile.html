@@ -6,66 +6,96 @@
 <title>TERYNDIS - Oyuncu Profili</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
-.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
-.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
-.container{max-width:1050px;margin:30px auto;padding:0 20px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
-.button,.buttonAlt{display:inline-flex;align-items:center;justify-content:center;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:bold;cursor:pointer}
-.button{border:1px solid #1aa9ee;background:#138dcc;color:#fff}
-.buttonAlt{border:1px solid #285476;background:#071526;color:#b9d4eb}
+:root{--bg:#050d18;--panel:#091a2c;--line:#173b5d;--cyan:#18bfff;--text:#eaf4ff;--muted:#7897b6;--green:#67dda8;--gold:#ffd970;--purple:#c79aff;--red:#ff7d7a}
+body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at 18% -10%,rgba(24,191,255,.085),transparent 34%),radial-gradient(circle at 84% 8%,rgba(116,82,185,.05),transparent 28%),#050d18;color:var(--text);min-height:100vh}
+.top{height:76px;background:rgba(7,21,38,.97);border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.18);backdrop-filter:blur(12px)}
+.logo{font-size:30px;font-weight:900;letter-spacing:6px;color:#18bfff;text-shadow:0 0 20px rgba(24,191,255,.18)}
+.top>div:last-child{color:#9fc0df;font-size:14px}
+.container{max-width:1120px;margin:26px auto 38px;padding:0 20px}
+
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.button,.buttonAlt{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:8px;text-decoration:none;font-size:10px;font-weight:900;cursor:pointer;box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.button{border:1px solid #1aa9ee;background:#0d3552;color:#dff5ff}
+.buttonAlt{border:1px solid #31536e;background:#11283b;color:#bdd5e5}
 .button:hover,.buttonAlt:hover{filter:brightness(1.08)}
-.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:start;padding:20px;background:#091a2c;border:1px solid #173b5d;border-radius:14px}
-.kicker{font-size:12px;color:#7196b8;text-transform:uppercase;letter-spacing:.9px;font-weight:bold}
-h1{margin:5px 0 8px;font-size:31px}
-.meta{display:flex;gap:8px;flex-wrap:wrap}
-.pill{display:inline-flex;padding:6px 9px;border-radius:999px;background:#102a44;color:#9edcff;font-size:12px}
-.scoreBox{min-width:155px;text-align:center;padding:15px;border-radius:12px;background:#071526;border:1px solid #285476}
-.scoreLabel{font-size:11px;color:#7196b8;text-transform:uppercase}
-.scoreValue{margin-top:5px;font-size:30px;font-weight:bold;color:#18bfff}
-.section{margin-top:16px;padding:18px;background:#091a2c;border:1px solid #173b5d;border-radius:14px}
-.section h2{margin:0 0 13px;font-size:18px}
-.bio{min-height:58px;color:#c9dbea;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+#messageButton{border-color:#386b8b;background:#123249;color:#bfe8ff}
+#friendButton{border-color:#4d5f86;background:#18273f;color:#c8d7ff}
+#friendButton:disabled{opacity:.6;cursor:not-allowed}
+
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:14px;align-items:stretch;padding:17px 18px;background:linear-gradient(135deg,rgba(12,37,60,.97),rgba(7,22,38,.97));border:1px solid #1a4568;border-radius:14px;box-shadow:0 15px 36px rgba(0,0,0,.21),inset 0 1px rgba(255,255,255,.03);position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-100px;top:-145px;width:310px;height:310px;border:1px solid rgba(24,191,255,.055);border-radius:50%;box-shadow:0 0 0 36px rgba(24,191,255,.014),0 0 0 72px rgba(24,191,255,.008);pointer-events:none}
+.hero>div:first-child{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.kicker{font-size:8px;color:#5dbce7;text-transform:uppercase;letter-spacing:1.4px;font-weight:900}
+h1{margin:4px 0 7px;font-size:28px;line-height:1.05;letter-spacing:-.35px}
+.meta{display:flex;gap:5px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;padding:4px 7px;border:1px solid #244e6c;border-radius:999px;background:#0a263b;color:#9edcff;font-size:8px;font-weight:800}
+.scoreBox{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center;min-width:0;text-align:center;padding:13px;border-radius:11px;background:linear-gradient(155deg,rgba(8,26,43,.96),rgba(5,17,29,.96));border:1px solid #2a5a7a;box-shadow:inset 0 1px rgba(255,255,255,.025)}
+.scoreBox:before{content:"COMBAT RATING";display:block;margin-bottom:5px;color:#4c7897;font-size:7px;font-weight:900;letter-spacing:1.1px}
+.scoreLabel{font-size:8px;color:#7196b8;text-transform:uppercase;font-weight:900;letter-spacing:.65px}
+.scoreValue{margin-top:3px;font-size:31px;font-weight:900;color:#74ddff;text-shadow:0 0 18px rgba(24,191,255,.15)}
+
+.section{margin-top:10px;padding:13px;background:linear-gradient(155deg,rgba(10,29,46,.98),rgba(6,20,33,.98));border:1px solid #173b5d;border-radius:11px;box-shadow:0 9px 22px rgba(0,0,0,.13),inset 0 1px rgba(255,255,255,.018)}
+.section h2{margin:0 0 8px;font-size:14px}
+.sectionKicker{display:block;margin-bottom:4px;font-size:7px;font-weight:900;letter-spacing:1.15px;text-transform:uppercase}
+.bioSection{border-color:#244b69}.bioSection .sectionKicker{color:#64bce7}
+.statsSection{border-color:#25455d}.statsSection .sectionKicker{color:#7da7c2}
+.collectionSection{border-color:#4a3b65}.collectionSection .sectionKicker{color:#c19ae7}
+
+.bio{min-height:0;padding:9px 10px;border:1px solid #163a54;border-radius:8px;background:#061522;color:#c9dbea;font-size:10px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
 .bioEmpty{color:#7196b8}
-.editor{display:none;margin-top:12px}
-.textarea{width:100%;min-height:105px;padding:11px 12px;border:1px solid #285476;border-radius:9px;background:#071526;color:#eaf4ff;font:inherit;resize:vertical}
-.textarea:focus{outline:none;border-color:#1aa9ee}
-.editorBottom{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:8px}
-.counter{font-size:12px;color:#7196b8}
-.save{padding:10px 15px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
-.save:disabled{opacity:.5;cursor:not-allowed}
-.save:hover:not(:disabled){filter:brightness(1.08)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.stat{padding:14px;border-radius:11px;background:#071526;border:1px solid #173b5d}
-.statLabel{font-size:11px;text-transform:uppercase;color:#7196b8}
-.statValue{margin-top:5px;font-size:21px;font-weight:bold;color:#dff4ff}
-.achievementSummary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:13px}
-.achievementGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-.achievementCard{padding:14px;border:1px solid #173b5d;border-radius:11px;background:#071526}
-.achievementTitle{display:flex;align-items:center;gap:8px;font-weight:bold}
-.achievementIcon{font-size:24px}
-.achievementDescription{margin:9px 0;color:#b9d4eb;line-height:1.4;overflow-wrap:anywhere}
-.achievementMeta{display:flex;gap:7px;flex-wrap:wrap;font-size:12px;color:#9bbbd4}
-.achievementMeta span{padding:4px 7px;border-radius:6px;background:#102a44}
-.tier-bronze{border-color:#9a704e!important;color:#dbac80!important}
-.tier-silver{border-color:#8394a5!important;color:#c5d3df!important}
-.tier-gold{border-color:#b9953c!important;color:#f2d176!important}
-.tier-legendary{border-color:#9566bd!important;color:#d7adff!important}
-.collectionSubheading{margin:18px 0 10px;font-size:15px}
-.status{display:none;margin-top:14px;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff}
-.loading{padding:24px;text-align:center;color:#7196b8}
+.editor{display:none;margin-top:8px;padding-top:8px;border-top:1px solid #15364e}
+.textarea{width:100%;min-height:82px;padding:9px 10px;border:1px solid #285476;border-radius:8px;background:#05131f;color:#eaf4ff;font:inherit;font-size:10px;line-height:1.45;resize:vertical}
+.textarea:focus{outline:none;border-color:#1aa9ee;box-shadow:0 0 0 2px rgba(24,191,255,.06)}
+.editorBottom{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:6px}
+.counter{font-size:8px;color:#7196b8}
+.save{padding:7px 10px;border:1px solid #1e9bd4;border-radius:7px;background:linear-gradient(180deg,#17a9df,#0d7eae);color:#fff;font-size:9px;font-weight:900;cursor:pointer}
+.save:disabled{opacity:.5;cursor:not-allowed}.save:hover:not(:disabled){filter:brightness(1.08)}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.stat{position:relative;overflow:hidden;padding:9px 10px;border-radius:8px;background:#061522;border:1px solid #173b5d}
+.stat:before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:#2c688c}
+.stat:nth-child(2):before{background:#67dda8}.stat:nth-child(3):before{background:#ff9e6b}.stat:nth-child(4):before{background:#c79aff}
+.stat:nth-child(5):before{background:#67dda8}.stat:nth-child(6):before{background:#ff7d7a}.stat:nth-child(7):before{background:#ffd970}.stat:nth-child(8):before{background:#75b4da}
+.statLabel{font-size:7px;font-weight:900;letter-spacing:.65px;text-transform:uppercase;color:#67869e}
+.statValue{margin-top:3px;font-size:17px;font-weight:900;color:#dff4ff}
+
+.achievementSummary{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.achievementSummary .pill{border-color:#51406b;background:#20182d;color:#d8bcf4}
+.achievementGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px}
+.achievementCard{position:relative;overflow:hidden;padding:10px;border:1px solid #253d54;border-radius:9px;background:linear-gradient(145deg,#071725,#06131f)}
+.achievementCard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:#6c5a84}
+.achievementTitle{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:900}
+.achievementIcon{font-size:20px}
+.achievementDescription{margin:6px 0;color:#91afc4;font-size:8px;line-height:1.4;overflow-wrap:anywhere}
+.achievementMeta{display:flex;gap:4px;flex-wrap:wrap;font-size:7px;color:#9bbbd4}
+.achievementMeta span{padding:3px 5px;border:1px solid #213e55;border-radius:6px;background:#0b2436}
+.tier-bronze{border-color:#765338!important;background:#2b1f17!important;color:#dbac80!important}
+.tier-silver{border-color:#627487!important;background:#202d39!important;color:#c5d3df!important}
+.tier-gold{border-color:#8e7228!important;background:#342b0f!important;color:#f2d176!important}
+.tier-legendary{border-color:#76508f!important;background:#2a1834!important;color:#d7adff!important}
+
+.collectionSubheading{display:flex;align-items:center;gap:6px;margin:13px 0 7px;padding-top:10px;border-top:1px solid #3a3150;font-size:11px;color:#eadcff}
+.collectionSubheading:after{content:"TROPHY VAULT";margin-left:auto;color:#806c94;font-size:7px;font-weight:900;letter-spacing:1px}
+#trophyGrid .achievementCard{border-color:#5b4a28;background:linear-gradient(145deg,#1b170a,#0a1420)}
+#trophyGrid .achievementCard:before{background:#ffd970}
+#trophyGrid .achievementTitle{color:#ffe7a2}
+#trophyGrid .achievementMeta span{border-color:#554724;background:#211b0b;color:#ddc987}
+
+.status{display:none;margin-top:10px;padding:9px 11px;border-radius:8px;background:#091a2c;border:1px solid #1d4666;color:#8bdcff;font-size:9px;font-weight:800}
+.loading{padding:24px;text-align:center;color:#7196b8;font-size:11px}
 .hidden{display:none!important}
+
 @media(max-width:760px){
-  .top{height:auto;min-height:70px;padding:12px 15px;gap:10px;flex-wrap:wrap}
-  .logo{font-size:22px;letter-spacing:4px}
-  .top>div:last-child{min-width:0;font-size:13px;overflow-wrap:anywhere}
-  .container{padding:0 12px;margin-top:20px}
-  .hero{grid-template-columns:1fr}
-  .scoreBox{width:100%}
+  .top{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:23px;letter-spacing:4px}.top>div:last-child{min-width:0;font-size:12px;overflow-wrap:anywhere}
+  .container{padding:0 12px;margin:18px auto 28px}
+  .hero{grid-template-columns:1fr}.scoreBox{width:100%;padding:10px}.scoreValue{font-size:25px}
   .stats{grid-template-columns:1fr 1fr}
+  .achievementGrid{grid-template-columns:1fr}
 }
 @media(max-width:430px){
-  .stats{grid-template-columns:1fr}
+  .actions{display:grid;grid-template-columns:1fr 1fr}.button,.buttonAlt{width:100%;text-align:center}
+  .stats{grid-template-columns:1fr 1fr}
+  .meta{gap:4px}.pill{font-size:7px}
 }
 </style>
 </head>
@@ -88,7 +118,7 @@ h1{margin:5px 0 8px;font-size:31px}
   <main id="profileContent" class="hidden">
     <section class="hero">
       <div>
-        <div class="kicker">Komutan Profili</div>
+        <div class="kicker">Commander Dossier // Personnel Intel</div>
         <h1 id="profileUsername">Oyuncu</h1>
         <div class="meta">
           <span class="pill" id="alliancePill">İttifak yok</span>
@@ -102,7 +132,8 @@ h1{margin:5px 0 8px;font-size:31px}
       </div>
     </section>
 
-    <section class="section">
+    <section class="section bioSection">
+      <span class="sectionKicker">COMMANDER BRIEFING</span>
       <h2>📝 Profil Açıklaması</h2>
       <div id="bioView" class="bio bioEmpty">Henüz profil açıklaması yok.</div>
 
@@ -115,7 +146,8 @@ h1{margin:5px 0 8px;font-size:31px}
       </div>
     </section>
 
-    <section class="section">
+    <section class="section statsSection">
+      <span class="sectionKicker">TACTICAL METRICS</span>
       <h2>📊 Oyuncu İstatistikleri</h2>
       <div class="stats">
         <div class="stat"><div class="statLabel">Koloni Seviyesi</div><div class="statValue" id="colonyLevel">0</div></div>
@@ -129,7 +161,8 @@ h1{margin:5px 0 8px;font-size:31px}
       </div>
     </section>
 
-    <section class="section">
+    <section class="section collectionSection">
+      <span class="sectionKicker">BADGE ARCHIVE</span>
       <h2>🏅 Başarım Koleksiyonu</h2>
       <div class="achievementSummary">
         <span class="pill" id="achievementCount">0 / 0 Başarım</span>
