@@ -202,6 +202,380 @@ h1{margin-bottom:6px}
   }
 }
 
+/* Army Command Center Visual Pass */
+:root{
+  --army-panel:#081827;
+  --army-panel-2:#0b2033;
+  --army-border:rgba(73,159,199,.30);
+  --army-cyan:#69ddff;
+  --army-text:#eaf7ff;
+  --army-muted:#8eb1c7;
+}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 18% 0%,rgba(23,119,159,.13),transparent 32%),
+    radial-gradient(circle at 88% 18%,rgba(86,77,190,.10),transparent 30%),
+    linear-gradient(180deg,#04101a 0%,#06131f 44%,#040b12 100%);
+}
+.topbar{
+  height:78px;
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:
+    linear-gradient(180deg,rgba(8,29,46,.97),rgba(5,20,33,.96));
+  border-bottom:1px solid rgba(83,182,220,.26);
+  box-shadow:0 12px 30px rgba(0,0,0,.28);
+  backdrop-filter:blur(12px);
+}
+.logo{
+  color:#72e4ff;
+  text-shadow:0 0 18px rgba(74,205,244,.38);
+}
+.player{
+  padding:7px 11px;
+  border:1px solid rgba(91,174,210,.20);
+  border-radius:999px;
+  background:rgba(4,17,29,.72);
+}
+.container{
+  max-width:1320px;
+  margin:28px auto 44px;
+}
+.container>h1{
+  margin:4px 0 4px;
+  font-size:clamp(28px,3vw,40px);
+  letter-spacing:.3px;
+  text-shadow:0 0 24px rgba(67,187,232,.16);
+}
+.sub{
+  max-width:820px;
+  color:#90afc3;
+  line-height:1.55;
+}
+.topBack{
+  border-color:rgba(93,200,238,.42);
+  background:
+    linear-gradient(180deg,rgba(20,112,154,.92),rgba(11,75,112,.94));
+  box-shadow:0 7px 18px rgba(0,0,0,.22),0 0 16px rgba(56,190,237,.10);
+}
+.resources{
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:10px;
+  margin:22px 0 16px;
+}
+.res{
+  position:relative;
+  min-height:74px;
+  overflow:hidden;
+  padding:12px 13px;
+  border:1px solid var(--army-border);
+  border-radius:12px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(79,194,230,.10),transparent 48%),
+    linear-gradient(180deg,rgba(11,34,52,.96),rgba(6,23,37,.96));
+  color:#93b5c9;
+  font-size:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.025);
+}
+.res::after{
+  content:"";
+  position:absolute;
+  left:12px;
+  right:12px;
+  bottom:8px;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(90deg,rgba(92,219,255,.70),rgba(92,219,255,0));
+  opacity:.42;
+}
+.res b{
+  display:block;
+  margin-top:6px;
+  color:#f0fbff;
+  font-size:18px;
+  letter-spacing:.2px;
+}
+.queue{
+  position:relative;
+  overflow:hidden;
+  margin:16px 0 22px;
+  padding:16px 18px;
+  border:1px solid rgba(95,190,225,.28);
+  background:
+    radial-gradient(circle at 0% 0%,rgba(76,189,229,.10),transparent 34%),
+    linear-gradient(180deg,rgba(9,31,48,.96),rgba(6,21,34,.96));
+  box-shadow:0 12px 26px rgba(0,0,0,.22);
+}
+.queue::before{
+  content:"OPERASYON HATTI";
+  position:absolute;
+  top:12px;
+  right:14px;
+  color:rgba(109,218,249,.55);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:1.8px;
+}
+.queue h3{
+  margin:0 0 12px;
+  color:#dff8ff;
+  font-size:16px;
+}
+#queueList{
+  display:grid;
+  gap:7px;
+  color:#91afc2;
+}
+.qitem{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:40px;
+  padding:9px 11px;
+  border:1px solid rgba(73,146,179,.20);
+  border-radius:8px;
+  background:rgba(3,16,27,.66);
+}
+.time{
+  flex-shrink:0;
+  color:#75e0ff;
+  font-size:13px;
+  text-shadow:0 0 10px rgba(74,206,243,.25);
+}
+.army-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;
+}
+.card{
+  --unit-accent:#62d9ff;
+  --unit-glow:rgba(72,202,242,.24);
+  position:relative;
+  overflow:hidden;
+  min-height:100%;
+  padding:18px;
+  border:1px solid color-mix(in srgb,var(--unit-accent) 34%,transparent);
+  border-radius:14px;
+  background:
+    radial-gradient(circle at 12% 0%,var(--unit-glow),transparent 30%),
+    linear-gradient(180deg,rgba(10,31,48,.98),rgba(6,20,32,.98));
+  box-shadow:
+    0 13px 28px rgba(0,0,0,.25),
+    inset 0 1px 0 rgba(255,255,255,.035);
+}
+.card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:var(--unit-accent);
+  box-shadow:0 0 14px var(--unit-accent);
+  opacity:.82;
+}
+.card[data-unit-type="piyade"]{
+  --unit-accent:#77dcff;
+  --unit-glow:rgba(83,191,232,.18);
+}
+.card[data-unit-type="savunma"]{
+  --unit-accent:#79efb6;
+  --unit-glow:rgba(94,225,165,.16);
+}
+.card[data-unit-type="saldiri"]{
+  --unit-accent:#ff8c72;
+  --unit-glow:rgba(255,104,76,.17);
+}
+.card[data-unit-type="okcu"]{
+  --unit-accent:#e8bf69;
+  --unit-glow:rgba(222,174,76,.16);
+}
+.card[data-unit-type="tank"]{
+  --unit-accent:#b798ff;
+  --unit-glow:rgba(163,120,246,.17);
+}
+.card[data-unit-type="hava"]{
+  --unit-accent:#79d9ff;
+  --unit-glow:rgba(93,206,246,.17);
+}
+.icon{
+  width:52px;
+  height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:8px;
+  border:1px solid color-mix(in srgb,var(--unit-accent) 45%,transparent);
+  border-radius:12px;
+  background:rgba(3,18,29,.72);
+  box-shadow:0 0 18px var(--unit-glow);
+  font-size:30px;
+}
+.card h2{
+  margin:3px 0 0;
+  color:#f3fbff;
+  font-size:21px;
+}
+.level{
+  display:inline-flex;
+  margin:8px 0 7px;
+  padding:4px 8px;
+  border:1px solid color-mix(in srgb,var(--unit-accent) 42%,transparent);
+  border-radius:999px;
+  background:rgba(3,17,28,.72);
+  color:var(--unit-accent);
+  font-size:11px;
+  letter-spacing:.4px;
+}
+.qty{
+  margin:5px 0 6px;
+  color:#fff;
+  font-size:26px;
+  line-height:1.15;
+}
+.unit-role{
+  min-height:34px;
+  margin:0 0 12px;
+  color:#87a9bd;
+  font-size:12px;
+  line-height:1.45;
+}
+.stats{
+  gap:7px;
+}
+.stats div{
+  padding:9px 10px;
+  border-color:rgba(83,151,184,.20);
+  background:rgba(3,16,27,.72);
+}
+.stats small{
+  color:#789bb1;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+}
+.stats b{
+  display:block;
+  margin-top:3px;
+  color:#eaf9ff;
+  font-size:16px;
+}
+.cost{
+  min-height:42px;
+  margin:12px 0 10px;
+  color:#9db9c9;
+  font-size:12px;
+  line-height:1.5;
+}
+.trainBox{
+  margin:10px 0;
+  padding:11px;
+  border-color:rgba(83,160,194,.24);
+  background:rgba(3,16,27,.76);
+}
+.trainTitle{
+  margin-bottom:7px;
+  color:#bed5e1;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+}
+.quantityRow{
+  gap:6px;
+}
+.quantityInput{
+  height:40px;
+  border-color:rgba(93,176,211,.34);
+  background:#04111c;
+  color:#effbff;
+}
+.quantityInput:focus{
+  border-color:var(--unit-accent);
+  box-shadow:0 0 0 2px var(--unit-glow);
+}
+.quick{
+  min-height:34px;
+  border-color:rgba(91,174,210,.30);
+  background:rgba(12,53,77,.86);
+  color:#9ee9ff;
+}
+.selectionCost{
+  min-height:38px;
+  margin-top:8px;
+  color:#93b2c4;
+}
+.button{
+  min-height:42px;
+  border:1px solid rgba(104,205,242,.30);
+  background:linear-gradient(180deg,#168fc3,#0d6f9e);
+  box-shadow:0 6px 14px rgba(0,0,0,.18);
+}
+.maxButton{
+  border-color:rgba(179,146,255,.34);
+  background:linear-gradient(180deg,#765cc7,#5943a4);
+}
+.upgrade{
+  border-color:rgba(102,232,171,.34);
+  background:linear-gradient(180deg,#229763,#176c49);
+}
+.button:hover:not(:disabled),
+.quick:hover:not(:disabled){
+  transform:translateY(-1px);
+  filter:brightness(1.08);
+}
+.button,
+.quick{
+  transition:transform .14s ease,filter .14s ease,border-color .14s ease;
+}
+@media(max-width:1080px){
+  .resources{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .army-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:700px){
+  .resources{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .army-grid{
+    grid-template-columns:1fr;
+  }
+  .card{
+    padding:15px;
+  }
+  .queue::before{
+    display:none;
+  }
+}
+@media(max-width:430px){
+  .resources{
+    gap:7px;
+  }
+  .res{
+    min-height:66px;
+    padding:10px;
+  }
+  .res b{
+    font-size:16px;
+  }
+  .quantityRow{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .quantityInput{
+    grid-column:1/-1;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .button,
+  .quick{
+    transition:none;
+  }
+}
+
 </style>
 </head>
 
@@ -708,7 +1082,7 @@ function render(data){
 
 
         return `
-          <div class="card">
+          <div class="card" data-unit-type="${type}">
 
             <div class="icon">
               ${d[0]}
@@ -726,7 +1100,7 @@ function render(data){
               ${fmt(qty)} asker
             </div>
 
-            <div style="color:#7196b8;margin:-4px 0 12px">
+            <div class="unit-role">
               ${d[6]}
             </div>
 
