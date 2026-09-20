@@ -8,113 +8,572 @@
   <style>
     * { box-sizing: border-box; }
 
+    :root {
+      --bg: #050d18;
+      --panel: #091a2c;
+      --panel-strong: #0b2137;
+      --line: #173b5d;
+      --line-bright: #245b80;
+      --cyan: #18bfff;
+      --text: #eaf4ff;
+      --muted: #7897b6;
+    }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #050d18;
-      color: #eaf4ff;
+      background:
+        radial-gradient(circle at 18% -10%, rgba(24, 191, 255, .09), transparent 34%),
+        radial-gradient(circle at 84% 12%, rgba(75, 93, 190, .07), transparent 26%),
+        #050d18;
+      color: var(--text);
+      min-height: 100vh;
     }
 
     .top {
       height: 76px;
-      background: #071526;
+      background: rgba(7, 21, 38, .96);
       border-bottom: 1px solid #173451;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, .18);
+      backdrop-filter: blur(12px);
     }
 
     .logo {
       font-size: 30px;
       font-weight: bold;
       letter-spacing: 6px;
-      color: #18bfff;
+      color: var(--cyan);
+      text-shadow: 0 0 20px rgba(24, 191, 255, .18);
+    }
+
+    .player {
+      color: #9fc0df;
+      font-size: 14px;
     }
 
     .container {
-      max-width: 1200px;
-      margin: 30px auto;
+      max-width: 1250px;
+      margin: 28px auto 36px;
       padding: 0 20px;
     }
 
+    .topBack {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0 0 18px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: #0d3552;
+      color: #dff5ff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: bold;
+      border: 1px solid #245b80;
+      box-shadow: inset 0 1px rgba(255, 255, 255, .04);
+    }
+
+    .topBack:hover {
+      background: #124565;
+      border-color: #1aa9ee;
+    }
+
+    .commandHead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 22px;
+      padding: 22px 24px;
+      border: 1px solid #1a4568;
+      border-radius: 16px;
+      background:
+        linear-gradient(135deg, rgba(12, 37, 60, .96), rgba(7, 22, 38, .96)),
+        #091a2c;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, .22), inset 0 1px rgba(255, 255, 255, .035);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .commandHead::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      top: -120px;
+      width: 280px;
+      height: 280px;
+      border: 1px solid rgba(24, 191, 255, .08);
+      border-radius: 50%;
+      box-shadow: 0 0 0 32px rgba(24, 191, 255, .022), 0 0 0 64px rgba(24, 191, 255, .012);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      color: #5fbbe6;
+      font-size: 10px;
+      line-height: 1.4;
+      letter-spacing: 1.8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    .commandHead h1 {
+      margin: 0 0 7px;
+      font-size: 29px;
+      letter-spacing: -.4px;
+    }
+
+    .titleIcon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      margin-right: 9px;
+      border: 1px solid rgba(24, 191, 255, .32);
+      border-radius: 10px;
+      background: rgba(24, 191, 255, .08);
+      font-size: 22px;
+      vertical-align: middle;
+    }
+
     .sub {
-      color: #7196b8;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .commandState {
+      min-width: 190px;
+      padding: 12px 14px;
+      border: 1px solid #204b6d;
+      border-radius: 11px;
+      background: rgba(5, 16, 29, .68);
+      position: relative;
+      z-index: 1;
+    }
+
+    .commandState span {
+      display: block;
+      color: #6289aa;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.15px;
+      margin-bottom: 5px;
+    }
+
+    .commandState b {
+      display: block;
+      color: #83e5ff;
+      font-size: 13px;
+      letter-spacing: .4px;
     }
 
     .resources {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
-      margin: 18px 0;
-    }
-
-    .res,
-    .card {
-      background: #091a2c;
-      border: 1px solid #173b5d;
-      border-radius: 12px;
+      margin: 14px 0 18px;
     }
 
     .res {
-      padding: 12px;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 12px 14px;
+      background: linear-gradient(180deg, #0a1c2f, #081725);
+      border: 1px solid #173b5d;
+      border-radius: 11px;
+      box-shadow: inset 0 1px rgba(255, 255, 255, .025);
+    }
+
+    .resIcon {
+      width: 34px;
+      height: 34px;
+      flex: 0 0 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #214b6a;
+      border-radius: 9px;
+      background: #071526;
+      font-size: 17px;
+    }
+
+    .resMeta {
+      min-width: 0;
+    }
+
+    .resMeta small {
+      display: block;
+      color: #6689a8;
+      font-size: 9px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 3px;
     }
 
     .res b {
+      display: block;
       font-size: 18px;
+      line-height: 1.1;
+      color: #eef9ff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .res.timerRes b {
+      color: #80dcff;
+    }
+
+    .status {
+      margin: 0 0 16px;
+      padding: 10px 13px;
+      border: 1px solid #245b80;
+      border-radius: 9px;
+      background: rgba(12, 47, 72, .62);
+      color: #a8e8ff;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .status:empty {
+      display: none;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
       gap: 16px;
     }
 
     .card {
-      padding: 18px;
+      --accent: #18bfff;
+      --accent-rgb: 24, 191, 255;
+      min-width: 0;
+      padding: 17px;
+      background:
+        linear-gradient(145deg, rgba(var(--accent-rgb), .045), transparent 38%),
+        linear-gradient(180deg, #091b2d, #071624);
+      border: 1px solid #173b5d;
+      border-top-color: rgba(var(--accent-rgb), .5);
+      border-radius: 14px;
+      box-shadow: 0 14px 28px rgba(0, 0, 0, .18), inset 0 1px rgba(255, 255, 255, .025);
+      position: relative;
+      overflow: hidden;
+      transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(var(--accent-rgb), .58);
+      box-shadow: 0 17px 34px rgba(0, 0, 0, .24), 0 0 22px rgba(var(--accent-rgb), .045);
+    }
+
+    .card.active {
+      border-color: rgba(var(--accent-rgb), .82);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, .25), 0 0 26px rgba(var(--accent-rgb), .11), inset 0 0 28px rgba(var(--accent-rgb), .035);
+    }
+
+    .card.maxed {
+      opacity: .86;
+    }
+
+    .card.economy {
+      --accent: #29d3ff;
+      --accent-rgb: 41, 211, 255;
+    }
+
+    .card.military {
+      --accent: #ff8c66;
+      --accent-rgb: 255, 140, 102;
+    }
+
+    .card.defense {
+      --accent: #8ca8ff;
+      --accent-rgb: 140, 168, 255;
+    }
+
+    .card.logistics {
+      --accent: #5fe3af;
+      --accent-rgb: 95, 227, 175;
+    }
+
+    .cardHead {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .iconFrame {
+      width: 50px;
+      height: 50px;
+      flex: 0 0 50px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(var(--accent-rgb), .42);
+      border-radius: 12px;
+      background: rgba(var(--accent-rgb), .075);
+      box-shadow: inset 0 0 18px rgba(var(--accent-rgb), .04);
     }
 
     .icon {
-      font-size: 34px;
+      font-size: 27px;
+      line-height: 1;
+      filter: drop-shadow(0 3px 7px rgba(0, 0, 0, .3));
+    }
+
+    .researchTitle {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .category {
+      color: var(--accent);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .stateChip {
+      flex: 0 0 auto;
+      padding: 5px 7px;
+      border: 1px solid #29465e;
+      border-radius: 999px;
+      background: #071421;
+      color: #819bb1;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: .65px;
+      text-transform: uppercase;
+    }
+
+    .stateChip.ready {
+      border-color: rgba(66, 208, 167, .38);
+      color: #7de7c5;
+      background: rgba(31, 103, 82, .12);
+    }
+
+    .stateChip.active {
+      border-color: rgba(var(--accent-rgb), .58);
+      color: var(--accent);
+      background: rgba(var(--accent-rgb), .09);
+    }
+
+    .stateChip.max {
+      border-color: rgba(245, 199, 103, .38);
+      color: #f1cf83;
+      background: rgba(133, 91, 24, .12);
+    }
+
+    .desc {
+      min-height: 37px;
+      margin: 0 0 13px;
+      color: #7897b6;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .levelRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
     }
 
     .level {
-      color: #18bfff;
+      color: #d8f5ff;
+      font-size: 12px;
       font-weight: bold;
-      margin: 8px 0;
+    }
+
+    .level b {
+      color: var(--accent);
+      font-size: 15px;
+    }
+
+    .levelMax {
+      color: #557590;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: .55px;
+    }
+
+    .levelBar {
+      height: 5px;
+      margin-bottom: 13px;
+      overflow: hidden;
+      border: 1px solid #153650;
+      border-radius: 999px;
+      background: #05111d;
+    }
+
+    .levelFill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(var(--accent-rgb), .52), var(--accent));
+      box-shadow: 0 0 10px rgba(var(--accent-rgb), .18);
+    }
+
+    .bonusGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .bonusBox {
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid #153650;
+      border-radius: 9px;
+      background: rgba(4, 15, 26, .68);
+    }
+
+    .bonusBox.next {
+      border-color: rgba(var(--accent-rgb), .26);
+      background: rgba(var(--accent-rgb), .045);
+    }
+
+    .bonusBox small {
+      display: block;
+      color: #5f7f9b;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .bonusBox b {
+      display: block;
+      color: #c9ddeb;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .bonusBox.next b {
+      color: var(--accent);
+    }
+
+    .costPanel {
+      padding: 10px;
+      border: 1px solid #173850;
+      border-radius: 10px;
+      background: rgba(5, 17, 29, .72);
+      margin-bottom: 10px;
+    }
+
+    .costTitle {
+      color: #6586a2;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: .9px;
+      text-transform: uppercase;
+      margin-bottom: 7px;
     }
 
     .cost {
-      color: #8db0cf;
-      font-size: 13px;
-      margin: 10px 0;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      margin: 0;
+    }
+
+    .costItem {
+      min-width: 0;
+      padding: 6px 7px;
+      border: 1px solid #18354c;
+      border-radius: 7px;
+      background: #071522;
+      color: #9eb9ce;
+      font-size: 10px;
+      font-weight: bold;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .costItem.enough {
+      border-color: rgba(65, 193, 155, .25);
+      color: #a7dbc9;
+    }
+
+    .costItem.low {
+      border-color: rgba(236, 108, 94, .3);
+      color: #e8a49d;
+    }
+
+    .maxCost {
+      color: #7d99ae;
+      font-size: 11px;
+      line-height: 1.4;
     }
 
     .timer {
-      color: #ffd36e;
-      font-weight: bold;
-      min-height: 20px;
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      padding: 6px 8px;
+      margin-bottom: 9px;
+      border: 1px solid #16364f;
+      border-radius: 8px;
+      background: #071522;
+      color: #91a9bc;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .25px;
+    }
+
+    .card.active .timer {
+      border-color: rgba(var(--accent-rgb), .36);
+      color: var(--accent);
+      background: rgba(var(--accent-rgb), .055);
     }
 
     .button {
       width: 100%;
       padding: 11px;
-      border: 0;
+      border: 1px solid rgba(var(--accent-rgb), .62);
       border-radius: 8px;
-      background: #138dcc;
-      color: #fff;
-      font-weight: bold;
+      background: linear-gradient(180deg, rgba(var(--accent-rgb), .95), rgba(var(--accent-rgb), .68));
+      color: #04111c;
+      font-weight: 900;
+      letter-spacing: .35px;
       cursor: pointer;
+      box-shadow: inset 0 1px rgba(255, 255, 255, .14);
+    }
+
+    .button:hover:not(:disabled) {
+      filter: brightness(1.09);
     }
 
     .button:disabled {
-      opacity: .5;
+      border-color: #274257;
+      background: #102638;
+      color: #6e899e;
+      box-shadow: none;
+      opacity: .72;
       cursor: not-allowed;
-    }
-
-    .status {
-      margin: 16px 0;
-      color: #8bdcff;
     }
 
     .back {
@@ -122,22 +581,22 @@
       margin-top: 22px;
       color: #18bfff;
       text-decoration: none;
+      font-size: 13px;
     }
 
-    .topBack {
-      display: inline-block;
-      margin: 0 0 18px;
-      padding: 10px 16px;
-      border-radius: 8px;
-      background: #138dcc;
-      color: #fff;
-      text-decoration: none;
-      font-weight: bold;
-      border: 1px solid #1aa9ee;
-    }
+    @media (max-width: 900px) {
+      .commandHead {
+        align-items: stretch;
+        flex-direction: column;
+      }
 
-    .topBack:hover {
-      filter: brightness(1.08);
+      .commandState {
+        width: 100%;
+      }
+
+      .grid {
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      }
     }
 
     @media (max-width: 700px) {
@@ -160,15 +619,61 @@
         letter-spacing: 4px;
       }
 
-      .top > div:last-child {
+      .player {
         min-width: 0;
-        font-size: 13px;
+        font-size: 12px;
         overflow-wrap: anywhere;
       }
 
       .container {
-        margin: 20px auto;
+        margin: 18px auto 28px;
         padding: 0 12px;
+      }
+
+      .commandHead {
+        padding: 17px 15px;
+        border-radius: 13px;
+      }
+
+      .commandHead h1 {
+        font-size: 23px;
+      }
+
+      .titleIcon {
+        width: 35px;
+        height: 35px;
+        font-size: 19px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      .bonusGrid {
+        gap: 6px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .resources {
+        grid-template-columns: 1fr;
+      }
+
+      .cost {
+        grid-template-columns: 1fr;
+      }
+
+      .costItem {
+        text-align: left;
+      }
+
+      .stateChip {
+        display: none;
       }
     }
   </style>
@@ -177,23 +682,31 @@
 <body>
   <div class="top">
     <div class="logo">TERYNDIS</div>
-    <div>Oyuncu: <strong id="playerName">Oyuncu</strong></div>
+    <div class="player">Oyuncu: <strong id="playerName">Oyuncu</strong></div>
   </div>
 
   <div class="container">
     <a class="topBack" href="game.html">← Koloniye Dön</a>
 
-    <h1>🔬 Araştırma Merkezi</h1>
-
-    <div class="sub">
-      Araştırmalar seviye başına artan maliyet ve gerçek zamanlı süre kullanır.
-    </div>
+    <section class="commandHead">
+      <div>
+        <div class="eyebrow">Research Command // Science Division</div>
+        <h1><span class="titleIcon">🔬</span>Araştırma Komuta Merkezi</h1>
+        <div class="sub">
+          Teknoloji seviyelerini yükselt, mevcut bonusları izle ve tek araştırma hattını yönet.
+        </div>
+      </div>
+      <div class="commandState">
+        <span>ARAŞTIRMA HATTI</span>
+        <b id="researchState">SİSTEM HAZIR</b>
+      </div>
+    </section>
 
     <div class="resources">
-      <div class="res">⛏️ Metal <b id="metal">0</b></div>
-      <div class="res">⚡ Enerji <b id="energy">0</b></div>
-      <div class="res">💎 Kristal <b id="crystal">0</b></div>
-      <div class="res">⏱️ Durum <b id="globalTimer">Hazır</b></div>
+      <div class="res"><span class="resIcon">⛏️</span><div class="resMeta"><small>Metal</small><b id="metal">0</b></div></div>
+      <div class="res"><span class="resIcon">⚡</span><div class="resMeta"><small>Enerji</small><b id="energy">0</b></div></div>
+      <div class="res"><span class="resIcon">💎</span><div class="resMeta"><small>Kristal</small><b id="crystal">0</b></div></div>
+      <div class="res timerRes"><span class="resIcon">⏱️</span><div class="resMeta"><small>Aktif Sayaç</small><b id="globalTimer">Hazır</b></div></div>
     </div>
 
     <div class="status" id="status"></div>
@@ -303,6 +816,23 @@
       ]
     };
 
+    const RESEARCH_META = {
+      production: { category: 'economy', label: 'Ekonomi', step: 10, effect: 'üretim hızı', direction: '+' },
+      combat: { category: 'military', label: 'Askeri', step: 5, effect: 'muharebe etkisi', direction: '+' },
+      defense: { category: 'defense', label: 'Savunma', step: 5, effect: 'savunma etkisi', direction: '+' },
+      crystal: { category: 'economy', label: 'Ekonomi', step: 8, effect: 'kristal üretimi', direction: '+' },
+      general_power: { category: 'military', label: 'Askeri', step: 5, effect: 'savaş gücü', direction: '+' },
+      unit_attack: { category: 'military', label: 'Askeri', step: 5, effect: 'birlik saldırısı', direction: '+' },
+      unit_defense: { category: 'defense', label: 'Savunma', step: 5, effect: 'birlik savunması', direction: '+' },
+      unit_hp: { category: 'defense', label: 'Savunma', step: 5, effect: 'birlik HP', direction: '+' },
+      travel_speed: { category: 'logistics', label: 'Lojistik', step: 5, effect: 'seyahat süresi', direction: '-' }
+    };
+
+    function researchEffect(k, lvl) {
+      const meta = RESEARCH_META[k];
+      const amount = Math.max(0, Number(lvl) || 0) * meta.step;
+      return meta.direction + amount + '% ' + meta.effect;
+    }
     function syncServerTime(d) {
       if (d?.serverTime) {
         const t = Date.parse(d.serverTime);
@@ -331,19 +861,21 @@
       latestResearchData = d;
 
       const r = d.research || {};
+      const city = d.city || {};
 
       document.getElementById('metal').textContent =
-        Math.floor(d.city?.metal || 0).toLocaleString('tr-TR');
+        Math.floor(city.metal || 0).toLocaleString('tr-TR');
 
       document.getElementById('energy').textContent =
-        Math.floor(d.city?.energy || 0).toLocaleString('tr-TR');
+        Math.floor(city.energy || 0).toLocaleString('tr-TR');
 
       document.getElementById('crystal').textContent =
-        Math.floor(d.city?.crystal || 0).toLocaleString('tr-TR');
+        Math.floor(city.crystal || 0).toLocaleString('tr-TR');
 
       document.getElementById('grid').innerHTML =
         Object.entries(R)
           .map(([k, v]) => {
+            const meta = RESEARCH_META[k];
             const lvl = Number(r[k + '_level'] || 0);
             const pending = r.upgrade_ready_at;
             const left = pending
@@ -357,50 +889,92 @@
 
             const busy = !!pending;
             const active = busy && r.pending_column === k + '_level';
+            const maxed = lvl >= 15;
+            const metalCost = v[3] * (lvl + 1);
+            const energyCost = v[4] * (lvl + 1);
+            const crystalCost = v[5] * (lvl + 1);
+            const stateClass = maxed ? 'max' : active ? 'active' : busy ? '' : 'ready';
+            const stateText = maxed ? 'Maksimum' : active ? 'Aktif' : busy ? 'Kilitli' : 'Hazır';
+            const nextBonus = maxed ? 'Maksimum seviye' : researchEffect(k, lvl + 1);
+            const costHtml = maxed
+              ? '<div class="maxCost">Bu teknoloji maksimum seviyeye ulaştı.</div>'
+              : '<div class="cost">' +
+                  '<div class="costItem ' + (Number(city.metal || 0) >= metalCost ? 'enough' : 'low') + '">⛏️ ' + metalCost.toLocaleString('tr-TR') + '</div>' +
+                  '<div class="costItem ' + (Number(city.energy || 0) >= energyCost ? 'enough' : 'low') + '">⚡ ' + energyCost.toLocaleString('tr-TR') + '</div>' +
+                  '<div class="costItem ' + (Number(city.crystal || 0) >= crystalCost ? 'enough' : 'low') + '">💎 ' + crystalCost.toLocaleString('tr-TR') + '</div>' +
+                '</div>';
 
             return `
-              <div class="card">
-                <div class="icon">${v[0]}</div>
-                <h2>${v[1]}</h2>
-                <p>${v[2]}</p>
-                <div class="level">Seviye ${lvl}/15</div>
+              <div class="card ${meta.category}${active ? ' active' : ''}${maxed ? ' maxed' : ''}">
+                <div class="cardHead">
+                  <div class="iconFrame"><div class="icon">${v[0]}</div></div>
+                  <div class="researchTitle">
+                    <div class="category">${meta.label}</div>
+                    <h2>${v[1]}</h2>
+                  </div>
+                  <div class="stateChip ${stateClass}">${stateText}</div>
+                </div>
 
-                <div class="cost">
-                  Maliyet:
-                  ${v[3] * (lvl + 1)} Metal +
-                  ${v[4] * (lvl + 1)} Enerji +
-                  ${v[5] * (lvl + 1)} Kristal
+                <p class="desc">${v[2]}</p>
+
+                <div class="levelRow">
+                  <div class="level">Sv. <b>${lvl}</b> / 15</div>
+                  <div class="levelMax">TEKNOLOJİ SEVİYESİ</div>
+                </div>
+                <div class="levelBar"><div class="levelFill" style="width:${Math.min(100, lvl / 15 * 100)}%"></div></div>
+
+                <div class="bonusGrid">
+                  <div class="bonusBox">
+                    <small>Mevcut Bonus</small>
+                    <b>${researchEffect(k, lvl)}</b>
+                  </div>
+                  <div class="bonusBox next">
+                    <small>Sonraki Seviye</small>
+                    <b>${nextBonus}</b>
+                  </div>
+                </div>
+
+                <div class="costPanel">
+                  <div class="costTitle">${maxed ? 'ARAŞTIRMA DURUMU' : 'SONRAKİ SEVİYE MALİYETİ'}</div>
+                  ${costHtml}
                 </div>
 
                 <div class="timer" data-research-key="${k}">
                   ${
                     active
-                      ? '⏱️ ' + remain(left)
+                      ? '⏱️ Araştırılıyor · ' + remain(left)
                       : busy
-                        ? 'Başka araştırma sürüyor'
-                        : 'Hazır'
+                        ? 'Araştırma hattı başka bir teknolojiyle meşgul'
+                        : maxed
+                          ? '✓ Teknoloji tamamlandı'
+                          : '● Araştırma hattı hazır'
                   }
                 </div>
 
                 <button
                   class="button"
-                  ${busy || lvl >= 15 ? 'disabled' : ''}
+                  ${busy || maxed ? 'disabled' : ''}
                   onclick="research('${k}')"
                 >
                   ${
-                    lvl >= 15
-                      ? 'Maksimum'
+                    maxed
+                      ? 'MAKSİMUM SEVİYE'
                       : active
-                        ? 'Araştırılıyor'
+                        ? 'ARAŞTIRILIYOR'
                         : busy
-                          ? 'Bekle'
-                          : 'Araştır'
+                          ? 'HAT MEŞGUL'
+                          : 'ARAŞTIRMAYI BAŞLAT'
                   }
                 </button>
               </div>
             `;
           })
           .join('');
+
+      const activeKey = r.pending_column
+        ? String(r.pending_column).replace(/_level$/, '')
+        : '';
+      const activeName = R[activeKey]?.[1];
 
       document.getElementById('globalTimer').textContent =
         r.upgrade_ready_at
@@ -413,14 +987,19 @@
               )
             )
           : 'Hazır';
-    }
 
+      document.getElementById('researchState').textContent =
+        r.upgrade_ready_at && activeName
+          ? 'AKTİF // ' + activeName.toLocaleUpperCase('tr-TR')
+          : 'SİSTEM HAZIR';
+    }
     function updateResearchTimers() {
       const r = latestResearchData?.research || {};
       const pending = r.upgrade_ready_at;
 
       if (!pending) {
         document.getElementById('globalTimer').textContent = 'Hazır';
+        document.getElementById('researchState').textContent = 'SİSTEM HAZIR';
         return;
       }
 
@@ -432,6 +1011,16 @@
       );
 
       document.getElementById('globalTimer').textContent = remain(left);
+
+      const activeKey = r.pending_column
+        ? String(r.pending_column).replace(/_level$/, '')
+        : '';
+      const activeName = R[activeKey]?.[1];
+
+      document.getElementById('researchState').textContent =
+        activeName
+          ? 'AKTİF // ' + activeName.toLocaleUpperCase('tr-TR')
+          : 'ARAŞTIRMA AKTİF';
 
       Object.keys(R).forEach(function (k) {
         const timer = document.querySelector(
@@ -445,8 +1034,8 @@
         const active = r.pending_column === k + '_level';
 
         timer.textContent = active
-          ? '⏱️ ' + remain(left)
-          : 'Başka araştırma sürüyor';
+          ? '⏱️ Araştırılıyor · ' + remain(left)
+          : 'Araştırma hattı başka bir teknolojiyle meşgul';
       });
     }
 
