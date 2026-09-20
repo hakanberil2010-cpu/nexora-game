@@ -3972,6 +3972,59 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   opacity:1;
 }
 
+/* Low-Zoom Building Readability Final Pass */
+@media(min-width:601px){
+  .colony-world.overview-density
+  .building-node.has-sprite:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert)[aria-label^="Kristal Madeni "]
+  img.building-sprite{
+    filter:
+      saturate(1.13)
+      contrast(1.13)
+      brightness(1.11)
+      drop-shadow(0 18px 18px rgba(0,0,0,.43))
+      drop-shadow(0 0 10px rgba(91,211,240,.10));
+  }
+
+  .colony-world.overview-density
+  .building-node.has-sprite:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert)[aria-label^="Alaşım Rafinerisi "]
+  img.building-sprite{
+    filter:
+      saturate(1.11)
+      contrast(1.12)
+      brightness(1.10)
+      drop-shadow(0 18px 18px rgba(0,0,0,.43));
+  }
+
+  .colony-world.overview-density
+  .building-node.has-sprite:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert)[aria-label^="Depo "]
+  img.building-sprite{
+    filter:
+      saturate(1.09)
+      contrast(1.12)
+      brightness(1.10)
+      drop-shadow(0 18px 18px rgba(0,0,0,.42));
+  }
+
+  .colony-world.overview-density
+  .building-contact-shadow.shadow-production:has(
+    + .building-pad
+    + .building-node.has-sprite:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-production-paused):not(.state-alert)[aria-label^="Kristal Madeni "]
+  ),
+  .colony-world.overview-density
+  .building-contact-shadow.shadow-production:has(
+    + .building-pad
+    + .building-node.has-sprite:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-production-paused):not(.state-alert)[aria-label^="Alaşım Rafinerisi "]
+  ),
+  .colony-world.overview-density
+  .building-contact-shadow.shadow-storage:has(
+    + .building-pad
+    + .building-node.has-sprite:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-alert)[aria-label^="Depo "]
+  ){
+    opacity:.68;
+    filter:blur(1.6px);
+  }
+}
+
 @media(max-width:600px){
   .colony-world.compact-overview
   .building-node.has-sprite.unbuilt
