@@ -2914,6 +2914,61 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   0%,100%{opacity:.58;filter:drop-shadow(0 10px 12px rgba(0,0,0,.28)) brightness(.94)}
   50%{opacity:.86;filter:drop-shadow(0 10px 12px rgba(0,0,0,.28)) brightness(1.10)}
 }
+/* Building Tier Presence Pass */
+.building-node.has-sprite.visual-tier-2:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert)::before{
+  transform:
+    translate(-50%,-50%)
+    translateY(var(--sprite-offset-y,0px))
+    scale(1.035);
+  opacity:.80;
+  filter:
+    drop-shadow(0 11px 13px rgba(0,0,0,.29))
+    brightness(1.03);
+}
+.building-node.has-sprite.visual-tier-3:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert)::before{
+  transform:
+    translate(-50%,-50%)
+    translateY(var(--sprite-offset-y,0px))
+    scale(1.075);
+  opacity:.90;
+  filter:
+    drop-shadow(0 12px 14px rgba(0,0,0,.30))
+    drop-shadow(0 0 10px rgba(82,205,234,.09))
+    brightness(1.07);
+}
+.building-node.has-sprite.visual-tier-4:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert)::before{
+  transform:
+    translate(-50%,-50%)
+    translateY(var(--sprite-offset-y,0px))
+    scale(1.11);
+}
+
+.building-pad:has(+ .building-node.has-sprite.visual-tier-2:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert)){
+  filter:drop-shadow(0 0 8px rgba(78,193,220,.08));
+}
+.building-pad:has(+ .building-node.has-sprite.visual-tier-3:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert)){
+  filter:drop-shadow(0 0 12px rgba(78,201,230,.13));
+}
+.building-pad:has(+ .building-node.has-sprite.visual-tier-4:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert)){
+  filter:drop-shadow(0 0 17px rgba(86,213,241,.18));
+}
+
+.building-pad:has(+ .building-node.has-sprite.visual-tier-3:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert))::after{
+  background:rgba(103,222,245,.42);
+  box-shadow:
+    -55px 0 0 rgba(86,198,226,.18),
+    55px 0 0 rgba(86,198,226,.18),
+    0 -34px 0 rgba(104,219,242,.16);
+}
+.building-pad:has(+ .building-node.has-sprite.visual-tier-4:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-storage-full):not(.state-production-paused):not(.state-alert))::after{
+  background:rgba(121,235,255,.54);
+  box-shadow:
+    -55px 0 0 rgba(99,218,242,.24),
+    55px 0 0 rgba(99,218,242,.24),
+    0 -34px 0 rgba(121,235,255,.22),
+    0 34px 0 rgba(121,235,255,.18);
+}
+
 @media(prefers-reduced-motion:reduce){
   .building-node.has-sprite.visual-tier-4::before{animation:none}
 }
