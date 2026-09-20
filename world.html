@@ -1900,6 +1900,45 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
     100% 100%;
 }
 
+/* Organic Biome Shape Pass */
+.terrain-biome{
+  border-radius:0;
+  -webkit-mask-image:
+    radial-gradient(ellipse 58% 54% at 31% 48%,#000 0 43%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.28) 73%,transparent 88%),
+    radial-gradient(ellipse 52% 49% at 68% 56%,#000 0 40%,rgba(0,0,0,.78) 57%,rgba(0,0,0,.24) 72%,transparent 87%),
+    radial-gradient(ellipse 46% 42% at 54% 25%,#000 0 36%,rgba(0,0,0,.70) 54%,rgba(0,0,0,.20) 69%,transparent 84%),
+    radial-gradient(ellipse 41% 38% at 48% 82%,#000 0 34%,rgba(0,0,0,.64) 51%,rgba(0,0,0,.18) 67%,transparent 82%);
+  mask-image:
+    radial-gradient(ellipse 58% 54% at 31% 48%,#000 0 43%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.28) 73%,transparent 88%),
+    radial-gradient(ellipse 52% 49% at 68% 56%,#000 0 40%,rgba(0,0,0,.78) 57%,rgba(0,0,0,.24) 72%,transparent 87%),
+    radial-gradient(ellipse 46% 42% at 54% 25%,#000 0 36%,rgba(0,0,0,.70) 54%,rgba(0,0,0,.20) 69%,transparent 84%),
+    radial-gradient(ellipse 41% 38% at 48% 82%,#000 0 34%,rgba(0,0,0,.64) 51%,rgba(0,0,0,.18) 67%,transparent 82%);
+}
+.terrain-forest{
+  transform:translate(-50%,-50%) rotate(-3deg);
+  background:
+    radial-gradient(ellipse at 28% 45%,rgba(45,123,75,.39) 0 15%,rgba(30,91,60,.24) 37%,transparent 66%),
+    radial-gradient(ellipse at 62% 38%,rgba(40,112,70,.34) 0 14%,rgba(28,82,55,.21) 35%,transparent 64%),
+    radial-gradient(ellipse at 73% 70%,rgba(35,103,64,.30) 0 13%,rgba(25,72,50,.18) 34%,transparent 63%),
+    radial-gradient(ellipse at 42% 76%,rgba(49,130,79,.26) 0 12%,rgba(31,88,59,.15) 33%,transparent 61%),
+    radial-gradient(circle at 33% 31%,rgba(98,171,106,.11) 0 7%,transparent 21%);
+}
+.terrain-desert{
+  transform:translate(-50%,-50%) rotate(2deg);
+}
+.terrain-ice{
+  transform:translate(-50%,-50%) rotate(-2deg);
+}
+.terrain-mountain{
+  transform:translate(-50%,-50%) rotate(3deg);
+}
+.terrain-volcanic{
+  transform:translate(-50%,-50%) rotate(-2deg);
+}
+.terrain-ocean{
+  transform:translate(-50%,-50%) rotate(2deg);
+}
+
 </style>
 </head>
 
