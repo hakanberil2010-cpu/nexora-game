@@ -6,88 +6,121 @@
 <title>TERYNDIS - Görevler & Başarımlar</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
-.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
-.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
-.container{max-width:1200px;margin:30px auto;padding:0 20px}
-.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
-.topBack:hover{filter:brightness(1.08)}
-h1{margin:0 0 8px}
-.sub{color:#7196b8;margin-bottom:22px}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 24px}
-.summaryBox{background:#091a2c;border:1px solid #173b5d;border-radius:12px;padding:14px}
-.summaryBox span{display:block;color:#7faecb;font-size:12px;margin-bottom:6px}
-.summaryBox b{font-size:21px;color:#18bfff}
-.sectionTitle{margin:30px 0 14px;font-size:23px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
-.card{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:18px;position:relative;overflow:hidden}
-.card.done{border-color:#2b8f66}
-.card.claimed{border-color:#315879;opacity:.78}
-.card.lockedAchievement{opacity:.72}
-.card.progressionUpcoming{opacity:.7;border-style:dashed}
-.card h2{font-size:19px;margin:0 0 7px}
-.card p{color:#9cc6e2;min-height:42px;line-height:1.45}
-.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#102a44;color:#8bdcff;font-size:12px;font-weight:bold;margin-bottom:10px}
-.badge.done{background:#153d2f;color:#64f0aa}
-.badge.claimed{background:#253245;color:#a9bdd0}
-.badge.achievement{background:#2e2440;color:#cfa9ff}
-.achievementPanel{margin:30px 0 14px;padding:17px 18px;background:#081827;border:1px solid #4a3f78;border-radius:14px}
-.achievementPanel .sectionTitle{margin:0 0 10px}
-.achievementMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
-.achievementMeta strong{color:#c9b6ff}
-.achievementControls{display:flex;flex-wrap:wrap;gap:10px;margin-top:13px}
-.achievementControls label{display:flex;align-items:center;gap:7px;color:#8db0cf;font-size:12px}
-.achievementControls select{padding:8px 10px;border:1px solid #315879;border-radius:8px;background:#071526;color:#eaf4ff}
-.achievementTags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+:root{--bg:#050d18;--panel:#091a2c;--line:#173b5d;--cyan:#18bfff;--text:#eaf4ff;--muted:#7897b6;--green:#67dda8;--gold:#ffd970;--purple:#c79aff}
+body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at 18% -10%,rgba(24,191,255,.085),transparent 34%),radial-gradient(circle at 84% 8%,rgba(116,82,185,.05),transparent 28%),#050d18;color:var(--text);min-height:100vh}
+.top{height:76px;background:rgba(7,21,38,.97);border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.18);backdrop-filter:blur(12px)}
+.logo{font-size:30px;font-weight:900;letter-spacing:6px;color:#18bfff;text-shadow:0 0 20px rgba(24,191,255,.18)}
+.top>div:last-child{color:#9fc0df;font-size:14px}
+.container{max-width:1200px;margin:26px auto 38px;padding:0 20px}
+.topBack,.back{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:8px;background:#0d3552;color:#dff5ff;text-decoration:none;font-size:13px;font-weight:800;border:1px solid #245b80;box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.topBack{margin:0 0 14px}.back{margin-top:18px}.topBack:hover,.back:hover{background:#124565;border-color:#1aa9ee}
+
+.missionHead{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:12px;padding:17px 19px;border:1px solid #1a4568;border-radius:14px;background:linear-gradient(135deg,rgba(12,37,60,.96),rgba(7,22,38,.96));box-shadow:0 15px 36px rgba(0,0,0,.21),inset 0 1px rgba(255,255,255,.03);position:relative;overflow:hidden}
+.missionHead:after{content:"";position:absolute;right:-95px;top:-135px;width:300px;height:300px;border:1px solid rgba(24,191,255,.06);border-radius:50%;box-shadow:0 0 0 34px rgba(24,191,255,.016),0 0 0 68px rgba(24,191,255,.009);pointer-events:none}
+.missionHeadMain{display:flex;align-items:center;gap:12px;min-width:0;position:relative;z-index:1}
+.missionHeadIcon{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border:1px solid rgba(24,191,255,.34);border-radius:11px;background:rgba(24,191,255,.075);font-size:20px}
+.eyebrow{color:#5dbce7;font-size:9px;font-weight:900;letter-spacing:1.55px;text-transform:uppercase;margin-bottom:4px}
+.missionHead h1{margin:0 0 4px;font-size:25px;letter-spacing:-.3px;line-height:1.05}
+.sub{color:#7897b6;font-size:12px;line-height:1.45}
+.missionState{flex:0 0 auto;padding:8px 10px;border:1px solid #245574;border-radius:9px;background:rgba(5,16,29,.72);position:relative;z-index:1;text-align:right}
+.missionState small{display:block;color:#5c7d98;font-size:7px;font-weight:900;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.missionState b{display:block;color:#80ddff;font-size:12px;letter-spacing:.45px}
+
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:10px 0 12px}
+.summaryBox{position:relative;overflow:hidden;background:linear-gradient(145deg,#081a2b,#061522);border:1px solid #183d59;border-radius:10px;padding:10px 11px}
+.summaryBox:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#18bfff}
+.summaryBox:nth-child(2):before{background:#67dda8}.summaryBox:nth-child(3):before{background:#c79aff}.summaryBox:nth-child(4):before{background:#ffd970}
+.summaryBox span{display:block;color:#6d8ca4;font-size:8px;font-weight:900;letter-spacing:.7px;text-transform:uppercase;margin-bottom:4px}
+.summaryBox b{font-size:18px;color:#dff6ff}
+.summaryBox:nth-child(2) b{color:#8be7ba}.summaryBox:nth-child(3) b{color:#dfc3ff}.summaryBox:nth-child(4) b{color:#ffe18b}
+
+.status{margin:9px 0;padding:9px 12px;border-radius:9px;background:#091a2c;border:1px solid #1d4666;color:#9edfff;font-size:10px;font-weight:800;display:none}
+.sectionTitle{margin:18px 0 8px;font-size:15px;color:#e6f6ff;letter-spacing:.1px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+
+.progressionPanel,.weeklyPanel,.dailyPanel,.achievementPanel{margin:12px 0 7px;padding:12px 13px;border-radius:11px;background:linear-gradient(145deg,#081827,#061522);box-shadow:inset 0 1px rgba(255,255,255,.02)}
+.progressionPanel{border:1px solid #315879}
+.weeklyPanel{border:1px solid #51416e}
+.dailyPanel{border:1px solid #1e4b6c}
+.achievementPanel{border:1px solid #594572;margin-top:18px}
+.progressionPanel .sectionTitle,.weeklyPanel .sectionTitle,.dailyPanel .sectionTitle,.achievementPanel .sectionTitle{margin:0 0 7px;font-size:14px}
+.progressionPanel:before,.weeklyPanel:before,.dailyPanel:before,.achievementPanel:before{display:block;margin-bottom:5px;font-size:7px;font-weight:900;letter-spacing:1.15px;text-transform:uppercase}
+.progressionPanel:before{content:"CAMPAIGN TRACK";color:#70bde5}
+.weeklyPanel:before{content:"WEEKLY OPERATIONS";color:#b899df}
+.dailyPanel:before{content:"DAILY OPERATIONS";color:#68bde7}
+.achievementPanel:before{content:"TROPHY ARCHIVE";color:#c79aff}
+
+.progressionMeta,.weeklyMeta,.dailyMeta,.achievementMeta{display:flex;flex-wrap:wrap;gap:6px 14px;color:#7897b6;font-size:9px}
+.progressionMeta strong,.dailyMeta strong{color:#8bdcff}
+.weeklyMeta strong,.achievementMeta strong{color:#d7bdff}
+.progressionNotice,.weeklyNotice,.dailyNotice{display:none;margin:8px 0 0;padding:8px 9px;border-radius:8px;background:#151d2a;border:1px solid #3b4d63;color:#c6d7e6;font-size:9px}
+.progressionNotice.locked,.weeklyNotice.locked,.dailyNotice.locked{display:block;background:#241d12;border-color:#695027;color:#ffd98a}
+.progressionNotice.complete{display:block;background:#153d2f;border-color:#2b8f66;color:#79efb3}
+
+#progressionGrid{grid-template-columns:minmax(0,1.15fr) repeat(2,minmax(0,.85fr));margin-bottom:4px}
+#weeklyGrid,#dailyGrid,#missionGrid{margin-bottom:4px}
+#weeklyGrid .card{border-color:#403658}
+#dailyGrid .card{border-color:#1d405a}
+#missionGrid .card{border-color:#1b3e59}
+#achievementGrid{grid-template-columns:repeat(auto-fit,minmax(245px,1fr))}
+
+.card{background:linear-gradient(155deg,rgba(10,29,46,.98),rgba(6,20,33,.98));border:1px solid #173b5d;border-radius:10px;padding:11px 12px;position:relative;overflow:hidden;box-shadow:0 9px 20px rgba(0,0,0,.13),inset 0 1px rgba(255,255,255,.018)}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#28516d}
+.card.done{border-color:#2b7858;background:linear-gradient(155deg,rgba(10,39,30,.95),rgba(6,24,21,.98))}
+.card.done:before{background:#67dda8}
+.card.claimed{border-color:#31506a;opacity:.76}.card.claimed:before{background:#607f95}
+.card.lockedAchievement,.card.progressionUpcoming,.card.weeklyLocked,.card.dailyLocked{opacity:.64}
+.card.progressionUpcoming{border-style:dashed}
+.card h2{font-size:13px;margin:0 0 4px;line-height:1.25}
+.card p{color:#85a8bf;min-height:0;margin:5px 0 8px;font-size:9px;line-height:1.45}
+.badge{display:inline-flex;padding:3px 6px;border:1px solid #284c67;border-radius:999px;background:#0b263b;color:#8bdcff;font-size:7px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.badge.done{border-color:#2d7356;background:#0d2c21;color:#75e9ae}
+.badge.claimed{border-color:#40576a;background:#172430;color:#a9bdd0}
+.badge.achievement{border-color:#5f477b;background:#251a34;color:#d8b8ff}
+.badge.locked{border-color:#68542c;background:#2a220e;color:#ffd98a}
+.achievementTags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .achievementTags .badge{margin-bottom:0}
 .badge.categoryBadge{background:#102a44;color:#8bdcff}
-.badge.tierBronze{background:#3b2c22;color:#e1b08b}
-.badge.tierSilver{background:#253245;color:#c8d7e6}
-.badge.tierGold{background:#403414;color:#ffd66f}
-.badge.tierLegendary{background:#3a2049;color:#efa8ff}
-.achievementPoints{margin-top:9px;color:#ffd36e;font-size:12px;font-weight:bold}
-.progressText{display:flex;justify-content:space-between;gap:12px;color:#8db0cf;font-size:12px;margin-top:12px}
-.progress{height:9px;background:#061321;border-radius:999px;overflow:hidden;border:1px solid #173b5d;margin:7px 0 13px}
+.badge.tierBronze{border-color:#604632;background:#2d2119;color:#e1b08b}
+.badge.tierSilver{border-color:#536779;background:#253245;color:#c8d7e6}
+.badge.tierGold{border-color:#806a28;background:#332a0f;color:#ffd66f}
+.badge.tierLegendary{border-color:#704a85;background:#2c1937;color:#efa8ff}
+
+.icon{float:right;margin:0 0 5px 8px;font-size:24px;filter:saturate(.85)}
+.progressText{display:flex;justify-content:space-between;gap:10px;color:#708fa7;font-size:8px;margin-top:7px}
+.progressText strong{color:#cbe7f6}
+.progress{height:6px;background:#04101b;border-radius:999px;overflow:hidden;border:1px solid #17354d;margin:4px 0 7px}
 .progressBar{height:100%;background:linear-gradient(90deg,#138dcc,#20c6ff);width:0}
-.reward{font-size:13px;color:#ffd36e;line-height:1.55;min-height:42px}
-.button{width:100%;padding:11px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer;margin-top:12px}
+.card.done .progressBar{background:linear-gradient(90deg,#258f61,#67dda8)}
+.reward{font-size:8px;color:#e2bf64;line-height:1.4;min-height:0;padding:6px 7px;border:1px solid #443c21;border-radius:7px;background:#171408}
+.creditedReward{margin-top:5px;font-size:8px;color:#73e7af;line-height:1.4}
+.achievementPoints{margin-top:7px;color:#ffd36e;font-size:8px;font-weight:900}
+.button{width:100%;padding:8px 9px;border:1px solid #1e9bd4;border-radius:7px;background:linear-gradient(180deg,#17a9df,#0d7eae);color:#fff;font-size:9px;font-weight:900;cursor:pointer;margin-top:7px;box-shadow:inset 0 1px rgba(255,255,255,.1)}
 .button:hover:not(:disabled){filter:brightness(1.08)}
-.button:disabled{opacity:.5;cursor:not-allowed}
+.button:disabled{opacity:.42;cursor:not-allowed}
 .buttonLink{display:block;text-align:center;text-decoration:none}
-.status{margin:14px 0 4px;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff;display:none}
-.progressionPanel{margin:28px 0 8px;padding:17px 18px;background:#081827;border:1px solid #315879;border-radius:14px}
-.progressionPanel .sectionTitle{margin:0 0 10px}
-.progressionMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
-.progressionMeta strong{color:#8bdcff}
-.progressionNotice{display:none;margin:12px 0 0;padding:10px 12px;border-radius:9px;background:#151d2a;border:1px solid #3b4d63;color:#c6d7e6}
-.progressionNotice.locked{display:block;background:#241d12;border-color:#695027;color:#ffd98a}
-.progressionNotice.complete{display:block;background:#153d2f;border-color:#2b8f66;color:#79efb3}
-.weeklyPanel{margin:28px 0 8px;padding:17px 18px;background:#081827;border:1px solid #4a3f78;border-radius:14px}
-.weeklyPanel .sectionTitle{margin:0 0 10px}
-.weeklyMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
-.weeklyMeta strong{color:#c9b6ff}
-.weeklyNotice{display:none;margin:12px 0 0;padding:10px 12px;border-radius:9px;background:#151d2a;border:1px solid #3b4d63;color:#c6d7e6}
-.weeklyNotice.locked{display:block;background:#241d12;border-color:#695027;color:#ffd98a}
-.card.weeklyLocked{opacity:.66;border-color:#4a4438}
-.dailyPanel{margin:28px 0 8px;padding:17px 18px;background:#081827;border:1px solid #1b4668;border-radius:14px}
-.dailyPanel .sectionTitle{margin:0 0 10px}
-.dailyMeta{display:flex;flex-wrap:wrap;gap:9px 18px;color:#8db0cf;font-size:13px}
-.dailyMeta strong{color:#8bdcff}
-.dailyNotice{display:none;margin:12px 0 0;padding:10px 12px;border-radius:9px;background:#151d2a;border:1px solid #3b4d63;color:#c6d7e6}
-.dailyNotice.locked{display:block;background:#241d12;border-color:#695027;color:#ffd98a}
-.card.dailyLocked{opacity:.66;border-color:#4a4438}
-.badge.locked{background:#3b3020;color:#ffd98a}
-.creditedReward{margin-top:6px;font-size:12px;color:#73e7af;line-height:1.45}
-.empty{padding:18px;background:#091a2c;border:1px solid #173b5d;border-radius:12px;color:#8db0cf}
-.icon{font-size:34px;margin-bottom:8px}
-.back{display:inline-block;margin-top:28px;color:#18bfff;text-decoration:none}
-.back:hover{text-decoration:underline}
+
+.achievementControls{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.achievementControls label{display:flex;align-items:center;gap:6px;color:#7897b6;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.45px}
+.achievementControls select{padding:6px 8px;border:1px solid #315879;border-radius:7px;background:#071526;color:#eaf4ff;font-size:9px}
+.achievementPanel .progress{margin:7px 0 8px}
+.empty{padding:11px;background:#071725;border:1px solid #173b5d;border-radius:9px;color:#7897b6;font-size:10px}
+
+@media(max-width:900px){
+  #progressionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 @media(max-width:800px){
-  .top{height:auto;min-height:76px;padding:12px 15px;gap:10px;flex-wrap:wrap}
-  .top>div:last-child{min-width:0;overflow-wrap:anywhere}
-  .logo{font-size:22px;letter-spacing:4px}
-  .container{padding:0 12px;margin-top:20px}
-  .summary{grid-template-columns:repeat(2,1fr)}
+  .top{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.top>div:last-child{min-width:0;font-size:12px;overflow-wrap:anywhere}.logo{font-size:23px;letter-spacing:4px}
+  .container{padding:0 12px;margin:18px auto 28px}
+  .missionHead{padding:14px 13px;align-items:flex-start}.missionHead h1{font-size:21px}.missionHeadIcon{width:38px;height:38px;flex-basis:38px;font-size:17px}.missionState{padding:7px 8px}
+  .summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #progressionGrid{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+  .missionState{display:none}.summary{grid-template-columns:1fr 1fr}
+  .progressionMeta,.weeklyMeta,.dailyMeta,.achievementMeta{flex-direction:column;gap:4px}
+  .achievementControls{flex-direction:column}.achievementControls label{justify-content:space-between}.achievementControls select{min-width:150px}
 }
 </style>
 </head>
@@ -99,8 +132,17 @@ h1{margin:0 0 8px}
 
 <div class="container">
   <a class="topBack" href="game.html">← Koloniye Dön</a>
-  <h1>🎯 Görevler & Başarımlar</h1>
-  <div class="sub">Kolonini geliştir, hedefleri tamamla ve kalıcı başarımlar aç.</div>
+  <section class="missionHead">
+    <div class="missionHeadMain">
+      <div class="missionHeadIcon">◎</div>
+      <div>
+        <div class="eyebrow">Mission Control // Operations Center</div>
+        <h1>Görev Komuta Merkezi</h1>
+        <div class="sub">Günlük ve haftalık operasyonları tamamla, uzun vadeli ilerlemeyi sürdür ve kalıcı başarımlar aç.</div>
+      </div>
+    </div>
+    <div class="missionState"><small>OPERASYON AĞI</small><b>AKTİF HEDEFLER</b></div>
+  </section>
 
   <div class="summary">
     <div class="summaryBox"><span>Tamamlanan Görev</span><b id="completedMissionCount">0</b></div>
