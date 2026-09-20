@@ -6,96 +6,149 @@
 <title>TERYNDIS - İttifak</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
-.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
-.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
-.container{max-width:1100px;margin:30px auto;padding:0 20px}
-.panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:20px;margin:16px 0}
-.input{width:100%;padding:11px;margin:7px 0 12px;background:#071526;border:1px solid #285476;border-radius:8px;color:#fff}
-.textarea{min-height:100px;resize:vertical}
-.button{padding:11px 16px;border:0;border-radius:8px;background:#128fcb;color:#fff;font-weight:bold;cursor:pointer}
+:root{--bg:#050d18;--panel:#091a2c;--line:#173b5d;--cyan:#18bfff;--text:#eaf4ff;--muted:#7897b6;--purple:#b47aff;--gold:#ffd970}
+body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at 18% -10%,rgba(24,191,255,.085),transparent 34%),radial-gradient(circle at 84% 8%,rgba(133,91,201,.055),transparent 28%),#050d18;color:var(--text);min-height:100vh}
+.top{height:76px;background:rgba(7,21,38,.97);border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.18);backdrop-filter:blur(12px)}
+.logo{font-size:30px;font-weight:900;letter-spacing:6px;color:var(--cyan);text-shadow:0 0 20px rgba(24,191,255,.18)}
+.top>div:last-child{color:#9fc0df;font-size:14px}
+.container{max-width:1180px;margin:26px auto 38px;padding:0 20px}
+.commandNav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.topBack,.back{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:8px;background:#0d3552;color:#dff5ff;text-decoration:none;font-size:13px;font-weight:800;border:1px solid #245b80;box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.topBack:hover,.back:hover{background:#124565;border-color:#1aa9ee}
+.commandNav .warLink{background:linear-gradient(180deg,#442b62,#2b2042);border-color:#74509a;color:#efdfff}
+.commandNav .warLink:hover{background:linear-gradient(180deg,#523475,#35264e);border-color:#9c6bca}
+.back{margin-top:18px}
+
+.allianceHead{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:12px;padding:17px 19px;border:1px solid #1a4568;border-radius:14px;background:linear-gradient(135deg,rgba(12,37,60,.96),rgba(7,22,38,.96));box-shadow:0 15px 36px rgba(0,0,0,.21),inset 0 1px rgba(255,255,255,.03);position:relative;overflow:hidden}
+.allianceHead:after{content:"";position:absolute;right:-95px;top:-135px;width:300px;height:300px;border:1px solid rgba(180,122,255,.065);border-radius:50%;box-shadow:0 0 0 34px rgba(180,122,255,.018),0 0 0 68px rgba(180,122,255,.01);pointer-events:none}
+.allianceHeadMain{display:flex;align-items:center;gap:12px;min-width:0;position:relative;z-index:1}
+.allianceHeadIcon{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border:1px solid rgba(24,191,255,.34);border-radius:11px;background:rgba(24,191,255,.075);font-size:20px}
+.eyebrow{color:#5dbce7;font-size:9px;font-weight:900;letter-spacing:1.55px;text-transform:uppercase;margin-bottom:4px}
+.allianceHead h1{margin:0 0 4px;font-size:25px;letter-spacing:-.3px;line-height:1.05}
+.allianceHead .muted{font-size:12px;line-height:1.45}
+.headState{flex:0 0 auto;padding:8px 10px;border:1px solid #245574;border-radius:9px;background:rgba(5,16,29,.72);position:relative;z-index:1;text-align:right}
+.headState small{display:block;color:#5c7d98;font-size:7px;font-weight:900;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.headState b{display:block;color:#80ddff;font-size:12px;letter-spacing:.45px}
+
+.panel{background:linear-gradient(155deg,rgba(12,31,49,.98),rgba(7,22,36,.98));border:1px solid #173b5d;border-radius:13px;padding:15px;margin:10px 0;box-shadow:0 12px 28px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.022)}
+#msg.statusPanel{padding:9px 12px;border-color:#1d4666;background:rgba(9,35,54,.8);color:#a9d8ef;font-size:11px;font-weight:800}
+#msg.statusPanel:empty{display:none}
+.hidden{display:none!important}
+.muted{color:#7897b6}
+.empty{color:#6f90aa;padding:8px 0;font-size:11px}
+
+.recruitPanel{border-color:#225170;background:linear-gradient(145deg,rgba(11,39,61,.96),rgba(7,22,36,.98))}
+.recruitPanel h2,.directoryPanel h2{margin:0 0 5px;font-size:17px}
+.recruitPanel:before{content:"RECRUITMENT CHANNEL";display:block;margin-bottom:7px;color:#5eaed5;font-size:8px;font-weight:900;letter-spacing:1.3px}
+.input{width:100%;padding:10px 11px;margin:6px 0 10px;background:#061522;border:1px solid #25506f;border-radius:8px;color:#fff;outline:none}
+.input:focus{border-color:#1aa9ee;box-shadow:0 0 0 2px rgba(24,191,255,.07)}
+.textarea{min-height:88px;resize:vertical}
+.button{padding:9px 13px;border:1px solid #1e9bd4;border-radius:7px;background:linear-gradient(180deg,#17a9df,#0d7eae);color:#fff;font-size:11px;font-weight:900;cursor:pointer;box-shadow:inset 0 1px rgba(255,255,255,.12)}
+.button:hover:not(:disabled){filter:brightness(1.08)}
 .button:disabled{opacity:.45;cursor:not-allowed}
-.secondary{background:#244763}
-.danger{background:#a63333}
-.smallButton{padding:8px 10px;font-size:12px}
-.item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px;background:#071526;border:1px solid #17344f;border-radius:9px;margin:9px 0}
-.itemActions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-.muted{color:#8db0cf}
-.hidden{display:none}
-.back{color:#18bfff;text-decoration:none}
-.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
-.topBack:hover{filter:brightness(1.08)}
-.sectionTitle{margin:24px 0 8px}
-.role{display:inline-block;margin-top:5px;padding:4px 8px;border-radius:999px;background:#102e49;color:#8bdcff;font-size:12px;font-weight:bold}
-.role.leader{background:#473815;color:#ffd970}
-.role.officer{background:#203a55;color:#79c8ff}
-.announcement{padding:14px;background:#071526;border:1px solid #17344f;border-radius:9px;margin:9px 0}
-.announcementHead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:7px}
-.activity{padding:10px 0;border-bottom:1px solid #17344f}
-.activity:last-child{border-bottom:0}
-.activity small{display:block;margin-top:4px;color:#6f94b4}
-.territory{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:13px;background:#071526;border:1px solid #3a2e57;border-radius:9px;margin:9px 0}
-.territory strong{color:#d7c0ff}
-.territory small{display:block;margin-top:5px;color:#8db0cf}
-.territoryLink{display:inline-block;padding:8px 10px;border-radius:7px;background:#2e2450;color:#d9c7ff;text-decoration:none;font-size:12px;font-weight:bold}
-.empty{color:#7799b8;padding:8px 0}
-.allianceMissionPanel{margin:18px 0;padding:16px;border:1px solid #355f88;border-radius:12px;background:#071526}
+.secondary{background:#173650;border-color:#315875;color:#c9dfed}
+.danger{background:#6f292c;border-color:#a2474b;color:#ffdcdc}
+.smallButton{padding:6px 8px;font-size:9px}
+
+.allianceHQ{padding:15px}
+.allianceIdentity{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;margin-bottom:10px;border:1px solid #244b69;border-radius:11px;background:linear-gradient(90deg,rgba(24,191,255,.06),rgba(180,122,255,.035),transparent)}
+.allianceIdentity h2{margin:0;color:#f1f8ff;font-size:20px}
+.allianceIdentity h2 small{color:#83dfff;font-size:12px;letter-spacing:1px}
+#myStats{margin-top:4px;font-size:10px;line-height:1.5;color:#88aac3}
+
+.allianceProgressionPanel{margin:10px 0;padding:13px;border:1px solid #5b447d;border-radius:11px;background:linear-gradient(155deg,rgba(34,20,52,.95),rgba(14,11,25,.96));box-shadow:inset 0 1px rgba(255,255,255,.022)}
+.allianceProgressionHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.allianceLevelBadge{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid #624986;border-radius:999px;background:#2a1a3c;color:#e4c5ff;font-size:10px;font-weight:900}
+.allianceProgressionHead h3{font-size:15px!important}
+.allianceProgressionMeta{text-align:right;color:#ad9bc0;font-size:9px;line-height:1.6}
+.allianceProgressionMeta strong{color:#ead8ff}
+.allianceXpTrack{height:8px;margin-top:10px;border-radius:999px;overflow:hidden;background:#07040d;border:1px solid #342345}
+.allianceXpBar{height:100%;width:0;background:linear-gradient(90deg,#8151bf,#c183ff);box-shadow:0 0 12px rgba(178,111,255,.22)}
+.allianceXpText{display:flex;justify-content:space-between;gap:12px;margin-top:5px;color:#baa6cc;font-size:9px}
+.allianceXpSources{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+.allianceXpSource{padding:8px;border:1px solid #3b2c50;border-radius:8px;background:#0a0710;text-align:center;color:#9a85ae;font-size:8px}
+.allianceXpSource strong{display:block;margin-top:3px;color:#e4d0f7;font-size:10px}
+.allianceLevelGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px}
+.allianceLevelCard{padding:9px;border:1px solid #342845;border-radius:9px;background:#0b0810}
+.allianceLevelCard.reached{border-color:#446856;background:#0a1913}
+.allianceLevelCard.current{box-shadow:inset 3px 0 #b26fff,0 0 17px rgba(178,111,255,.045)}
+.allianceLevelCard.claimable{border-color:#927025;background:#211907}
+.allianceLevelCard.claimed{border-color:#2f7657;background:#0a211a}
+.allianceLevelCard h4{margin:0 0 5px;font-size:11px}
+.allianceLevelReward,.allianceLevelState{margin-top:6px;color:#bdaecc;font-size:9px;line-height:1.4}
+.allianceLevelCard button{margin-top:7px}
+.allianceXpHistory{margin-top:10px}
+.allianceXpHistoryItem{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #30243f;font-size:9px}
+.allianceXpHistoryItem:last-child{border-bottom:0}
+
+.allianceMissionPanel{margin:10px 0;padding:13px;border:1px solid #2b587c;border-radius:11px;background:linear-gradient(155deg,rgba(8,31,50,.98),rgba(6,20,33,.98))}
 .allianceMissionHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
-.allianceMissionMeta{color:#8db0cf;font-size:12px;line-height:1.5;text-align:right}
-.allianceMissionGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
-.allianceMissionCard{padding:12px;border:1px solid #244d70;border-radius:10px;background:#091d31}
-.allianceMissionCard.done{border-color:#287a5a;background:#0a241f}
-.allianceMissionCard h4{margin:0 0 6px}
-.allianceMissionCard p{margin:0;color:#8db0cf;font-size:12px;line-height:1.4}
-.allianceMissionProgressText{display:flex;justify-content:space-between;gap:10px;margin-top:10px;color:#9fc9e6;font-size:12px}
-.allianceMissionProgress{height:8px;margin-top:6px;border-radius:999px;overflow:hidden;background:#04101b}
+.allianceMissionHead h3{font-size:15px!important}
+.allianceMissionMeta{color:#799bb4;font-size:9px;line-height:1.55;text-align:right}
+.allianceMissionMeta strong{color:#b8dff4}
+.allianceMissionGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px}
+.allianceMissionCard{padding:9px;border:1px solid #244d70;border-radius:9px;background:#081a2b}
+.allianceMissionCard.done{border-color:#287a5a;background:#09221c}
+.allianceMissionCard h4{margin:0 0 4px;font-size:11px}
+.allianceMissionCard p{margin:0;color:#7897b6;font-size:9px;line-height:1.4}
+.allianceMissionProgressText{display:flex;justify-content:space-between;gap:10px;margin-top:7px;color:#9fc9e6;font-size:9px}
+.allianceMissionProgress{height:6px;margin-top:4px;border-radius:999px;overflow:hidden;background:#04101b}
 .allianceMissionProgressBar{height:100%;width:0;background:#18bfff}
 .allianceMissionCard.done .allianceMissionProgressBar{background:#58d69a}
-.allianceChest{margin-top:12px;padding:13px;border:1px solid #705b25;border-radius:10px;background:#231c09}
-.allianceChest.ready{border-color:#b99024;background:#302509}
+.allianceChest{margin-top:9px;padding:10px;border:1px solid #665421;border-radius:9px;background:#201a08}
+.allianceChest.ready{border-color:#ae8927;background:#2c2208}
 .allianceChest.claimed{border-color:#2f7657;background:#0b241d}
-.allianceChest strong{color:#ffd970}
-.allianceChest small{display:block;margin-top:5px;color:#c8b67f}
-.allianceContribution{margin-top:14px}
-.allianceContributionTable{width:100%;border-collapse:collapse;font-size:12px}
-.allianceContributionTable th,.allianceContributionTable td{padding:8px;border-bottom:1px solid #17344f;text-align:left}
-.allianceContributionTable th{color:#8db0cf;font-weight:normal}
+.allianceChest strong{color:#ffd970;font-size:11px}
+.allianceChest small{display:block;margin-top:4px;color:#bcae7d;font-size:9px}
+.allianceContribution{margin-top:10px;overflow-x:auto}
+.allianceContributionTable{width:100%;min-width:620px;border-collapse:collapse;font-size:9px;background:#061522;border:1px solid #15344c}
+.allianceContributionTable th,.allianceContributionTable td{padding:7px;border-bottom:1px solid #143149;text-align:left}
+.allianceContributionTable th{color:#698ba5;font-weight:900;font-size:8px;letter-spacing:.55px;text-transform:uppercase;background:#071a2a}
 .allianceContributionTable td:not(:first-child),.allianceContributionTable th:not(:first-child){text-align:right}
-.allianceProgressionPanel{margin:18px 0;padding:16px;border:1px solid #624a87;border-radius:12px;background:#100b1b}
-.allianceProgressionHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
-.allianceLevelBadge{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#38234f;color:#e7c8ff;font-weight:bold}
-.allianceProgressionMeta{text-align:right;color:#bda8d0;font-size:12px;line-height:1.6}
-.allianceXpTrack{height:12px;margin-top:12px;border-radius:999px;overflow:hidden;background:#07040d;border:1px solid #342345}
-.allianceXpBar{height:100%;width:0;background:#b26fff}
-.allianceXpText{display:flex;justify-content:space-between;gap:12px;margin-top:6px;color:#c8b3d8;font-size:12px}
-.allianceXpSources{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
-.allianceXpSource{padding:10px;border:1px solid #3e2d55;border-radius:9px;background:#0a0710;text-align:center}
-.allianceXpSource strong{display:block;margin-top:4px;color:#e9d4ff}
-.allianceLevelGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
-.allianceLevelCard{padding:12px;border:1px solid #342845;border-radius:10px;background:#0b0810}
-.allianceLevelCard.reached{border-color:#4c725d;background:#0b1c15}
-.allianceLevelCard.current{box-shadow:0 0 0 1px #b26fff inset}
-.allianceLevelCard.claimable{border-color:#a67c28;background:#241b08}
-.allianceLevelCard.claimed{border-color:#2f7657;background:#0a211a}
-.allianceLevelCard h4{margin:0 0 6px}
-.allianceLevelReward{margin-top:7px;color:#c9b9d6;font-size:12px;line-height:1.45}
-.allianceLevelState{margin-top:8px;font-size:12px;color:#a994ba}
-.allianceLevelCard button{margin-top:9px}
-.allianceXpHistory{margin-top:14px}
-.allianceXpHistoryItem{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #30243f;font-size:12px}
-.allianceXpHistoryItem:last-child{border-bottom:0}
+
+.sectionTitle{display:flex;align-items:center;gap:7px;margin:15px 0 7px;padding-top:11px;border-top:1px solid #15364e;color:#dff4ff;font-size:13px;letter-spacing:.15px}
+.item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px;background:#061522;border:1px solid #17344f;border-radius:9px;margin:6px 0}
+.item:hover{border-color:#245477;background:#071a2a}
+.item b{font-size:11px}
+.itemActions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.role{display:inline-block;margin-top:4px;padding:3px 6px;border:1px solid #25506e;border-radius:999px;background:#0b2940;color:#8bdcff;font-size:8px;font-weight:900;letter-spacing:.3px}
+.role.leader{border-color:#6f5923;background:#2c240d;color:#ffd970}
+.role.officer{border-color:#355d83;background:#132b42;color:#79c8ff}
+
+.territory{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px;background:linear-gradient(90deg,rgba(180,122,255,.05),#071526);border:1px solid #3b3155;border-radius:9px;margin:6px 0}
+.territory strong{color:#ddcaff;font-size:11px}
+.territory small{display:block;margin-top:4px;color:#7895aa;font-size:9px}
+.territoryLink{display:inline-flex;padding:6px 8px;border:1px solid #594779;border-radius:7px;background:#211937;color:#dbc9f4;text-decoration:none;font-size:9px;font-weight:900}
+.territoryLink:hover{border-color:#8c66b9}
+
+#announcementComposer{padding:9px;border:1px solid #21445f;border-radius:9px;background:#061522;margin-bottom:7px}
+.announcement{padding:10px;background:#061522;border:1px solid #17344f;border-radius:9px;margin:6px 0;font-size:10px;line-height:1.5}
+.announcementHead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:6px}
+.activity{position:relative;padding:8px 9px 8px 15px;border-bottom:1px solid #15344b;color:#b6ccdc;font-size:10px}
+.activity:before{content:"";position:absolute;left:2px;top:13px;width:5px;height:5px;border-radius:50%;background:#18bfff;box-shadow:0 0 8px rgba(24,191,255,.4)}
+.activity:last-child{border-bottom:0}
+.activity small{display:block;margin-top:3px;color:#607f98;font-size:8px}
+
+.directoryPanel{margin-top:12px}
+.directoryPanel:before{content:"ALLIANCE DIRECTORY";display:block;margin-bottom:6px;color:#5d82a0;font-size:8px;font-weight:900;letter-spacing:1.25px}
+.directoryPanel h2{margin:0 0 7px;font-size:16px}
+
 @media(max-width:700px){
-  .top{height:auto;min-height:76px;padding:12px 14px;gap:10px;flex-wrap:wrap}.top>div:last-child{min-width:0;overflow-wrap:anywhere}.logo{font-size:23px;letter-spacing:4px}
-  .container{padding:0 12px;margin-top:20px}
-  .item{align-items:flex-start;flex-direction:column}
-  .itemActions{justify-content:flex-start}
-  .allianceMissionGrid{grid-template-columns:1fr}
-  .allianceMissionMeta{text-align:left}
+  .top{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.top>div:last-child{min-width:0;font-size:12px;overflow-wrap:anywhere}.logo{font-size:23px;letter-spacing:4px}
+  .container{padding:0 12px;margin:18px auto 28px}
+  .allianceHead{padding:14px 13px;align-items:flex-start}.allianceHead h1{font-size:21px}.allianceHeadIcon{width:38px;height:38px;flex-basis:38px;font-size:17px}.headState{padding:7px 8px}
+  .allianceIdentity{align-items:flex-start;flex-direction:column}
+  .item{align-items:flex-start;flex-direction:column}.itemActions{justify-content:flex-start}
+  .allianceMissionGrid{grid-template-columns:1fr}.allianceMissionMeta{text-align:left}
   .allianceProgressionMeta{text-align:left}
   .allianceXpSources{grid-template-columns:repeat(2,minmax(0,1fr))}
   .allianceLevelGrid{grid-template-columns:1fr}
-  .allianceContribution{overflow-x:auto}
-  .allianceContributionTable{min-width:620px}
+  .territory{align-items:flex-start;flex-direction:column}
+}
+@media(max-width:430px){
+  .headState{display:none}
+  .commandNav{display:grid;grid-template-columns:1fr 1fr}.commandNav .topBack{justify-content:center;text-align:center}
+  .allianceXpSources{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
@@ -106,23 +159,39 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 </div>
 
 <div class="container">
-  <a class="topBack" href="game.html">← Koloniye Dön</a>
-  <a class="topBack" href="alliance-wars.html">⚔️ İttifak Savaşları</a>
-  <h1>🤝 İttifak</h1>
-  <p class="muted">Oyuncularla birleş, roller ve yetkilerle ittifakını yönet.</p>
+  <div class="commandNav">
+    <a class="topBack" href="game.html">← Koloniye Dön</a>
+    <a class="topBack warLink" href="alliance-wars.html">⚔️ İttifak Savaşları</a>
+  </div>
+  <section class="allianceHead">
+    <div class="allianceHeadMain">
+      <div class="allianceHeadIcon">◇</div>
+      <div>
+        <div class="eyebrow">Alliance Command // Coalition HQ</div>
+        <h1>İttifak Komuta Merkezi</h1>
+        <div class="muted">Üyeleri, ortak operasyonları, bölgeleri ve ittifak ilerlemesini tek merkezden yönet.</div>
+      </div>
+    </div>
+    <div class="headState"><small>KOMUTA AĞI</small><b>KOALİSYON AKTİF</b></div>
+  </section>
 
-  <div id="msg" class="panel">Hazır.</div>
+  <div id="msg" class="panel statusPanel">Hazır.</div>
 
-  <div id="create" class="panel">
+  <div id="create" class="panel recruitPanel">
     <h2>🏛️ İttifak Oluştur</h2>
     <input class="input" id="name" maxlength="30" placeholder="İttifak adı">
     <input class="input" id="tag" maxlength="5" placeholder="Etiket (2-5 karakter)">
     <button class="button" onclick="createAlliance()">İttifak Oluştur</button>
   </div>
 
-  <div id="mine" class="panel hidden">
-    <h2 id="myTitle"></h2>
-    <div id="myStats" class="muted"></div>
+  <div id="mine" class="panel allianceHQ hidden">
+    <div class="allianceIdentity">
+      <div>
+        <div class="eyebrow">ACTIVE ALLIANCE</div>
+        <h2 id="myTitle"></h2>
+        <div id="myStats" class="muted"></div>
+      </div>
+    </div>
 
     <div id="allianceProgression" class="allianceProgressionPanel">
       <div class="allianceProgressionHead">
@@ -197,8 +266,9 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
     <button class="button danger" onclick="leaveAlliance()">İttifaktan Ayrıl</button>
   </div>
 
-  <div class="panel">
-    <h2>🌌 İttifaklar</h2>
+  <div class="panel directoryPanel">
+    <h2>🌌 İttifak Ağı</h2>
+    <div class="muted" style="margin-bottom:8px">Aktif ittifakları güç ve üye sayısına göre incele.</div>
     <div id="list">Yükleniyor...</div>
   </div>
 
