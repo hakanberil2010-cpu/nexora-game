@@ -6,42 +6,108 @@
 <title>TERYNDIS - İttifak Savaşları</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
-.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
-.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
-.container{max-width:1100px;margin:30px auto;padding:0 20px}
-.panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:20px;margin:16px 0}
-.button{padding:11px 16px;border:0;border-radius:8px;background:#128fcb;color:#fff;font-weight:bold;cursor:pointer}
+:root{--bg:#050d18;--panel:#091a2c;--line:#173b5d;--cyan:#18bfff;--text:#eaf4ff;--muted:#7897b6;--red:#ff716f;--green:#64dda5;--gold:#ffd970}
+body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at 18% -10%,rgba(24,191,255,.08),transparent 34%),radial-gradient(circle at 82% 6%,rgba(180,62,80,.055),transparent 28%),#050d18;color:var(--text);min-height:100vh}
+.top{height:76px;background:rgba(7,21,38,.97);border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.18);backdrop-filter:blur(12px)}
+.logo{font-size:30px;font-weight:900;letter-spacing:6px;color:#18bfff;text-shadow:0 0 20px rgba(24,191,255,.18)}
+.top>div:last-child{color:#9fc0df;font-size:14px}
+.container{max-width:1180px;margin:26px auto 38px;padding:0 20px}
+.topNav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.topBack{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:8px;background:#0d3552;color:#dff5ff;text-decoration:none;font-size:13px;font-weight:800;border:1px solid #245b80;box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.topBack:hover{background:#124565;border-color:#1aa9ee}
+.topBack.secondaryLink{background:#173047;border-color:#31536e;color:#bdd5e5}
+
+.warHead{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:12px;padding:17px 19px;border:1px solid #1a4568;border-radius:14px;background:linear-gradient(135deg,rgba(12,37,60,.96),rgba(7,22,38,.96));box-shadow:0 15px 36px rgba(0,0,0,.21),inset 0 1px rgba(255,255,255,.03);position:relative;overflow:hidden}
+.warHead:after{content:"";position:absolute;right:-95px;top:-135px;width:300px;height:300px;border:1px solid rgba(255,113,111,.06);border-radius:50%;box-shadow:0 0 0 34px rgba(255,113,111,.016),0 0 0 68px rgba(255,113,111,.009);pointer-events:none}
+.warHeadMain{display:flex;align-items:center;gap:12px;min-width:0;position:relative;z-index:1}
+.warHeadIcon{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border:1px solid rgba(255,113,111,.35);border-radius:11px;background:rgba(255,113,111,.07);font-size:19px}
+.eyebrow{color:#e9878b;font-size:9px;font-weight:900;letter-spacing:1.55px;text-transform:uppercase;margin-bottom:4px}
+.warHead h1{margin:0 0 4px;font-size:25px;letter-spacing:-.3px;line-height:1.05}
+.sub,.muted{color:#7897b6;font-size:11px;line-height:1.45}
+.warState{flex:0 0 auto;padding:8px 10px;border:1px solid #5b3844;border-radius:9px;background:rgba(30,11,18,.5);position:relative;z-index:1;text-align:right}
+.warState small{display:block;color:#8d6570;font-size:7px;font-weight:900;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.warState b{display:block;color:#ff9d9a;font-size:12px;letter-spacing:.45px}
+
+.panel{background:linear-gradient(155deg,rgba(12,31,49,.98),rgba(7,22,36,.98));border:1px solid #173b5d;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 12px 28px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.022)}
+.hidden{display:none!important}
+.notice{padding:9px 12px;border-color:#1d4666;background:rgba(9,35,54,.8);color:#a9d8ef;font-size:11px;font-weight:800}
+.notice:empty{display:none}
+.noAlliancePanel{border-color:#4f3f25;background:linear-gradient(145deg,rgba(47,37,17,.66),rgba(7,22,36,.98))}
+.noAlliancePanel h2{margin:0 0 5px;font-size:17px}
+
+.allianceCommand{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px}
+.allianceCommand h2{margin:0;color:#f0f8ff;font-size:19px}
+.allianceCommand h2 small{color:#81ddff;font-size:11px;letter-spacing:1px}
+#allianceMeta{margin-top:4px;font-size:9px}
+.commandBadge{flex:0 0 auto;padding:5px 8px;border:1px solid #2c5a78;border-radius:999px;background:#092235;color:#83ddff;font-size:8px;font-weight:900;letter-spacing:.7px;text-transform:uppercase}
+
+.declarePanel{border-color:#56323c;background:linear-gradient(145deg,rgba(62,21,30,.46),rgba(7,22,36,.98))}
+.declareHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:9px}
+.declareHead h2{margin:0;font-size:16px}
+.declareHead small{display:block;margin-top:3px;color:#9b7077;font-size:9px}
+.targetGrid{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.input{width:100%;padding:9px 10px;margin:0;background:#061522;border:1px solid #35526a;border-radius:8px;color:#fff;outline:none}
+.input:focus{border-color:#dc6569;box-shadow:0 0 0 2px rgba(220,101,105,.07)}
+.button{padding:9px 13px;border:1px solid #1e9bd4;border-radius:7px;background:linear-gradient(180deg,#17a9df,#0d7eae);color:#fff;font-size:10px;font-weight:900;cursor:pointer;box-shadow:inset 0 1px rgba(255,255,255,.1)}
+.button:hover:not(:disabled){filter:brightness(1.08)}
 .button:disabled{opacity:.45;cursor:not-allowed}
-.secondary{background:#244763}
-.danger{background:#a63333}
-.success{background:#23814e}
-.smallButton{padding:8px 10px;font-size:12px}
-.input{width:100%;padding:11px;margin:7px 0 12px;background:#071526;border:1px solid #285476;border-radius:8px;color:#fff}
-.item{padding:15px;background:#071526;border:1px solid #17344f;border-radius:10px;margin:10px 0}
-.itemHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-.itemActions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-.muted{color:#8db0cf}
-.hidden{display:none}
-.topNav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
-.topBack{display:inline-block;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
-.topBack.secondaryLink{background:#244763;border-color:#365b78}
-.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#102e49;color:#8bdcff;font-size:12px;font-weight:bold}
-.badge.pending{background:#4a3c17;color:#ffd970}
-.badge.active{background:#174a30;color:#8ff0b6}
-.badge.finished{background:#26384b;color:#c4d9ea}
-.badge.rejected,.badge.cancelled{background:#4a2222;color:#ffaaaa}
-.score{font-size:24px;font-weight:bold;margin:12px 0}
-.score strong{color:#62d2ff}
-.warMeta{display:flex;gap:14px;flex-wrap:wrap;color:#8db0cf;font-size:14px}
-.empty{color:#7799b8;padding:8px 0}
-.notice{border-color:#33506b}
+.secondary{background:#173650;border-color:#315875;color:#c9dfed}
+.danger{background:#772d34;border-color:#b34850;color:#ffe0e0}
+.success{background:#1e6849;border-color:#2c9367;color:#dffff0}
+.smallButton{padding:6px 9px;font-size:9px}
+#declareHint{margin:8px 0 0;color:#8d6f75;font-size:9px}
+
+.warsPanel{padding:13px}
+.warsPanelHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.warsPanelHead h2{margin:0;font-size:16px}
+.empty{color:#6f90aa;padding:12px 4px;font-size:11px}
+
+.item{--accent:#647f95;position:relative;overflow:hidden;padding:12px;background:linear-gradient(145deg,#081b2c,#061522);border:1px solid #173b56;border-radius:11px;margin:7px 0}
+.item:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+.item.pending{--accent:#d4ad4e;border-color:#574b2d}
+.item.active{--accent:#5bd49d;border-color:#275e48;box-shadow:0 0 22px rgba(91,212,157,.045)}
+.item.finished{--accent:#6ca6ce}
+.item.rejected,.item.cancelled{--accent:#c45f63;border-color:#563033}
+.itemHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.itemActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.badge{display:inline-flex;padding:4px 7px;border:1px solid #31516b;border-radius:999px;background:#0a2031;color:#8bdcff;font-size:8px;font-weight:900;letter-spacing:.6px;text-transform:uppercase}
+.badge.pending{border-color:#6c5922;background:#2b230c;color:#ffd970}
+.badge.active{border-color:#2e7656;background:#0c2b20;color:#8ff0b6}
+.badge.finished{border-color:#355875;background:#132536;color:#c4d9ea}
+.badge.rejected,.badge.cancelled{border-color:#754043;background:#301619;color:#ffaaaa}
+
+.vsArena{display:grid;grid-template-columns:minmax(0,1fr) 120px minmax(0,1fr);gap:8px;align-items:stretch}
+.warSide{display:flex;flex-direction:column;justify-content:center;min-width:0;padding:10px 11px;border:1px solid #173b56;border-radius:9px;background:#05131f}
+.warSide.own{background:linear-gradient(135deg,rgba(24,191,255,.06),#05131f)}
+.warSide.enemy{background:linear-gradient(225deg,rgba(255,113,111,.05),#05131f);text-align:right}
+.sideLabel{color:#5e7d95;font-size:7px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;margin-bottom:4px}
+.sideName{color:#e9f6ff;font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.enemy .sideName{color:#ffd4d4}
+.sideScore{margin-top:4px;color:#60d7ff;font-size:24px;font-weight:900}
+.enemy .sideScore{color:#ff8e8b}
+.vsCore{display:grid;place-items:center;text-align:center;border:1px solid #1e4058;border-radius:9px;background:#071725}
+.vsCore b{display:block;color:#8da9bc;font-size:17px;letter-spacing:1px}
+.vsCore small{display:block;margin-top:4px;color:#55758d;font-size:7px;font-weight:900;letter-spacing:.8px;text-transform:uppercase}
+.warMeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.warMeta span{padding:4px 6px;border:1px solid #16384f;border-radius:7px;background:#071827;color:#7e9db4;font-size:8px}
+.warMeta b{color:#cfe5f2}
+.resultBadge{display:inline-flex;margin-top:8px;padding:5px 8px;border:1px solid #34546c;border-radius:7px;background:#0a1d2d;color:#cbdce8;font-size:9px;font-weight:900}
+.resultBadge.win{border-color:#2e7958;background:#0b281f;color:#85e5bd}
+.resultBadge.loss{border-color:#814448;background:#32191c;color:#ff9b98}
+.resultBadge.draw{border-color:#806d32;background:#2b240e;color:#e8cf7b}
+
 @media(max-width:700px){
-  .top{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:23px;letter-spacing:4px}
-  .top>div:last-child{min-width:0;font-size:13px;overflow-wrap:anywhere}
-  .container{padding:0 12px;margin-top:20px}
-  .itemHead{flex-direction:column}
-  .itemActions{justify-content:flex-start}
+  .top{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:23px;letter-spacing:4px}.top>div:last-child{min-width:0;font-size:12px;overflow-wrap:anywhere}
+  .container{padding:0 12px;margin:18px auto 28px}
+  .warHead{padding:14px 13px;align-items:flex-start}.warHead h1{font-size:21px}.warHeadIcon{width:38px;height:38px;flex-basis:38px;font-size:17px}.warState{padding:7px 8px}
+  .allianceCommand{align-items:flex-start;flex-direction:column}.commandBadge{align-self:flex-start}
+  .targetGrid{grid-template-columns:1fr}.targetGrid .button{width:100%}
+  .itemHead{align-items:flex-start;flex-direction:column}.itemActions{justify-content:flex-start;width:100%}.itemActions .button{flex:1}
+  .vsArena{grid-template-columns:1fr 64px 1fr}.sideScore{font-size:20px}.sideName{font-size:10px}
+}
+@media(max-width:470px){
+  .warState{display:none}.topNav{display:grid;grid-template-columns:1fr 1fr}.topBack{justify-content:center;text-align:center}
+  .vsArena{grid-template-columns:1fr}.vsCore{min-height:46px}.warSide.enemy{text-align:left}
 }
 </style>
 </head>
@@ -57,34 +123,51 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
     <a class="topBack secondaryLink" href="game.html">← Koloniye Dön</a>
   </div>
 
-  <h1>⚔️ İttifak Savaşları</h1>
-  <p class="muted">Rakip ittifaka savaş çağrısı gönder, çağrıları yanıtla ve aktif savaşın skorunu takip et.</p>
+  <section class="warHead">
+    <div class="warHeadMain">
+      <div class="warHeadIcon">⚔</div>
+      <div>
+        <div class="eyebrow">Alliance War Room // Strategic Command</div>
+        <h1>Savaş Komuta Merkezi</h1>
+        <div class="sub">Rakip ittifaklara meydan oku, gelen çağrıları yönet ve aktif savaş skorunu canlı takip et.</div>
+      </div>
+    </div>
+    <div class="warState"><small>SAVAŞ PROTOKOLÜ</small><b>72 SAAT OPERASYON</b></div>
+  </section>
 
   <div id="msg" class="panel notice">Hazır.</div>
 
-  <div id="noAlliance" class="panel hidden">
+  <div id="noAlliance" class="panel noAlliancePanel hidden">
     <h2>🤝 İttifak Gerekli</h2>
     <p class="muted">İttifak savaşlarına katılmak için önce bir ittifaka üye olmalısın.</p>
     <a class="topBack" href="alliance.html">İttifak Sayfasına Git</a>
   </div>
 
   <div id="mainContent" class="hidden">
-    <div class="panel">
-      <h2 id="allianceTitle">İttifak</h2>
-      <div id="allianceMeta" class="muted"></div>
+    <div class="panel allianceCommand">
+      <div>
+        <div class="eyebrow">ACTIVE ALLIANCE</div>
+        <h2 id="allianceTitle">İttifak</h2>
+        <div id="allianceMeta" class="muted"></div>
+      </div>
+      <div class="commandBadge">WAR COMMAND LINK</div>
     </div>
 
-    <div id="declarePanel" class="panel hidden">
-      <h2>🎯 Savaş Çağrısı Gönder</h2>
-      <select class="input" id="targetAlliance"></select>
-      <button id="declareButton" class="button danger" onclick="declareWar()">Savaş Çağrısı Gönder</button>
+    <div id="declarePanel" class="panel declarePanel hidden">
+      <div class="declareHead">
+        <div><div class="eyebrow">TARGET ACQUISITION</div><h2>🎯 Savaş Çağrısı Gönder</h2><small>Yetkili komutanlar rakip ittifaka savaş protokolü başlatabilir.</small></div>
+      </div>
+      <div class="targetGrid">
+        <select class="input" id="targetAlliance"></select>
+        <button id="declareButton" class="button danger" onclick="declareWar()">SAVAŞ ÇAĞRISI GÖNDER</button>
+      </div>
       <p class="muted" id="declareHint">Çağrı kabul edilirse savaş 72 saat sürer. Aynı anda bir ittifak yalnızca bir aktif savaşta olabilir.</p>
     </div>
 
-    <div class="panel">
-      <div class="itemHead">
-        <h2 style="margin-top:0">🛡️ Savaşlar</h2>
-        <button class="button secondary smallButton" onclick="loadWars()">Yenile</button>
+    <div class="panel warsPanel">
+      <div class="warsPanelHead">
+        <div><div class="eyebrow">WAR ARCHIVE</div><h2>🛡️ Savaş Operasyonları</h2></div>
+        <button class="button secondary smallButton" onclick="loadWars()">YENİLE</button>
       </div>
       <div id="wars">Yükleniyor...</div>
     </div>
@@ -172,6 +255,12 @@ function resultText(w){
   return 'Sonuç: Mağlubiyet';
 }
 
+function resultClass(w){
+  if(w.status!=='finished')return '';
+  if(!w.winnerAllianceId)return 'draw';
+  return Number(w.winnerAllianceId)===Number(snapshot?.alliance?.id)?'win':'loss';
+}
+
 function renderTargets(){
   const panel=document.getElementById('declarePanel');
   const select=document.getElementById('targetAlliance');
@@ -226,30 +315,40 @@ function renderWars(){
 
     const result=resultText(w);
 
-    return `<div class="item">
+    const ownTag=snapshot?.alliance?.tag?` [${esc(snapshot.alliance.tag)}]`:'';
+    const ownName=`${esc(snapshot?.alliance?.name||'İttifak')}${ownTag}`;
+    const outcomeClass=resultClass(w);
+
+    return `<div class="item ${esc(w.status)}">
       <div class="itemHead">
-        <div>
-          <b>${opponentLabel(w)}</b><br>
-          <span class="badge ${esc(w.status)}">${esc(statusLabel(w.status))}</span>
-        </div>
+        <span class="badge ${esc(w.status)}">${esc(statusLabel(w.status))}</span>
         ${actions}
       </div>
 
-      <div class="score">
-        <strong>${Number(w.ownScore||0).toLocaleString('tr-TR')}</strong>
-        &nbsp;—&nbsp;
-        ${Number(w.opponentScore||0).toLocaleString('tr-TR')}
+      <div class="vsArena">
+        <div class="warSide own">
+          <span class="sideLabel">Senin İttifakın</span>
+          <span class="sideName">${ownName}</span>
+          <span class="sideScore">${Number(w.ownScore||0).toLocaleString('tr-TR')}</span>
+        </div>
+        <div class="vsCore">
+          <div><b>VS</b><small>${Number(w.battleCount||0)} SAVAŞ KAYDI</small></div>
+        </div>
+        <div class="warSide enemy">
+          <span class="sideLabel">Rakip İttifak</span>
+          <span class="sideName">${opponentLabel(w)}</span>
+          <span class="sideScore">${Number(w.opponentScore||0).toLocaleString('tr-TR')}</span>
+        </div>
       </div>
 
       <div class="warMeta">
-        <span>⚔️ Savaş kaydı: ${Number(w.battleCount||0)}</span>
         ${countdown}
-        <span>📅 Çağrı: ${esc(formatDate(w.createdAt))}</span>
-        ${w.startedAt?`<span>🚩 Başlangıç: ${esc(formatDate(w.startedAt))}</span>`:''}
-        ${w.endsAt?`<span>🏁 Bitiş: ${esc(formatDate(w.endsAt))}</span>`:''}
+        <span>📅 Çağrı: <b>${esc(formatDate(w.createdAt))}</b></span>
+        ${w.startedAt?`<span>🚩 Başlangıç: <b>${esc(formatDate(w.startedAt))}</b></span>`:''}
+        ${w.endsAt?`<span>🏁 Bitiş: <b>${esc(formatDate(w.endsAt))}</b></span>`:''}
       </div>
 
-      ${result?`<p><b>${esc(result)}</b></p>`:''}
+      ${result?`<span class="resultBadge ${outcomeClass}">${esc(result)}</span>`:''}
     </div>`;
   }).join('');
 }
