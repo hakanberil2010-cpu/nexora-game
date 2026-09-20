@@ -50,6 +50,21 @@ body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
 .guide-action:disabled{opacity:.5;cursor:not-allowed}
 .nexa-target{outline:2px solid #20c6ff;outline-offset:3px;animation:nexaPulse 1.35s ease-in-out infinite}
 @keyframes nexaPulse{0%,100%{box-shadow:0 0 0 0 rgba(32,198,255,.18),0 0 18px rgba(32,198,255,.12)}50%{box-shadow:0 0 0 7px rgba(32,198,255,.08),0 0 28px rgba(32,198,255,.32)}}
+.building-node.has-sprite.nexa-target{
+  outline:1px solid rgba(32,198,255,.68);
+  outline-offset:-16px;
+  animation:nexaCityPulse 1.6s ease-in-out infinite
+}
+@keyframes nexaCityPulse{
+  0%,100%{
+    outline-color:rgba(32,198,255,.48);
+    box-shadow:inset 0 0 14px rgba(32,198,255,.035)
+  }
+  50%{
+    outline-color:rgba(67,215,255,.82);
+    box-shadow:inset 0 0 22px rgba(32,198,255,.075)
+  }
+}
 .nexa-intro{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(2,8,15,.78);backdrop-filter:blur(7px)}
 .nexa-intro[hidden]{display:none}
 .nexa-intro-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;width:min(560px,100%);padding:22px;border:1px solid #2c739b;border-radius:18px;background:linear-gradient(145deg,#0a2238,#071522);box-shadow:0 25px 70px rgba(0,0,0,.55),0 0 35px rgba(32,198,255,.12)}
@@ -4505,7 +4520,7 @@ const BUILDING_SITES=[
   {name:"Depo",slot:1,icon:"📦",x:50,y:72.5},
   {name:"Depo",slot:2,icon:"📦",x:70,y:72.5},
   {name:"Kristal Deposu",slot:1,icon:"🔷",x:88,y:72.5},
-  {name:"Sur",slot:1,icon:"🧱",x:50,y:89}
+  {name:"Sur",slot:1,icon:"🧱",x:50,y:88}
 ];
 
 const ROAD_LINKS=[
