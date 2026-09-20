@@ -1939,6 +1939,132 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
   transform:translate(-50%,-50%) rotate(2deg);
 }
 
+/* Bright World + Unknown Signal Visibility Pass */
+.world{
+  background:#061522;
+  box-shadow:
+    0 24px 70px rgba(0,0,0,.30),
+    inset 0 0 105px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.035);
+}
+.world::after{
+  box-shadow:
+    inset 0 0 90px rgba(0,0,0,.17),
+    inset 0 0 0 1px rgba(255,255,255,.018);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(1,6,11,.08),
+      transparent 15%,
+      transparent 84%,
+      rgba(1,6,11,.11)
+    );
+}
+.world-canvas{
+  background:
+    radial-gradient(ellipse at 50% 44%,rgba(49,137,162,.24) 0 15%,transparent 39%),
+    radial-gradient(circle at 23% 28%,rgba(36,104,86,.16),transparent 24%),
+    radial-gradient(circle at 78% 68%,rgba(55,112,132,.14),transparent 28%),
+    linear-gradient(145deg,#0b2739 0%,#092031 48%,#0b2938 100%);
+  box-shadow:
+    inset 0 0 220px rgba(0,0,0,.14),
+    inset 0 0 130px rgba(93,194,216,.055);
+}
+.world-terrain{
+  filter:brightness(1.18) saturate(1.12);
+}
+.world-fog-shade{
+  fill:rgba(2,8,14,.46);
+}
+.grid{
+  opacity:.30;
+}
+
+.world-site.unknown-signal{
+  width:56px;
+  height:56px;
+  font-size:0;
+  opacity:.96;
+  filter:none;
+  border:2px dashed rgba(171,235,255,.90);
+  background:
+    radial-gradient(circle at 50% 42%,rgba(216,248,255,.16) 0 16%,rgba(44,79,100,.72) 48%,rgba(15,34,49,.96) 100%);
+  box-shadow:
+    0 0 0 5px rgba(88,211,241,.08),
+    0 0 22px rgba(95,222,250,.34),
+    inset 0 0 18px rgba(129,228,249,.10);
+  animation:unknownSignalPulse 1.9s ease-in-out infinite;
+}
+.world-site.unknown-signal::before{
+  content:"?";
+  display:block;
+  color:#e9fbff;
+  font-size:31px;
+  font-weight:900;
+  line-height:1;
+  text-shadow:
+    0 0 6px rgba(255,255,255,.40),
+    0 0 14px rgba(101,224,250,.70),
+    0 2px 3px rgba(0,0,0,.72);
+}
+.world-site.unknown-signal.intel-stale{
+  opacity:.88;
+  filter:saturate(.92) brightness(.98);
+}
+.world-site.unknown-signal .world-site-label{
+  top:59px;
+  padding:4px 7px;
+  border:1px solid rgba(117,211,238,.22);
+  border-radius:6px;
+  background:rgba(2,13,22,.84);
+  color:#e1f8ff;
+  font-size:11px;
+  font-weight:800;
+  opacity:1;
+  text-shadow:0 1px 4px rgba(0,0,0,.92);
+  box-shadow:0 4px 12px rgba(0,0,0,.20);
+}
+@keyframes unknownSignalPulse{
+  0%,100%{
+    box-shadow:
+      0 0 0 5px rgba(88,211,241,.07),
+      0 0 20px rgba(95,222,250,.28),
+      inset 0 0 18px rgba(129,228,249,.09);
+  }
+  50%{
+    box-shadow:
+      0 0 0 8px rgba(88,211,241,.11),
+      0 0 30px rgba(95,222,250,.46),
+      inset 0 0 22px rgba(129,228,249,.14);
+  }
+}
+
+.world-mini-dot.unknown{
+  width:11px;
+  height:11px;
+  opacity:1;
+  border:1px dashed rgba(222,250,255,.95);
+  background:#6dcfe7;
+  box-shadow:
+    0 0 0 2px rgba(91,211,239,.14),
+    0 0 9px rgba(106,224,249,.72);
+}
+.world-mini-dot.unknown.stale{
+  opacity:.82;
+}
+.world-mini-dot.unknown::after{
+  color:#04131d;
+  font-size:9px;
+  font-weight:900;
+  text-shadow:0 0 2px rgba(255,255,255,.70);
+}
+
+@media(prefers-reduced-motion:reduce){
+  .world-site.unknown-signal{
+    animation:none;
+  }
+}
+
 </style>
 </head>
 
