@@ -4111,6 +4111,44 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   }
 }
 
+/* Keep labels legible at desktop fit while preserving the city composition. */
+@media(min-width:601px){
+  .colony-world.overview-density .building-sprite-label{
+    transform:translateX(-50%) scale(var(--city-label-scale,1));
+    transform-origin:50% 0;
+    background:rgba(3,17,25,.96);
+    border-color:rgba(112,209,237,.42);
+  }
+  .colony-world.overview-density .building-state-signal{
+    transform:translate(-50%,-100%) scale(var(--city-label-scale,1));
+    transform-origin:50% 100%;
+    font-size:9px;
+  }
+  .colony-world.overview-density .building-sprite-label .building-node-name{
+    font-size:12px;line-height:1.2;
+  }
+}
+.colony-world.overview-density .building-node.has-sprite.selected .building-node-level,
+.colony-world.overview-density .building-node.has-sprite.pending .building-node-time,
+.colony-world.overview-density .building-node.has-sprite.unbuilt:not(.secondary-slot) .building-node-unbuilt{
+  display:block;
+}
+.scene-hud > span{position:relative;overflow:hidden;padding-bottom:10px}
+.scene-hud > span::after{
+  content:"";position:absolute;left:0;bottom:0;height:3px;
+  width:var(--resource-fill,0%);background:var(--resource-accent,#8bd6ee);
+  pointer-events:none;transition:width .3s ease;
+}
+.scene-hud > span:nth-child(1){--resource-accent:#b7cbd7}
+.scene-hud > span:nth-child(2){--resource-accent:#f4d36d}
+.scene-hud > span:nth-child(3){--resource-accent:#eda473}
+.scene-hud > span:nth-child(4){--resource-accent:#7de4f5}
+.scene-hud small{color:#a5c3d3;font-variant-numeric:tabular-nums}
+.scene-hud > span.resource-full::after{background:#f4b452}
+.colony-panel button:focus-visible{outline:2px solid #80e6ff;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){
+  .scene-hud > span::after{transition:none}
+}
 </style></head><body>
 
 <header class="topbar">
@@ -4843,6 +4881,11 @@ function applyColonyView(){
   world.style.setProperty(
     '--overview-label-scale',
     overviewLabelScale.toFixed(2)
+  );
+
+  world.style.setProperty(
+    '--city-label-scale',
+    Math.min(2.2,Math.max(1,.85/Math.max(.16,colonyViewScale))).toFixed(2)
   );
 
   if(selectedBuildingName){
@@ -6603,7 +6646,15 @@ function updateColonyOperationalState(city,production,capacities,buildings){
   };
 
   Object.entries(full).forEach(([resource,isFull])=>{
-    document.getElementById(resource)?.parentElement?.classList.toggle('resource-full',isFull);
+    const card=document.getElementById(resource)?.parentElement;
+    if(!card)return;
+    const capacity=colonyResourceCapacity(resource,c,capacities);
+    const amount=Math.max(0,Number(c[resource])||0);
+    const fill=capacity>0?Math.min(100,amount/capacity*100):0;
+    const resourceName={metal:'Metal',energy:'Enerji',alloy:'Alaşım',crystal:'Kristal'}[resource];
+    card.classList.toggle('resource-full',isFull);
+    card.style.setProperty('--resource-fill',fill.toFixed(1)+'%');
+    card.title=resourceName+' · '+(isFull?'Depo dolu':capacity>0?'Doluluk %'+Math.round(fill):'Kapasite bilgisi bekleniyor');
   });
 
   document.getElementById('productionStats')?.classList.toggle(
