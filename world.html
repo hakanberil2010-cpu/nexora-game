@@ -1564,6 +1564,218 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
       id="cityDirectionIndicator"
       type="button"
       onclick="returnToMyCity()"
+
+
+/* World Terrain & Region Foundation */
+.world-canvas{
+  background:
+    radial-gradient(ellipse at 50% 44%,rgba(28,91,109,.18) 0 12%,transparent 34%),
+    linear-gradient(145deg,#061827 0%,#06131f 48%,#071b27 100%);
+  box-shadow:
+    inset 0 0 300px rgba(0,0,0,.30),
+    inset 0 0 90px rgba(62,157,183,.025);
+}
+.world-terrain{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+.world-terrain::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 48%,transparent 0 34%,rgba(2,9,15,.09) 70%,rgba(1,6,11,.20) 100%),
+    radial-gradient(circle at 48% 43%,rgba(75,185,205,.045),transparent 24%),
+    linear-gradient(180deg,rgba(124,211,226,.018),transparent 17%,transparent 83%,rgba(1,5,9,.11));
+}
+.terrain-biome{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  border-radius:46%;
+  pointer-events:none;
+  overflow:hidden;
+  opacity:.92;
+}
+.terrain-biome::before,
+.terrain-biome::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+}
+.terrain-desert{
+  left:16%;
+  top:24%;
+  width:34%;
+  height:33%;
+  background:
+    radial-gradient(ellipse at 44% 48%,rgba(161,126,66,.36) 0 18%,rgba(117,91,47,.23) 46%,transparent 76%),
+    radial-gradient(circle at 24% 62%,rgba(224,183,99,.16) 0 5%,transparent 22%),
+    linear-gradient(145deg,rgba(104,79,41,.22),rgba(34,44,37,.08));
+}
+.terrain-desert::before{
+  opacity:.32;
+  background:
+    repeating-linear-gradient(166deg,transparent 0 92px,rgba(232,195,118,.12) 94px 96px,transparent 98px 188px);
+}
+.terrain-desert::after{
+  background:
+    radial-gradient(ellipse at 34% 38%,rgba(247,211,139,.08),transparent 19%),
+    radial-gradient(ellipse at 66% 66%,rgba(74,50,27,.15),transparent 23%);
+}
+.terrain-forest{
+  left:48%;
+  top:18%;
+  width:36%;
+  height:31%;
+  background:
+    radial-gradient(ellipse at 50% 50%,rgba(38,102,65,.43) 0 20%,rgba(25,77,52,.28) 48%,transparent 77%),
+    radial-gradient(circle at 30% 34%,rgba(82,146,86,.13),transparent 24%),
+    linear-gradient(155deg,rgba(21,70,52,.20),rgba(18,47,43,.06));
+}
+.terrain-forest::before{
+  opacity:.50;
+  background-image:
+    radial-gradient(circle,rgba(78,150,91,.22) 0 5px,transparent 6px),
+    radial-gradient(circle,rgba(36,104,68,.26) 0 4px,transparent 5px);
+  background-position:0 0,70px 52px;
+  background-size:145px 126px,170px 148px;
+}
+.terrain-forest::after{
+  background:
+    radial-gradient(ellipse at 52% 56%,transparent 0 42%,rgba(80,151,102,.07) 44% 46%,transparent 48%);
+}
+.terrain-ice{
+  left:87%;
+  top:22%;
+  width:30%;
+  height:34%;
+  background:
+    radial-gradient(ellipse at 50% 48%,rgba(72,151,180,.38) 0 18%,rgba(54,113,145,.25) 48%,transparent 77%),
+    radial-gradient(circle at 66% 38%,rgba(170,229,241,.12),transparent 26%),
+    linear-gradient(150deg,rgba(79,147,173,.20),rgba(27,54,82,.08));
+}
+.terrain-ice::before{
+  opacity:.42;
+  background:
+    repeating-linear-gradient(35deg,transparent 0 130px,rgba(157,221,235,.10) 132px 134px,transparent 136px 254px),
+    repeating-linear-gradient(142deg,transparent 0 180px,rgba(89,178,207,.08) 182px 184px,transparent 186px 330px);
+}
+.terrain-ice::after{
+  background:
+    radial-gradient(circle at 42% 54%,rgba(199,242,250,.08),transparent 20%),
+    radial-gradient(circle at 70% 65%,rgba(38,98,139,.14),transparent 24%);
+}
+.terrain-mountain{
+  left:34%;
+  top:80%;
+  width:36%;
+  height:34%;
+  background:
+    radial-gradient(ellipse at 48% 46%,rgba(113,100,77,.38) 0 18%,rgba(75,69,58,.25) 46%,transparent 77%),
+    linear-gradient(150deg,rgba(124,111,84,.16),rgba(47,53,52,.08));
+}
+.terrain-mountain::before{
+  opacity:.40;
+  background:
+    repeating-linear-gradient(153deg,transparent 0 86px,rgba(185,166,127,.12) 88px 90px,transparent 92px 170px),
+    repeating-linear-gradient(27deg,transparent 0 122px,rgba(74,66,54,.12) 124px 126px,transparent 128px 238px);
+}
+.terrain-mountain::after{
+  background:
+    radial-gradient(ellipse at 36% 54%,rgba(34,31,26,.17),transparent 18%),
+    radial-gradient(ellipse at 65% 42%,rgba(194,175,139,.06),transparent 20%);
+}
+.terrain-volcanic{
+  left:72%;
+  top:82%;
+  width:34%;
+  height:34%;
+  background:
+    radial-gradient(ellipse at 48% 50%,rgba(116,55,39,.42) 0 17%,rgba(76,40,33,.28) 48%,transparent 77%),
+    radial-gradient(circle at 56% 50%,rgba(213,88,47,.10),transparent 24%),
+    linear-gradient(150deg,rgba(92,43,38,.22),rgba(35,31,35,.08));
+}
+.terrain-volcanic::before{
+  opacity:.50;
+  background-image:
+    radial-gradient(circle,rgba(28,18,18,.38) 0 10px,rgba(208,83,43,.07) 11px 16px,transparent 17px),
+    radial-gradient(circle,rgba(49,26,24,.34) 0 7px,transparent 8px);
+  background-position:20px 24px,98px 76px;
+  background-size:190px 170px,156px 142px;
+}
+.terrain-volcanic::after{
+  background:
+    linear-gradient(34deg,transparent 0 43%,rgba(236,92,45,.08) 44% 45%,transparent 46% 100%),
+    linear-gradient(151deg,transparent 0 60%,rgba(236,92,45,.06) 61% 62%,transparent 63% 100%);
+}
+.terrain-ocean{
+  left:92%;
+  top:55%;
+  width:26%;
+  height:46%;
+  background:
+    radial-gradient(ellipse at 48% 50%,rgba(40,112,151,.42) 0 18%,rgba(31,78,119,.29) 50%,transparent 78%),
+    linear-gradient(180deg,rgba(47,132,169,.14),rgba(20,55,91,.09));
+}
+.terrain-ocean::before{
+  opacity:.38;
+  background:
+    repeating-linear-gradient(174deg,transparent 0 72px,rgba(111,207,229,.11) 74px 76px,transparent 78px 148px);
+}
+.terrain-ocean::after{
+  background:
+    radial-gradient(ellipse at 44% 38%,rgba(127,220,235,.08),transparent 24%),
+    radial-gradient(ellipse at 62% 70%,rgba(8,36,67,.15),transparent 28%);
+}
+.grid{
+  z-index:1;
+  opacity:.56;
+  background-image:
+    linear-gradient(rgba(98,190,219,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(98,190,219,.025) 1px,transparent 1px),
+    linear-gradient(rgba(106,203,232,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(106,203,232,.045) 1px,transparent 1px);
+  background-size:
+    100px 100px,
+    100px 100px,
+    500px 500px,
+    500px 500px;
+}
+.region{
+  box-shadow:
+    0 9px 22px rgba(0,0,0,.20),
+    inset 0 1px 0 rgba(255,255,255,.03);
+}
+.region.desert{
+  border-color:rgba(221,184,103,.24);
+  background:linear-gradient(180deg,rgba(55,43,24,.78),rgba(24,28,25,.70));
+}
+.region.forest{
+  border-color:rgba(91,182,112,.23);
+  background:linear-gradient(180deg,rgba(19,51,38,.80),rgba(14,31,29,.72));
+}
+.region.ice{
+  border-color:rgba(114,202,230,.25);
+  background:linear-gradient(180deg,rgba(21,55,73,.82),rgba(14,32,48,.74));
+}
+.region.mountain{
+  border-color:rgba(171,156,125,.22);
+  background:linear-gradient(180deg,rgba(51,46,38,.80),rgba(28,30,29,.72));
+}
+.region.volcanic{
+  border-color:rgba(214,108,72,.24);
+  background:linear-gradient(180deg,rgba(61,29,28,.82),rgba(31,22,25,.74));
+}
+.region.ocean{
+  border-color:rgba(83,182,220,.24);
+  background:linear-gradient(180deg,rgba(20,55,76,.82),rgba(13,31,49,.74));
+}
       title="Koloninin yönü ve harita merkezine uzaklığı"
       hidden
     >
@@ -1628,6 +1840,14 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
     </details>
 
     <div class="world-canvas" id="worldCanvas">
+            <div class="world-terrain" aria-hidden="true">
+              <span class="terrain-biome terrain-desert"></span>
+              <span class="terrain-biome terrain-forest"></span>
+              <span class="terrain-biome terrain-ice"></span>
+              <span class="terrain-biome terrain-mountain"></span>
+              <span class="terrain-biome terrain-volcanic"></span>
+              <span class="terrain-biome terrain-ocean"></span>
+            </div>
             <div class="grid"></div>
             <svg
               class="world-fog"
