@@ -2065,6 +2065,240 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
   }
 }
 
+/* Player / NPC / Resource Marker Visual Pass */
+.colony{
+  filter:drop-shadow(0 9px 12px rgba(0,0,0,.24));
+}
+.colony-icon{
+  width:54px;
+  height:54px;
+  position:relative;
+  border-width:1px;
+  background:
+    radial-gradient(circle at 50% 28%,rgba(89,196,230,.22),transparent 46%),
+    linear-gradient(180deg,rgba(13,54,76,.98),rgba(5,27,42,.98));
+  box-shadow:
+    0 0 0 4px rgba(75,195,235,.055),
+    0 0 23px rgba(49,184,227,.24),
+    0 10px 20px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+.colony-icon::after{
+  content:"";
+  position:absolute;
+  inset:5px;
+  border:1px solid rgba(151,230,250,.16);
+  border-radius:50%;
+  pointer-events:none;
+}
+.colony-name{
+  margin-top:7px;
+  padding:4px 7px;
+  border:1px solid rgba(100,193,226,.14);
+  border-radius:6px;
+  background:rgba(2,14,23,.80);
+  font-size:10px;
+  letter-spacing:.15px;
+  box-shadow:0 5px 12px rgba(0,0,0,.18);
+}
+.you .colony-icon{
+  border-color:#72f0b5;
+  background:
+    radial-gradient(circle at 50% 28%,rgba(101,242,185,.25),transparent 46%),
+    linear-gradient(180deg,rgba(12,71,61,.98),rgba(5,35,37,.98));
+  box-shadow:
+    0 0 0 5px rgba(102,238,181,.07),
+    0 0 28px rgba(88,255,155,.34),
+    0 10px 20px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+.you .colony-name{
+  color:#8ff5c7;
+  border-color:rgba(115,240,187,.20);
+}
+.colony.pvp-protected .colony-icon{
+  border-color:#8fd5ff;
+  box-shadow:
+    0 0 0 5px rgba(109,199,255,.08),
+    0 0 28px rgba(82,184,255,.38),
+    0 10px 20px rgba(0,0,0,.28);
+}
+.colony.selected .colony-icon{
+  border-color:#8ee6ff;
+  box-shadow:
+    0 0 0 7px rgba(82,210,247,.11),
+    0 0 34px rgba(69,207,247,.48),
+    0 12px 24px rgba(0,0,0,.34);
+}
+
+.world-site:not(.unknown-signal){
+  border-width:1px;
+  box-shadow:
+    0 9px 18px rgba(0,0,0,.30),
+    0 0 18px rgba(62,172,211,.10),
+    inset 0 1px 0 rgba(255,255,255,.055);
+}
+.world-site:not(.unknown-signal)::before{
+  content:"";
+  position:absolute;
+  inset:5px;
+  border:1px solid rgba(206,242,255,.11);
+  border-radius:50%;
+  pointer-events:none;
+}
+.world-site:not(.unknown-signal).selected{
+  border-color:#8ee6ff;
+  box-shadow:
+    0 0 0 6px rgba(83,211,247,.12),
+    0 0 34px rgba(65,203,244,.48),
+    0 11px 22px rgba(0,0,0,.34);
+}
+
+.world-site.resource{
+  width:46px;
+  height:46px;
+  font-size:23px;
+  background:
+    radial-gradient(circle at 50% 34%,rgba(255,225,117,.16),transparent 48%),
+    rgba(27,25,12,.95);
+  border-color:#e9c958;
+  box-shadow:
+    0 0 0 4px rgba(229,197,72,.055),
+    0 0 20px rgba(231,195,76,.28),
+    0 9px 18px rgba(0,0,0,.30);
+}
+.world-site.resource.rare{
+  width:52px;
+  height:52px;
+  font-size:25px;
+  border-color:#6de1ff;
+  background:
+    radial-gradient(circle at 50% 33%,rgba(115,225,255,.22),transparent 50%),
+    rgba(9,35,49,.96);
+  box-shadow:
+    0 0 0 5px rgba(90,216,250,.07),
+    0 0 28px rgba(83,213,249,.42),
+    0 10px 20px rgba(0,0,0,.32);
+}
+.world-site.resource.elite{
+  width:60px;
+  height:60px;
+  font-size:29px;
+  border-color:#dda2ff;
+  background:
+    radial-gradient(circle at 50% 32%,rgba(221,155,255,.24),transparent 51%),
+    rgba(38,17,51,.97);
+  box-shadow:
+    0 0 0 6px rgba(213,145,255,.08),
+    0 0 35px rgba(207,134,255,.52),
+    0 11px 22px rgba(0,0,0,.34);
+}
+.world-site.resource .world-site-label{
+  color:#f5e3a1;
+}
+.world-site.resource.rare .world-site-label{
+  color:#c9f6ff;
+}
+.world-site.resource.elite .world-site-label{
+  color:#efd4ff;
+}
+
+.world-site.npc-camp{
+  border-width:1px;
+  background:
+    radial-gradient(circle at 50% 32%,rgba(255,122,105,.16),transparent 49%),
+    rgba(35,12,15,.96);
+  box-shadow:
+    0 0 0 4px rgba(239,102,93,.05),
+    0 0 22px rgba(229,82,74,.25),
+    0 10px 20px rgba(0,0,0,.32);
+}
+.world-site.npc-camp.encounter-small{
+  width:44px;
+  height:44px;
+  font-size:22px;
+  border-color:#79efb6;
+  background:
+    radial-gradient(circle at 50% 33%,rgba(111,239,181,.18),transparent 49%),
+    rgba(8,37,28,.97);
+  box-shadow:
+    0 0 0 4px rgba(103,234,174,.055),
+    0 0 21px rgba(104,235,176,.32),
+    0 9px 18px rgba(0,0,0,.30);
+}
+.world-site.npc-camp.encounter-strong{
+  width:52px;
+  height:52px;
+  font-size:26px;
+  border-color:#ffc15d;
+  background:
+    radial-gradient(circle at 50% 32%,rgba(255,187,81,.22),transparent 50%),
+    rgba(48,29,8,.97);
+  box-shadow:
+    0 0 0 5px rgba(255,180,73,.065),
+    0 0 27px rgba(255,177,72,.40),
+    0 10px 20px rgba(0,0,0,.32);
+}
+.world-site.npc-camp.encounter-elite{
+  width:61px;
+  height:61px;
+  font-size:31px;
+  border-color:#d39aff;
+  background:
+    radial-gradient(circle at 50% 32%,rgba(203,135,255,.24),transparent 50%),
+    rgba(42,18,58,.98);
+  box-shadow:
+    0 0 0 6px rgba(198,124,255,.075),
+    0 0 35px rgba(196,123,255,.52),
+    0 11px 22px rgba(0,0,0,.34);
+}
+.world-site.npc-camp.encounter-boss{
+  width:72px;
+  height:72px;
+  font-size:36px;
+  border:2px solid #ff7898;
+  background:
+    radial-gradient(circle at 50% 31%,rgba(255,101,137,.26),transparent 52%),
+    rgba(62,10,25,.98);
+  box-shadow:
+    0 0 0 7px rgba(255,91,128,.085),
+    0 0 42px rgba(255,72,113,.60),
+    0 13px 24px rgba(0,0,0,.36);
+}
+.world-site.npc-camp.encounter-small .world-site-label{top:43px}
+.world-site.npc-camp.encounter-strong .world-site-label{top:51px}
+.world-site.npc-camp.encounter-elite .world-site-label{top:60px}
+.world-site.npc-camp.encounter-boss .world-site-label{
+  top:70px;
+  color:#ffd0db;
+  font-size:11px;
+  border-color:rgba(255,111,145,.20);
+}
+
+@keyframes bossPulse{
+  0%,100%{
+    filter:brightness(1);
+    box-shadow:
+      0 0 0 7px rgba(255,91,128,.075),
+      0 0 37px rgba(255,72,113,.50),
+      0 13px 24px rgba(0,0,0,.36);
+  }
+  50%{
+    filter:brightness(1.12);
+    box-shadow:
+      0 0 0 10px rgba(255,91,128,.12),
+      0 0 52px rgba(255,72,113,.74),
+      0 13px 24px rgba(0,0,0,.36);
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .world-site.resource.elite,
+  .world-site.npc-camp.encounter-boss{
+    animation:none;
+  }
+}
+
 </style>
 </head>
 
