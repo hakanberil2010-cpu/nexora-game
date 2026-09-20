@@ -2299,6 +2299,90 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
   }
 }
 
+/* Low-Zoom Intel Density + Mini-map Clarity */
+.world-canvas.overview-density
+.world-site:not(.selected):not(.unknown-signal):not(.encounter-boss)
+.world-site-label{
+  display:none;
+}
+.world-canvas.overview-density
+.colony:not(.selected):not(.you)
+.colony-name{
+  display:none;
+}
+.world-canvas.overview-density
+.world-site.unknown-signal
+.world-site-label,
+.world-canvas.overview-density
+.world-site.selected
+.world-site-label,
+.world-canvas.overview-density
+.world-site.encounter-boss
+.world-site-label,
+.world-canvas.overview-density
+.colony.you
+.colony-name,
+.world-canvas.overview-density
+.colony.selected
+.colony-name{
+  display:block;
+}
+
+.world-mini-dot.unknown{
+  width:7px;
+  height:7px;
+  border:1px dashed rgba(205,244,255,.86);
+  background:#67bfd5;
+  box-shadow:0 0 4px rgba(99,217,242,.48);
+}
+.world-mini-dot.unknown::after{
+  font-size:6px;
+  color:#061720;
+  text-shadow:none;
+}
+.world-mini-dot.unknown.stale{
+  opacity:.68;
+}
+.world-mini-dot.self{
+  z-index:6;
+  width:10px;
+  height:10px;
+  border:1px solid rgba(211,255,237,.82);
+  box-shadow:
+    0 0 0 2px rgba(112,240,191,.13),
+    0 0 8px rgba(112,240,191,.64);
+}
+.world-mini-dot.npc-boss{
+  z-index:5;
+  width:10px;
+  height:10px;
+  border:1px solid rgba(255,207,220,.84);
+  background:#ff6689;
+  box-shadow:
+    0 0 0 2px rgba(255,91,128,.13),
+    0 0 8px rgba(255,91,128,.66);
+}
+.world-mini-dot.npc-elite{
+  z-index:4;
+  width:8px;
+  height:8px;
+  background:#c887ff;
+  box-shadow:0 0 6px rgba(200,135,255,.52);
+}
+.world-mini-dot.resource-elite{
+  z-index:4;
+  width:9px;
+  height:9px;
+  border:1px solid rgba(238,211,255,.70);
+  box-shadow:0 0 7px rgba(215,156,255,.58);
+}
+.world-mini-dot.resource-rare{
+  z-index:3;
+  width:7px;
+  height:7px;
+  box-shadow:0 0 5px rgba(103,216,255,.44);
+}
+
 </style>
 </head>
 
@@ -3395,7 +3479,8 @@ function renderWorldMiniMap() {
             box,
             camp.coordinateX,
             camp.coordinateY,
-            "npc" +
+            "npc npc-" +
+              npcEncounterClass(camp) +
               (camp.stale===true?" stale":""),
             (camp.name || "NPC") +
               (camp.stale===true && camp.lastSeenAt
@@ -3728,6 +3813,10 @@ function updateWorldZoomLabel() {
     document.getElementById(
       "worldZoomLabel"
     );
+  const canvas =
+    document.getElementById(
+      "worldCanvas"
+    );
 
   if (label) {
     label.textContent =
@@ -3735,6 +3824,13 @@ function updateWorldZoomLabel() {
         worldZoom *
         100
       ) + "%";
+  }
+
+  if (canvas) {
+    canvas.classList.toggle(
+      "overview-density",
+      worldZoom <= 0.80
+    );
   }
 }
 
