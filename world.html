@@ -1542,28 +1542,6 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
 .world-intel-ring-label{border-color:rgba(207,156,245,.38);background:rgba(20,9,30,.90);color:#e3caf5;font-size:10px}.world-fog-shade{fill:rgba(1,6,13,.75)}
 @media(max-width:700px){.container{padding:6px}.world{height:calc(100vh - 12px);border-radius:11px}.return-city-button{top:8px;left:8px;padding:8px 10px}.world-tools-panel{top:54px;right:8px;width:min(245px,calc(100% - 16px))}.world-mini-map{height:120px}.info,.explore-panel{right:8px;bottom:8px;width:calc(100% - 16px)}}
 
-</style>
-</head>
-
-<body>
-
-<div class="container map-only-layout">
-  <div class="world" id="worldViewport">
-    <button
-      class="return-city-button"
-      id="returnCityButton"
-      type="button"
-      onclick="returnToMyCity()"
-      title="Haritayı kendi koloninin konumuna getir"
-    >
-      🏰 Kolonime Dön
-    </button>
-
-    <button
-      class="city-direction-indicator"
-      id="cityDirectionIndicator"
-      type="button"
-      onclick="returnToMyCity()"
 
 
 /* World Terrain & Region Foundation */
@@ -1776,6 +1754,29 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
   border-color:rgba(83,182,220,.24);
   background:linear-gradient(180deg,rgba(20,55,76,.82),rgba(13,31,49,.74));
 }
+
+</style>
+</head>
+
+<body>
+
+<div class="container map-only-layout">
+  <div class="world" id="worldViewport">
+    <button
+      class="return-city-button"
+      id="returnCityButton"
+      type="button"
+      onclick="returnToMyCity()"
+      title="Haritayı kendi koloninin konumuna getir"
+    >
+      🏰 Kolonime Dön
+    </button>
+
+    <button
+      class="city-direction-indicator"
+      id="cityDirectionIndicator"
+      type="button"
+      onclick="returnToMyCity()"
       title="Koloninin yönü ve harita merkezine uzaklığı"
       hidden
     >
