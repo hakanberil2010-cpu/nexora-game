@@ -3850,6 +3850,121 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   }
 }
 
+/* Final City Polish Pass */
+.building-occluder{
+  position:absolute;
+  width:188px;
+  height:112px;
+  transform:
+    translate(-50%,-50%)
+    scale(var(--occluder-scale,1));
+  transform-origin:50% 50%;
+  border-radius:46%;
+  pointer-events:none;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(5,17,22,.94) 0 24%,
+      rgba(5,18,23,.80) 42%,
+      rgba(5,18,23,.38) 60%,
+      rgba(5,18,23,.08) 70%,
+      transparent 78%
+    );
+  opacity:.88;
+}
+.building-occluder.command{
+  width:278px;
+  height:168px;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(5,20,27,.96) 0 28%,
+      rgba(5,20,27,.82) 45%,
+      rgba(6,23,30,.38) 63%,
+      transparent 79%
+    );
+}
+.building-occluder.production{width:202px;height:120px}
+.building-occluder.storage{width:194px;height:116px}
+.building-occluder.military{width:198px;height:118px}
+.building-occluder.defense{width:180px;height:108px}
+.building-occluder.wall-occluder{
+  width:350px;
+  height:94px;
+  border-radius:28%;
+}
+
+.colony-world.overview-density
+.building-node.secondary-slot
+.building-sprite-label{
+  display:none;
+}
+
+.colony-world.overview-density
+.building-node.has-sprite.selected
+.building-sprite-label,
+.colony-world.overview-density
+.building-node.command-core
+.building-sprite-label{
+  display:block;
+}
+
+.colony-world.overview-density
+.building-sprite-label{
+  min-width:104px;
+  padding:4px 6px;
+  opacity:.93;
+}
+
+.colony-world.overview-density
+.building-sprite-label
+.building-node-level,
+.colony-world.overview-density
+.building-sprite-label
+.building-node-time,
+.colony-world.overview-density
+.building-sprite-label
+.building-node-unlock,
+.colony-world.overview-density
+.building-sprite-label
+.building-node-unbuilt{
+  display:none;
+}
+
+.colony-world.overview-density
+.building-sprite-label
+.building-node-name{
+  font-size:10px;
+  line-height:1.05;
+}
+
+.colony-world.overview-density
+.building-node.foreground-row
+.building-sprite{
+  filter:
+    saturate(1.10)
+    contrast(1.09)
+    brightness(1.07)
+    drop-shadow(0 20px 20px rgba(0,0,0,.50));
+}
+
+.colony-world.overview-density
+.building-foundation.storage,
+.colony-world.overview-density
+.building-foundation.military,
+.colony-world.overview-density
+.building-foundation.wall-foundation{
+  opacity:1;
+}
+
+@media(max-width:600px){
+  .colony-world.compact-overview
+  .building-node.has-sprite.unbuilt
+  .building-node-unbuilt{
+    display:none;
+  }
+}
+
 </style></head><body>
 
 <header class="topbar">
@@ -4552,6 +4667,18 @@ function applyColonyView(){
     compactOverview
   );
 
+  const overviewDensity=
+    colonyViewScale<=
+      Math.max(
+        .58,
+        colonyFitScale()*1.22
+      );
+
+  world.classList.toggle(
+    'overview-density',
+    overviewDensity
+  );
+
   const overviewLabelScale=
     compactOverview
       ?Math.min(
@@ -4584,7 +4711,22 @@ function fitColonyWorld(){
   const scene=document.getElementById('colonyScene');
   if(!scene)return;
 
-  colonyViewScale=colonyFitScale();
+  const baseFit=
+    colonyFitScale();
+
+  const fitBoost=
+    window.matchMedia(
+      '(min-width:901px)'
+    ).matches
+      ?1.07
+      :1;
+
+  colonyViewScale=
+    Math.min(
+      colonyMaxScale(),
+      baseFit*fitBoost
+    );
+
   colonyViewX=
     (scene.clientWidth-
       COLONY_WORLD_WIDTH*colonyViewScale)/2;
@@ -6494,10 +6636,18 @@ function cityDepthScale(y){
     )
   );
 
+  const foregroundBoost=
+    depth>=88
+      ?.035
+      :depth>=70
+        ?.025
+        :0;
+
   return Number(
     (
       .90+
-      depth*.0018
+      depth*.0018+
+      foregroundBoost
     ).toFixed(3)
   );
 }
@@ -6737,6 +6887,10 @@ function renderBuildings(buildings){
           name
         );
 
+      const occluderLayer=
+        8+
+        Math.round(site.y);
+
       const foundationLayer=
         20+
         Math.round(site.y);
@@ -6758,6 +6912,11 @@ function renderBuildings(buildings){
           ></span>
         `:''}
         <span
+          class="building-occluder ${visualZone}${name==='Sur'?' wall-occluder':''}"
+          style="left:${site.x}%;top:calc(${site.y}% + 12px);--occluder-scale:${depthScale};z-index:${occluderLayer}"
+          aria-hidden="true"
+        ></span>
+        <span
           class="building-foundation ${visualZone}${name==='Sur'?' wall-foundation':''}"
           style="left:${site.x}%;top:calc(${site.y}% + 24px);--foundation-scale:${depthScale};z-index:${foundationLayer}"
           aria-hidden="true"
@@ -6773,7 +6932,7 @@ function renderBuildings(buildings){
           aria-hidden="true"
         ></span>
         <button
-          class="building-node zone-${visualZone} ${buildingVisual?'has-sprite '+buildingVisualTier(level):''} ${name==='Merkez Bina'?'command-core':''}${slot>1?' secondary-slot':''}${visualState}"
+          class="building-node zone-${visualZone} ${buildingVisual?'has-sprite '+buildingVisualTier(level):''} ${name==='Merkez Bina'?'command-core':''}${site.y>=70?' foreground-row':''}${slot>1?' secondary-slot':''}${visualState}"
           style="left:${site.x}%;top:${site.y}%;z-index:${depthLayer};${buildingVisual?'--sprite-size:'+renderWidth+'px;--sprite-offset-y:'+renderOffsetY+'px;--sprite-label-y:'+renderLabelY+'px;width:'+renderWidth+'px;height:'+renderWidth+'px;':''}"
           type="button"
           onclick="selectBuilding('${name.replace(/'/g,"\\'")}',${slot})"
