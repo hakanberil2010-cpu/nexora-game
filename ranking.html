@@ -1,54 +1,114 @@
 <!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>TERYNDIS - Sıralama</title><style>
 *{box-sizing:border-box}
 :root{--bg:#050d18;--panel:#091a2c;--line:#173b5d;--cyan:#18bfff;--text:#eaf4ff;--muted:#7196b8}
-body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at 16% -10%,rgba(24,191,255,.09),transparent 34%),radial-gradient(circle at 86% 12%,rgba(111,92,214,.06),transparent 28%),#050d18;color:var(--text);min-height:100vh}
-.top{height:76px;background:rgba(7,21,38,.96);border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:40;box-shadow:0 10px 30px rgba(0,0,0,.18);backdrop-filter:blur(12px)}
-.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:var(--cyan);text-shadow:0 0 20px rgba(24,191,255,.18)}
+body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at 50% -20%,rgba(24,191,255,.08),transparent 34%),#050d18;color:var(--text);min-height:100vh}
+.top{height:76px;background:rgba(7,21,38,.97);border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:40;box-shadow:0 10px 28px rgba(0,0,0,.2)}
+.logo{font-size:30px;font-weight:900;letter-spacing:6px;color:#18bfff;text-shadow:0 0 18px rgba(24,191,255,.18)}
 .player{color:#9fc0df;font-size:14px}
-.container{max-width:1250px;margin:28px auto 36px;padding:0 20px}
-.topBack,.back{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:8px;background:#0d3552;color:#dff5ff;text-decoration:none;font-size:13px;font-weight:bold;border:1px solid #245b80;box-shadow:inset 0 1px rgba(255,255,255,.04)}
-.topBack{margin:0 0 18px}.back{margin-top:18px}.topBack:hover,.back:hover{background:#124565;border-color:#1aa9ee}
-.commandHead{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;padding:22px 24px;border:1px solid #1a4568;border-radius:16px;background:linear-gradient(135deg,rgba(12,37,60,.96),rgba(7,22,38,.96));box-shadow:0 18px 42px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.035);position:relative;overflow:hidden}
-.commandHead:after{content:"";position:absolute;right:-85px;top:-120px;width:290px;height:290px;border:1px solid rgba(24,191,255,.08);border-radius:50%;box-shadow:0 0 0 34px rgba(24,191,255,.022),0 0 0 68px rgba(24,191,255,.012);pointer-events:none}
-.eyebrow{color:#5fbbe6;font-size:10px;line-height:1.4;letter-spacing:1.8px;font-weight:800;text-transform:uppercase;margin-bottom:7px}
-.commandHead h1{margin:0 0 7px;font-size:29px;letter-spacing:-.4px}
-.titleIcon{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;margin-right:9px;border:1px solid rgba(24,191,255,.32);border-radius:10px;background:rgba(24,191,255,.08);font-size:22px;vertical-align:middle}
-.sub{color:var(--muted);font-size:13px;line-height:1.55}
-.commandState{min-width:180px;padding:12px 14px;border:1px solid #204b6d;border-radius:11px;background:rgba(5,16,29,.68);position:relative;z-index:1}
-.commandState span{display:block;color:#6289aa;font-size:9px;font-weight:800;letter-spacing:1.15px;margin-bottom:5px}
-.commandState b{display:block;color:#83e5ff;font-size:19px;line-height:1.1}
-.mebox{margin-top:14px;padding:14px;border:1px solid #1d4a6d;border-radius:13px;background:linear-gradient(135deg,rgba(10,35,56,.96),rgba(7,22,36,.96));box-shadow:0 12px 28px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.025);color:#9fc3df}
-.meGrid{display:grid;grid-template-columns:1.35fr repeat(5,minmax(0,1fr));gap:8px;align-items:stretch}
-.meLead{padding:11px 12px;border:1px solid rgba(24,191,255,.22);border-radius:10px;background:rgba(24,191,255,.045)}
-.meLead small,.meStat small{display:block;color:#6689a8;font-size:8px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;margin-bottom:5px}
-.meLead strong{font-size:23px;color:#6fdcff}.meLead em{display:block;margin-top:3px;color:#a8c1d6;font-size:11px;font-style:normal}
-.meStat{padding:10px;border:1px solid #163850;border-radius:10px;background:rgba(4,15,26,.7)}
-.meStat b{display:block;color:#e5f5ff;font-size:14px}
-.table{margin-top:14px;background:#081827;border:1px solid #173b5d;border-radius:13px;overflow:hidden;box-shadow:0 16px 34px rgba(0,0,0,.18)}
-.row{display:grid;grid-template-columns:76px minmax(180px,1.45fr) minmax(120px,1fr) 90px 125px 100px 90px 95px;min-width:900px;padding:11px 14px;border-bottom:1px solid #15344d;align-items:center;gap:8px;position:relative}
+.container{max-width:1220px;margin:22px auto 34px;padding:0 20px}
+.topBack,.back{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:8px;background:#0d3552;color:#dff5ff;text-decoration:none;font-size:12px;font-weight:800;border:1px solid #245b80;box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.topBack{margin-bottom:13px}.back{margin-top:16px}.topBack:hover,.back:hover{background:#124565;border-color:#1aa9ee}
+
+.leagueHead{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:14px;padding:13px 15px;border:1px solid #173b5d;border-radius:12px;background:linear-gradient(90deg,#0a2034,#071725);box-shadow:0 10px 28px rgba(0,0,0,.16)}
+.leagueTitle{display:flex;align-items:center;gap:11px;min-width:0}
+.leagueIcon{width:40px;height:40px;display:grid;place-items:center;flex:0 0 40px;border:1px solid rgba(24,191,255,.34);border-radius:10px;background:rgba(24,191,255,.075);font-size:20px}
+.eyebrow{color:#58bce8;font-size:8px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.leagueHead h1{margin:0;font-size:24px;line-height:1.05;letter-spacing:-.25px}
+.leagueSub{margin-top:4px;color:#7393ad;font-size:11px;line-height:1.4}
+.rosterCount{flex:0 0 auto;padding:6px 9px;border:1px solid #204b6d;border-radius:999px;background:#061623;color:#78dfff;font-size:9px;font-weight:900;letter-spacing:.7px;white-space:nowrap}
+
+.podium{display:grid;grid-template-columns:1fr 1.12fr 1fr;gap:12px;align-items:end;margin-bottom:13px}
+.podiumCard{--accent:#a7bfd3;--rgb:167,191,211;min-width:0;position:relative;overflow:hidden;border:1px solid rgba(var(--rgb),.38);border-radius:14px;background:linear-gradient(160deg,rgba(var(--rgb),.085),transparent 40%),linear-gradient(180deg,#0a1d2f,#071522);box-shadow:0 14px 30px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.03)}
+.podiumCard.first{--accent:#ffd267;--rgb:255,210,103;min-height:218px;border-color:rgba(255,210,103,.58);box-shadow:0 18px 38px rgba(0,0,0,.28),0 0 26px rgba(255,196,65,.07),inset 0 1px rgba(255,255,255,.04)}
+.podiumCard.second{--accent:#c8d9ea;--rgb:200,217,234;min-height:190px}
+.podiumCard.third{--accent:#d89361;--rgb:216,147,97;min-height:178px}
+.podiumCard.empty{opacity:.55}
+.podiumCard:before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 0 62%,rgba(var(--rgb),.035) 62% 64%,transparent 64%);pointer-events:none}
+.podiumTop{height:5px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.82}
+.podiumBody{padding:14px 15px 13px;text-align:center;position:relative;z-index:1}
+.podiumRank{width:46px;height:46px;margin:0 auto 8px;display:grid;place-items:center;border:1px solid rgba(var(--rgb),.52);border-radius:50%;background:rgba(var(--rgb),.08);color:var(--accent);font-size:19px;font-weight:900;box-shadow:0 0 18px rgba(var(--rgb),.07)}
+.first .podiumRank{width:54px;height:54px;font-size:23px}
+.podiumMedal{color:var(--accent);font-size:8px;font-weight:900;letter-spacing:1.15px;text-transform:uppercase;margin-bottom:5px}
+.podiumName{display:block;max-width:100%;color:#f0f8ff;text-decoration:none;font-size:16px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.first .podiumName{font-size:19px}
+.podiumName:hover{color:var(--accent)}
+.podiumScore{margin-top:5px;color:var(--accent);font-size:21px;font-weight:900;letter-spacing:.2px}
+.first .podiumScore{font-size:26px}
+.podiumScore small{display:block;margin-top:2px;color:#5f7f99;font-size:7px;letter-spacing:1px;text-transform:uppercase}
+.podiumStats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:10px}
+.podiumStat{padding:6px 5px;border:1px solid #14354d;border-radius:8px;background:rgba(4,15,26,.68)}
+.podiumStat small{display:block;color:#587892;font-size:7px;font-weight:900;letter-spacing:.55px;text-transform:uppercase;margin-bottom:3px}
+.podiumStat b{display:block;color:#c8dcea;font-size:10px}
+.podiumYou{display:inline-flex;margin-top:7px;padding:3px 7px;border:1px solid rgba(24,191,255,.35);border-radius:999px;background:rgba(24,191,255,.07);color:#75dcff;font-size:8px;font-weight:900;letter-spacing:.6px;text-transform:uppercase}
+
+.mebox{margin:0 0 13px;padding:0;border:0;background:none;color:#9fc3df}
+.meStrip{display:grid;grid-template-columns:minmax(170px,1.45fr) repeat(5,minmax(90px,1fr));gap:1px;overflow:hidden;border:1px solid #1c4869;border-radius:11px;background:#173b5d;box-shadow:0 10px 24px rgba(0,0,0,.14)}
+.meLead,.meStat{padding:9px 11px;background:#071725}
+.meLead{background:linear-gradient(90deg,rgba(24,191,255,.10),#071725)}
+.meLead small,.meStat small{display:block;color:#5f809b;font-size:7px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;margin-bottom:3px}
+.meLead strong{display:inline-block;color:#69dbff;font-size:18px;margin-right:7px}
+.meLead em{color:#c1d7e7;font-size:11px;font-style:normal;font-weight:800}
+.meStat b{display:block;color:#e1f2ff;font-size:12px}
+
+.listPanel{border:1px solid #173b5d;border-radius:12px;background:#081827;overflow:hidden;box-shadow:0 14px 30px rgba(0,0,0,.16)}
+.listHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;border-bottom:1px solid #17344f;background:#071526}
+.listHead strong{font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+.listHead span{color:#617f9a;font-size:9px}
+.table{margin:0;background:transparent;border:0;border-radius:0;overflow:hidden;box-shadow:none}
+.row{display:grid;grid-template-columns:66px minmax(170px,1.45fr) minmax(110px,1fr) 82px 112px 92px 82px 88px;min-width:850px;padding:9px 12px;border-bottom:1px solid #143249;align-items:center;gap:7px}
 .row:last-child{border-bottom:0}
-.head{background:#071526;color:#617f9a;font-size:9px;font-weight:900;letter-spacing:.75px;text-transform:uppercase}
-#rows .row{background:linear-gradient(90deg,rgba(24,191,255,.012),transparent 28%);transition:background .15s ease,border-color .15s ease}
-#rows .row:hover{background:linear-gradient(90deg,rgba(24,191,255,.055),rgba(24,191,255,.015) 38%,transparent)}
-.row.me{background:linear-gradient(90deg,rgba(24,191,255,.10),rgba(24,191,255,.025) 46%,transparent)!important;box-shadow:inset 3px 0 0 #18bfff}
-.row.top1{background:linear-gradient(90deg,rgba(255,205,79,.085),rgba(255,205,79,.02) 45%,transparent)}
-.row.top2{background:linear-gradient(90deg,rgba(184,204,224,.065),rgba(184,204,224,.015) 45%,transparent)}
-.row.top3{background:linear-gradient(90deg,rgba(207,132,76,.07),rgba(207,132,76,.015) 45%,transparent)}
-.rankCell{display:flex;align-items:center;gap:8px}
-.rank{font-size:19px;font-weight:900;color:#9db4c8}
-.top1 .rank{color:#ffd267}.top2 .rank{color:#c7d7e7}.top3 .rank{color:#d99361}
-.rankMark{width:25px;height:25px;display:grid;place-items:center;border:1px solid #28465d;border-radius:7px;background:#071421;color:#607e96;font-size:11px}
-.top1 .rankMark{border-color:rgba(255,210,103,.42);background:rgba(143,101,24,.15);color:#ffd267}
-.top2 .rankMark{border-color:rgba(199,215,231,.35);background:rgba(115,137,158,.12);color:#c7d7e7}
-.top3 .rankMark{border-color:rgba(217,147,97,.38);background:rgba(122,69,34,.13);color:#d99361}
-.playerCell{min-width:0}.profileLink{display:inline-block;max-width:100%;color:#dff4ff;text-decoration:none;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}.profileLink:hover{color:#18bfff}
-.youBadge{display:inline-flex;margin-left:6px;padding:2px 6px;border:1px solid rgba(24,191,255,.35);border-radius:999px;color:#78dcff;background:rgba(24,191,255,.07);font-size:8px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;vertical-align:middle}
-.score{font-size:18px;font-weight:900;color:#18bfff}.metric{color:#bad1e2;font-size:12px;font-weight:bold}.metricLabel{display:none}
-.emptyState{padding:24px;color:#7897b6;text-align:center}
-@media(max-width:900px){.commandHead{align-items:stretch;flex-direction:column}.commandState{width:100%}.meGrid{grid-template-columns:repeat(3,1fr)}.meLead{grid-column:1/-1}.table{overflow:visible;background:transparent;border:0;box-shadow:none}.head{display:none}.row{min-width:0;margin-bottom:10px;padding:12px;border:1px solid #173b5d;border-radius:12px;background:linear-gradient(145deg,#091b2d,#071624)!important;grid-template-columns:58px 1fr 1fr;gap:8px}.rankCell{grid-row:1/4;align-self:stretch;justify-content:center;flex-direction:column;border-right:1px solid #17344f}.playerCell{grid-column:2/4}.scoreCell{grid-column:2/4;display:flex;align-items:center;justify-content:space-between;padding-bottom:7px;border-bottom:1px solid #143248}.scoreCell:before{content:"Toplam Puan";color:#5f7f99;font-size:8px;font-weight:900;letter-spacing:.8px;text-transform:uppercase}.metric{padding:7px 8px;border:1px solid #143248;border-radius:8px;background:#061522;display:flex;align-items:center;justify-content:space-between;gap:8px}.metric:before{content:attr(data-label);color:#5f7f99;font-size:8px;font-weight:900;letter-spacing:.65px;text-transform:uppercase}.researchMetric{grid-column:2/4}.row.me{border-color:rgba(24,191,255,.58);box-shadow:inset 3px 0 #18bfff,0 0 22px rgba(24,191,255,.07)}}
-@media(max-width:600px){.top{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:24px;letter-spacing:4px}.player{min-width:0;font-size:12px;overflow-wrap:anywhere}.container{margin:18px auto 28px;padding:0 12px}.commandHead{padding:17px 15px;border-radius:13px}.commandHead h1{font-size:23px}.titleIcon{width:35px;height:35px;font-size:19px}.meGrid{grid-template-columns:repeat(2,1fr)}.meLead{grid-column:1/-1}.row{grid-template-columns:52px 1fr 1fr}.rank{font-size:16px}.rankMark{width:23px;height:23px}.score{font-size:16px}}
-@media(max-width:420px){.meGrid{grid-template-columns:1fr 1fr}.row{grid-template-columns:46px 1fr}.rankCell{grid-row:1/8}.playerCell,.scoreCell,.metric,.researchMetric{grid-column:2}.profileLink{max-width:210px}}
-</style></head><body><div class="top"><div class="logo">TERYNDIS</div><div class="player">Oyuncu: <strong id="player">Oyuncu</strong></div></div><div class="container"><a class="topBack" href="game.html">← Koloniye Dön</a><section class="commandHead"><div><div class="eyebrow">Galactic Command // Ranking Network</div><h1><span class="titleIcon">🏆</span>Komuta Sıralaması</h1><div class="sub">Koloni gelişimi, gerçek asker gücü, savaş performansı ve araştırma ilerlemesini tek toplam puanda karşılaştır.</div></div><div class="commandState"><span>AKTİF KOMUTAN</span><b id="totalPlayers">--</b></div></section><div id="me" class="mebox">Sıralama yükleniyor...</div><div class="table"><div class="row head"><div>Sıra</div><div>Komutan</div><div>Toplam Puan</div><div>Koloni</div><div>Asker Gücü</div><div>Savaş P.</div><div>Galibiyet</div><div>Araştırma</div></div><div id="rows"></div></div><a class="back" href="game.html">← Koloniye Dön</a></div><script>
+.head{background:#061420;color:#58748d;font-size:8px;font-weight:900;letter-spacing:.7px;text-transform:uppercase}
+#rows .row{transition:background .15s ease}
+#rows .row:hover{background:rgba(24,191,255,.04)}
+.row.me{background:linear-gradient(90deg,rgba(24,191,255,.09),transparent 46%);box-shadow:inset 3px 0 #18bfff}
+.rankCell{display:flex;align-items:center;gap:7px}
+.rank{font-size:15px;font-weight:900;color:#8fa9bd}
+.rankMark{width:22px;height:22px;display:grid;place-items:center;border:1px solid #28465d;border-radius:6px;background:#071421;color:#607e96;font-size:9px}
+.playerCell{min-width:0}.profileLink{display:inline-block;max-width:100%;color:#dff4ff;text-decoration:none;font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}.profileLink:hover{color:#18bfff}
+.youBadge{display:inline-flex;margin-left:5px;padding:2px 5px;border:1px solid rgba(24,191,255,.32);border-radius:999px;color:#78dcff;background:rgba(24,191,255,.06);font-size:7px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;vertical-align:middle}
+.score{font-size:14px;font-weight:900;color:#18bfff}.metric{color:#b6ccdc;font-size:10px;font-weight:800}
+.emptyState{padding:20px;color:#718ea7;text-align:center;font-size:11px}
+
+@media(max-width:900px){
+  .podium{grid-template-columns:1fr 1.12fr 1fr;gap:8px}
+  .podiumBody{padding:12px 10px 11px}
+  .podiumStats{grid-template-columns:1fr;gap:4px}
+  .podiumStat{display:flex;align-items:center;justify-content:space-between;padding:5px 7px}
+  .podiumStat small{margin:0}
+  .meStrip{grid-template-columns:repeat(3,1fr)}
+  .meLead{grid-column:1/-1}
+  .listPanel{background:transparent;border:0;box-shadow:none;overflow:visible}
+  .listHead{border:1px solid #173b5d;border-radius:10px;margin-bottom:8px}
+  .table{overflow:visible}
+  .head{display:none}
+  .row{min-width:0;margin-bottom:8px;padding:10px;border:1px solid #173b5d;border-radius:11px;background:linear-gradient(145deg,#091b2d,#071624);grid-template-columns:50px 1fr 1fr}
+  .rankCell{grid-row:1/4;align-self:stretch;justify-content:center;flex-direction:column;border-right:1px solid #17344f}
+  .playerCell{grid-column:2/4}
+  .scoreCell{grid-column:2/4;display:flex;align-items:center;justify-content:space-between;padding-bottom:6px;border-bottom:1px solid #143248}
+  .scoreCell:before{content:"Toplam Puan";color:#597892;font-size:7px;font-weight:900;letter-spacing:.7px;text-transform:uppercase}
+  .metric{padding:6px 7px;border:1px solid #143248;border-radius:7px;background:#061522;display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .metric:before{content:attr(data-label);color:#597892;font-size:7px;font-weight:900;letter-spacing:.55px;text-transform:uppercase}
+  .researchMetric{grid-column:2/4}
+}
+@media(max-width:650px){
+  .top{height:auto;min-height:70px;padding:12px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:24px;letter-spacing:4px}.player{font-size:12px}
+  .container{margin:17px auto 26px;padding:0 12px}
+  .leagueHead{padding:11px 12px}.leagueHead h1{font-size:20px}.leagueSub{font-size:10px}.leagueIcon{width:35px;height:35px;flex-basis:35px}
+  .podium{grid-template-columns:1fr;align-items:stretch}
+  .podiumCard.first{order:1;min-height:0}.podiumCard.second{order:2;min-height:0}.podiumCard.third{order:3;min-height:0}
+  .podiumBody{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:9px;text-align:left;padding:10px}
+  .podiumRank,.first .podiumRank{width:40px;height:40px;margin:0;grid-row:1/3;font-size:17px}
+  .podiumMedal{margin:0}.podiumName,.first .podiumName{font-size:14px}.podiumScore,.first .podiumScore{margin:0;font-size:17px;text-align:right;grid-row:1/3;grid-column:3}.podiumScore small{font-size:6px}
+  .podiumStats{grid-column:1/4;grid-template-columns:repeat(3,1fr);margin-top:1px}.podiumStat{display:block;text-align:center}
+  .podiumYou{grid-column:2;margin-top:0;width:max-content}
+  .meStrip{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:420px){
+  .leagueSub{display:none}.rosterCount{font-size:8px}
+  .meStrip{grid-template-columns:1fr 1fr}
+  .row{grid-template-columns:43px 1fr}.rankCell{grid-row:1/8}.playerCell,.scoreCell,.metric,.researchMetric{grid-column:2}
+}
+</style></head><body><div class="top"><div class="logo">TERYNDIS</div><div class="player">Oyuncu: <strong id="player">Oyuncu</strong></div></div><div class="container"><a class="topBack" href="game.html">← Koloniye Dön</a><section class="leagueHead"><div class="leagueTitle"><div class="leagueIcon">◆</div><div><div class="eyebrow">Hall of Command</div><h1>Komutanlar Ligi</h1><div class="leagueSub">Galaksinin en güçlü komutanları · toplam puan sıralaması</div></div></div><div class="rosterCount" id="totalPlayers">--</div></section><section class="podium" id="podium"></section><div id="me" class="mebox">Sıralama yükleniyor...</div><section class="listPanel"><div class="listHead"><strong>Genel Sıralama</strong><span>Podium dışındaki komutanlar</span></div><div class="table"><div class="row head"><div>Sıra</div><div>Komutan</div><div>Toplam Puan</div><div>Koloni</div><div>Asker Gücü</div><div>Savaş P.</div><div>Galibiyet</div><div>Araştırma</div></div><div id="rows"></div></div></section><a class="back" href="game.html">← Koloniye Dön</a></div><script>
 const token=localStorage.getItem('nexora_token');if(!token)location.href='login.html';const u=JSON.parse(localStorage.getItem('nexora_player')||'null');if(u?.username)document.getElementById('player').textContent=u.username;
 function clearInvalidSession(){localStorage.removeItem('nexora_token');localStorage.removeItem('nexora_player');location.href='login.html';}
 let rankingLoadPromise=null;
@@ -77,22 +137,36 @@ async function load(){
 
       const rankings=Array.isArray(d.rankings)?d.rankings:[];
       document.getElementById('totalPlayers').textContent=rankings.length.toLocaleString('tr-TR')+' KOMUTAN';
-      document.getElementById('rows').innerHTML=rankings.length
-        ?rankings.map(x=>{
+
+      const byRank=rank=>rankings.find(x=>Math.round(n(x.rank))===rank)||null;
+      const podiumCard=(x,rank,cls,label)=>{
+        if(!x){
+          return `<article class="podiumCard ${cls} empty"><div class="podiumTop"></div><div class="podiumBody"><div class="podiumRank">#${rank}</div><div class="podiumMedal">${label}</div><span class="podiumName">Boş Konum</span><div class="podiumScore">—<small>Toplam Puan</small></div></div></article>`;
+        }
+        return `<article class="podiumCard ${cls}"><div class="podiumTop"></div><div class="podiumBody"><div class="podiumRank">#${rank}</div><div><div class="podiumMedal">${label}</div><a class="podiumName" href="profile.html?username=${encodeURIComponent(String(x.username||''))}">${esc(x.username||'Oyuncu')}</a></div><div class="podiumScore">${Math.round(n(x.score)).toLocaleString('tr-TR')}<small>Toplam Puan</small></div><div class="podiumStats"><div class="podiumStat"><small>Asker</small><b>${Math.round(n(x.army_power)).toLocaleString('tr-TR')}</b></div><div class="podiumStat"><small>Savaş P.</small><b>${Math.round(n(x.battle_points)).toLocaleString('tr-TR')}</b></div><div class="podiumStat"><small>Ar-Ge</small><b>${Math.round(n(x.research_level)).toLocaleString('tr-TR')}</b></div></div>${x.is_me?'<span class="podiumYou">Sen</span>':''}</div></article>`;
+      };
+      document.getElementById('podium').innerHTML=
+        podiumCard(byRank(2),2,'second','Gümüş Komutan')+
+        podiumCard(byRank(1),1,'first','Altın Komutan')+
+        podiumCard(byRank(3),3,'third','Bronz Komutan');
+
+      const remaining=rankings.filter(x=>Math.round(n(x.rank))>3);
+      document.getElementById('rows').innerHTML=remaining.length
+        ?remaining.map(x=>{
           const rank=Math.max(0,Math.round(n(x.rank)));
-          const podium=rank>=1&&rank<=3?' top'+rank:'';
-          const mark=rank===1?'◆':rank===2?'◇':rank===3?'△':'•';
-          return `<div class="row${x.is_me?' me':''}${podium}"><div class="rankCell"><span class="rankMark">${mark}</span><span class="rank">#${rank}</span></div><div class="playerCell"><a class="profileLink" href="profile.html?username=${encodeURIComponent(String(x.username||''))}">${esc(x.username||'Oyuncu')}</a>${x.is_me?'<span class="youBadge">Sen</span>':''}</div><div class="scoreCell"><span class="score">${Math.round(n(x.score)).toLocaleString('tr-TR')}</span></div><div class="metric" data-label="Koloni">${Math.round(n(x.colony_level)).toLocaleString('tr-TR')}</div><div class="metric" data-label="Asker Gücü">${Math.round(n(x.army_power)).toLocaleString('tr-TR')}</div><div class="metric" data-label="Savaş P.">${Math.round(n(x.battle_points)).toLocaleString('tr-TR')}</div><div class="metric" data-label="Galibiyet">${Math.round(n(x.wins)).toLocaleString('tr-TR')}</div><div class="metric researchMetric" data-label="Araştırma">${Math.round(n(x.research_level)).toLocaleString('tr-TR')}</div></div>`;
+          return `<div class="row${x.is_me?' me':''}"><div class="rankCell"><span class="rankMark">•</span><span class="rank">#${rank}</span></div><div class="playerCell"><a class="profileLink" href="profile.html?username=${encodeURIComponent(String(x.username||''))}">${esc(x.username||'Oyuncu')}</a>${x.is_me?'<span class="youBadge">Sen</span>':''}</div><div class="scoreCell"><span class="score">${Math.round(n(x.score)).toLocaleString('tr-TR')}</span></div><div class="metric" data-label="Koloni">${Math.round(n(x.colony_level)).toLocaleString('tr-TR')}</div><div class="metric" data-label="Asker Gücü">${Math.round(n(x.army_power)).toLocaleString('tr-TR')}</div><div class="metric" data-label="Savaş P.">${Math.round(n(x.battle_points)).toLocaleString('tr-TR')}</div><div class="metric" data-label="Galibiyet">${Math.round(n(x.wins)).toLocaleString('tr-TR')}</div><div class="metric researchMetric" data-label="Araştırma">${Math.round(n(x.research_level)).toLocaleString('tr-TR')}</div></div>`;
         }).join('')
-        :'<div class="emptyState">Henüz sıralama verisi bulunmuyor.</div>';
+        :'<div class="emptyState">Podium dışında sıralanmış başka komutan bulunmuyor.</div>';
 
       const me=d.me;
       document.getElementById('me').innerHTML=me
-        ?`<div class="meGrid"><div class="meLead"><small>Senin Konumun</small><strong>#${Math.round(n(me.rank)).toLocaleString('tr-TR')}</strong><em>${esc(me.username||u?.username||'Komutan')}</em></div><div class="meStat"><small>Toplam Puan</small><b>${Math.round(n(me.score)).toLocaleString('tr-TR')}</b></div><div class="meStat"><small>Asker Gücü</small><b>${Math.round(n(me.army_power)).toLocaleString('tr-TR')}</b></div><div class="meStat"><small>Savaş Puanı</small><b>${Math.round(n(me.battle_points)).toLocaleString('tr-TR')}</b></div><div class="meStat"><small>Galibiyet</small><b>${Math.round(n(me.wins)).toLocaleString('tr-TR')}</b></div><div class="meStat"><small>Araştırma</small><b>${Math.round(n(me.research_level)).toLocaleString('tr-TR')}</b></div></div>`
+        ?`<div class="meStrip"><div class="meLead"><small>Senin Konumun</small><strong>#${Math.round(n(me.rank)).toLocaleString('tr-TR')}</strong><em>${esc(me.username||u?.username||'Komutan')}</em></div><div class="meStat"><small>Toplam Puan</small><b>${Math.round(n(me.score)).toLocaleString('tr-TR')}</b></div><div class="meStat"><small>Asker Gücü</small><b>${Math.round(n(me.army_power)).toLocaleString('tr-TR')}</b></div><div class="meStat"><small>Savaş Puanı</small><b>${Math.round(n(me.battle_points)).toLocaleString('tr-TR')}</b></div><div class="meStat"><small>Galibiyet</small><b>${Math.round(n(me.wins)).toLocaleString('tr-TR')}</b></div><div class="meStat"><small>Araştırma</small><b>${Math.round(n(me.research_level)).toLocaleString('tr-TR')}</b></div></div>`
         :'Sıralama bilgisi bulunamadı.';
     }catch(e){
       console.error(e);
       document.getElementById('me').textContent='⚠️ Sıralama verisi alınamadı. Birazdan yeniden denenecek.';
+      document.getElementById('podium').innerHTML='<div class="emptyState">Sıralama ağına bağlanılıyor...</div>';
+      document.getElementById('rows').innerHTML='';
       document.getElementById('totalPlayers').textContent='BAĞLANTI BEKLENİYOR';
     }
   })().finally(()=>{
