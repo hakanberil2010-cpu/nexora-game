@@ -3668,6 +3668,188 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
   }
 }
 
+/* Unbuilt Hologram Pass */
+.building-node-unbuilt{
+  display:block;
+  margin-top:3px;
+  color:#83e8fb;
+  font-size:8px;
+  font-weight:900;
+  line-height:1.1;
+  letter-spacing:.65px;
+  text-transform:uppercase;
+  text-shadow:0 0 8px rgba(91,220,247,.30);
+}
+
+.building-node.has-sprite.unbuilt .building-sprite{
+  opacity:.48;
+  filter:
+    grayscale(.28)
+    sepia(.48)
+    saturate(3.1)
+    hue-rotate(142deg)
+    brightness(1.18)
+    contrast(1.08)
+    drop-shadow(0 0 10px rgba(92,220,255,.40))
+    drop-shadow(0 0 24px rgba(92,220,255,.18))
+    drop-shadow(0 16px 17px rgba(0,0,0,.34));
+  mix-blend-mode:screen;
+}
+
+.building-node.has-sprite.unbuilt::after{
+  opacity:.52 !important;
+  animation:blueprintPresence 3.6s ease-in-out infinite !important;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(121,237,255,.40) 0 13%,
+      rgba(75,191,220,.18) 31%,
+      rgba(42,121,148,.08) 50%,
+      transparent 72%
+    ) !important;
+  box-shadow:
+    0 0 23px rgba(85,218,247,.22),
+    inset 0 0 17px rgba(85,218,247,.10);
+  filter:none !important;
+}
+
+.building-pad.unbuilt{
+  opacity:.78;
+  filter:saturate(.78);
+  border-color:rgba(96,220,246,.38);
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(42,110,132,.34) 0 38%,
+      rgba(12,40,52,.24) 60%,
+      transparent 76%
+    );
+  box-shadow:
+    inset 0 0 32px rgba(52,176,207,.09),
+    0 0 22px rgba(49,162,193,.09);
+}
+
+.building-pad.unbuilt::before{
+  border-style:dashed;
+  border-color:rgba(105,225,248,.36);
+}
+
+.building-node.has-sprite.unbuilt .building-sprite-label{
+  border-color:rgba(86,217,243,.42);
+  background:rgba(3,25,33,.92);
+  box-shadow:
+    0 7px 16px rgba(0,0,0,.30),
+    0 0 12px rgba(72,202,229,.09);
+}
+
+.building-node.has-sprite.unbuilt .building-node-level{
+  color:#6fcbdd;
+  opacity:.76;
+}
+
+.building-node.has-sprite.unbuilt[aria-label^="Merkez Bina "] .building-sprite{
+  opacity:.64;
+  transform:
+    translate(-50%,-50%)
+    translateY(var(--sprite-offset-y,0px))
+    scale(1.12);
+  filter:
+    grayscale(.20)
+    sepia(.40)
+    saturate(3.0)
+    hue-rotate(142deg)
+    brightness(1.28)
+    contrast(1.10)
+    drop-shadow(0 0 15px rgba(96,226,255,.50))
+    drop-shadow(0 0 32px rgba(96,226,255,.24))
+    drop-shadow(0 20px 21px rgba(0,0,0,.36));
+}
+
+.building-node.has-sprite.unbuilt[aria-label^="Merkez Bina "]::after{
+  opacity:.68 !important;
+  width:118px;
+  height:72px;
+  box-shadow:
+    0 0 34px rgba(91,224,248,.28),
+    inset 0 0 20px rgba(91,224,248,.12);
+}
+
+.building-node.has-sprite.unbuilt[aria-label^="Merkez Bina "]
+.building-sprite-label{
+  border-color:rgba(105,231,252,.55);
+  box-shadow:
+    0 7px 17px rgba(0,0,0,.32),
+    0 0 18px rgba(83,216,243,.16);
+}
+
+@media(max-width:600px){
+  .colony-world.compact-overview
+  .building-node.has-sprite.unbuilt
+  .building-sprite{
+    opacity:.57;
+    transform:
+      translate(-50%,-50%)
+      translateY(var(--sprite-offset-y,0px))
+      scale(1.34);
+    filter:
+      grayscale(.22)
+      sepia(.46)
+      saturate(3.2)
+      hue-rotate(142deg)
+      brightness(1.26)
+      contrast(1.10)
+      drop-shadow(0 0 13px rgba(96,225,255,.44))
+      drop-shadow(0 0 27px rgba(96,225,255,.20))
+      drop-shadow(0 19px 19px rgba(0,0,0,.34));
+  }
+
+  .colony-world.compact-overview
+  .building-node.has-sprite.unbuilt[aria-label^="Merkez Bina "]
+  .building-sprite{
+    opacity:.70;
+    transform:
+      translate(-50%,-50%)
+      translateY(var(--sprite-offset-y,0px))
+      scale(1.58);
+    filter:
+      grayscale(.16)
+      sepia(.38)
+      saturate(3.0)
+      hue-rotate(142deg)
+      brightness(1.34)
+      contrast(1.12)
+      drop-shadow(0 0 17px rgba(101,230,255,.54))
+      drop-shadow(0 0 34px rgba(101,230,255,.26))
+      drop-shadow(0 22px 22px rgba(0,0,0,.36));
+  }
+
+  .colony-world.compact-overview
+  .building-node.has-sprite.unbuilt
+  .building-node-unbuilt{
+    display:block;
+    margin-top:2px;
+    font-size:8px;
+  }
+
+  .colony-world.compact-overview
+  .building-node.has-sprite.unbuilt
+  .building-sprite-label{
+    opacity:.96;
+  }
+
+  .colony-world.compact-overview
+  .building-node.secondary-slot.unbuilt
+  .building-sprite-label{
+    display:none;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .building-node.has-sprite.unbuilt::after{
+    animation:none !important;
+  }
+}
+
 </style></head><body>
 
 <header class="topbar">
@@ -6616,6 +6798,7 @@ function renderBuildings(buildings){
             `}
             <span class="building-sprite-label">
               <span class="building-node-name">${esc(buildingLabel(name,slot))}</span>
+              ${unbuilt?'<span class="building-node-unbuilt">İNŞA EDİLMEDİ</span>':''}
               <span class="building-node-level">Sv. ${level}</span>
               ${pending?`<span class="building-node-time">${remain(left)}</span>`:''}
               ${!slotReady&&requiredCenter?`<span class="building-node-unlock">Merkez ${requiredCenter}</span>`:''}
