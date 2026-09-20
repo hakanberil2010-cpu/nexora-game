@@ -4005,6 +4005,29 @@ body{background:radial-gradient(circle at 75% -10%,rgba(18,117,164,.15),transpar
       drop-shadow(0 18px 18px rgba(0,0,0,.42));
   }
 
+  /* Top Row Light Balance Final Pass */
+  .colony-world.overview-density
+  .building-node.has-sprite:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-production-paused):not(.state-alert)[aria-label^="Enerji Santrali Seviye "]
+  img.building-sprite{
+    filter:
+      saturate(1.12)
+      contrast(1.13)
+      brightness(1.12)
+      drop-shadow(0 18px 18px rgba(0,0,0,.43))
+      drop-shadow(0 0 10px rgba(82,211,240,.12));
+  }
+
+  .colony-world.overview-density
+  .building-node.has-sprite:not(.selected):not(.pending):not(.locked):not(.unbuilt):not(.state-alert)[aria-label^="Gözcü Kulesi "]
+  img.building-sprite{
+    filter:
+      saturate(1.09)
+      contrast(1.11)
+      brightness(1.08)
+      drop-shadow(0 18px 18px rgba(0,0,0,.44))
+      drop-shadow(0 0 8px rgba(82,211,240,.08));
+  }
+
   .colony-world.overview-density
   .building-contact-shadow.shadow-production:has(
     + .building-pad
