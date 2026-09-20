@@ -2433,6 +2433,108 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
 @media(prefers-reduced-motion:reduce){
   .colony.selected{animation:none}
 }
+
+/* World Mission Route + Fleet Visual Pass */
+.mission-route-layer,
+.mission-fleet-layer{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+.mission-route-layer{
+  z-index:7;
+  overflow:visible;
+}
+.mission-fleet-layer{
+  z-index:17;
+}
+.mission-route-line{
+  fill:none;
+  stroke-width:2.2;
+  stroke-linecap:round;
+  stroke-dasharray:10 8;
+  vector-effect:non-scaling-stroke;
+  opacity:.82;
+  animation:missionRouteFlow 1.15s linear infinite;
+}
+.mission-route-line.returning{
+  animation-direction:reverse;
+}
+.mission-route-line.route-pvp{
+  stroke:#ff9d62;
+  filter:drop-shadow(0 0 5px rgba(255,112,76,.60));
+}
+.mission-route-line.route-incoming{
+  stroke:#ff6476;
+  filter:drop-shadow(0 0 6px rgba(255,75,96,.72));
+}
+.mission-route-line.route-npc{
+  stroke:#ffbd5d;
+  filter:drop-shadow(0 0 5px rgba(255,177,72,.58));
+}
+.mission-route-line.route-gather{
+  stroke:#73e5aa;
+  filter:drop-shadow(0 0 5px rgba(91,226,157,.52));
+}
+.mission-route-line.route-conflict{
+  stroke:#e48bff;
+  filter:drop-shadow(0 0 6px rgba(214,121,255,.62));
+}
+.mission-route-line.route-explore{
+  stroke:#72dcff;
+  filter:drop-shadow(0 0 5px rgba(82,205,244,.58));
+}
+.mission-route-fleet{
+  position:absolute;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  transform:
+    translate(-50%,-50%)
+    scale(var(--world-marker-scale,1));
+  transform-origin:center;
+  border:1px solid rgba(194,239,255,.52);
+  border-radius:50%;
+  background:rgba(4,20,30,.92);
+  box-shadow:
+    0 0 0 4px rgba(83,205,241,.055),
+    0 0 17px rgba(74,201,238,.30),
+    0 7px 15px rgba(0,0,0,.28);
+  font-size:18px;
+  line-height:1;
+  transition:left .95s linear,top .95s linear;
+}
+.mission-route-fleet.route-incoming{
+  border-color:rgba(255,111,130,.70);
+  box-shadow:0 0 19px rgba(255,78,104,.44),0 7px 15px rgba(0,0,0,.30);
+}
+.mission-route-fleet.route-npc{
+  border-color:rgba(255,196,101,.70);
+  box-shadow:0 0 18px rgba(255,174,71,.38),0 7px 15px rgba(0,0,0,.30);
+}
+.mission-route-fleet.route-gather{
+  border-color:rgba(117,235,174,.70);
+  box-shadow:0 0 18px rgba(83,219,151,.36),0 7px 15px rgba(0,0,0,.30);
+}
+.mission-route-fleet.route-conflict{
+  border-color:rgba(226,151,255,.72);
+  box-shadow:0 0 20px rgba(211,118,255,.42),0 7px 15px rgba(0,0,0,.30);
+}
+.mission-route-fleet.route-explore{
+  border-color:rgba(116,224,255,.72);
+  box-shadow:0 0 19px rgba(80,204,243,.40),0 7px 15px rgba(0,0,0,.30);
+}
+@keyframes missionRouteFlow{
+  to{stroke-dashoffset:-36}
+}
+@media(prefers-reduced-motion:reduce){
+  .mission-route-line{animation:none}
+  .mission-route-fleet{transition:none}
+}
 </style>
 </head>
 
@@ -2629,6 +2731,14 @@ body{background:radial-gradient(circle at 70% -15%,rgba(20,107,151,.14),transpar
             </div>
 
             <div id="realPlayers"></div>
+            <svg
+              id="missionRouteLayer"
+              class="mission-route-layer"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            ></svg>
+            <div id="missionFleetLayer" class="mission-fleet-layer" aria-hidden="true"></div>
             <div id="attackFleet"></div>
             <div id="npcAttackFleet"></div>
 
@@ -5529,7 +5639,505 @@ function formatMissionTime(seconds) {
 }
 
 
+function missionRouteStatus(mission) {
+  return String(
+    mission?.status ||
+    ""
+  ).toLowerCase();
+}
+
+function missionRouteNumber(value,fallback = NaN) {
+  const number = Number(value);
+  if (Number.isFinite(number)) {
+    return number;
+  }
+  const fallbackNumber = Number(fallback);
+  return Number.isFinite(fallbackNumber)
+    ? fallbackNumber
+    : NaN;
+}
+
+function missionRouteRemaining(mission,status) {
+  const timeValue =
+    status === "returning"
+      ? (
+          mission?.returnAt ||
+          mission?.return_at ||
+          mission?.arriveAt ||
+          mission?.arrive_at
+        )
+      : (
+          mission?.arriveAt ||
+          mission?.arrive_at
+        );
+
+  const endMs =
+    timeValue
+      ? new Date(timeValue).getTime()
+      : NaN;
+
+  if (Number.isFinite(endMs)) {
+    return Math.max(
+      0,
+      Math.ceil(
+        (endMs - Date.now()) /
+        1000
+      )
+    );
+  }
+
+  return Math.max(
+    0,
+    Number(
+      mission?.remainingSeconds ||
+      0
+    )
+  );
+}
+
+function missionRouteProgress(mission) {
+  const status =
+    missionRouteStatus(mission);
+
+  if (
+    status === "resolving" ||
+    status === "gathering"
+  ) {
+    return 1;
+  }
+
+  const total =
+    Math.max(
+      1,
+      Number(
+        mission?.travelSeconds ??
+        mission?.travel_seconds ??
+        mission?.remainingSeconds ??
+        1
+      ) ||
+      1
+    );
+
+  const remaining =
+    missionRouteRemaining(
+      mission,
+      status
+    );
+
+  return Math.max(
+    0,
+    Math.min(
+      1,
+      1 - remaining / total
+    )
+  );
+}
+
+function missionRouteEntries() {
+  const activeMilitary =
+    (getSavedMissions() || [])
+      .filter(function(mission) {
+        return [
+          "traveling",
+          "returning",
+          "resolving"
+        ].includes(
+          missionRouteStatus(mission)
+        );
+      })
+      .map(function(mission) {
+        return {
+          kind:
+            mission.missionKind === "incoming"
+              ? "incoming"
+              : "pvp",
+          mission
+        };
+      });
+
+  const activeNpc =
+    (npcMissionCache || [])
+      .filter(function(mission) {
+        return [
+          "traveling",
+          "returning",
+          "resolving"
+        ].includes(
+          missionRouteStatus(mission)
+        );
+      })
+      .map(function(mission) {
+        return {
+          kind:"npc",
+          mission
+        };
+      });
+
+  const entries = [
+    ...activeMilitary,
+    ...activeNpc
+  ];
+
+  if (
+    resourceGatherMission &&
+    [
+      "traveling",
+      "gathering",
+      "returning"
+    ].includes(
+      missionRouteStatus(
+        resourceGatherMission
+      )
+    )
+  ) {
+    entries.push({
+      kind:"gather",
+      mission:resourceGatherMission
+    });
+  }
+
+  if (
+    resourceConflictMission &&
+    [
+      "traveling",
+      "returning"
+    ].includes(
+      missionRouteStatus(
+        resourceConflictMission
+      )
+    )
+  ) {
+    entries.push({
+      kind:"conflict",
+      mission:resourceConflictMission
+    });
+  }
+
+  if (
+    explorationVisualMission &&
+    [
+      "traveling",
+      "resolving"
+    ].includes(
+      missionRouteStatus(
+        explorationVisualMission
+      )
+    )
+  ) {
+    entries.push({
+      kind:"explore",
+      mission:explorationVisualMission
+    });
+  }
+
+  return entries;
+}
+
+function missionRouteFleetIcon(kind,status) {
+  if (status === "resolving") {
+    return "⚔️";
+  }
+  if (status === "gathering") {
+    return "⛏️";
+  }
+
+  return ({
+    pvp:"🚀",
+    incoming:"⚠️",
+    npc:"🚀",
+    gather:"🚚",
+    conflict:"⚔️",
+    explore:"🔭"
+  })[kind] || "🚀";
+}
+
+function renderMissionRoutes() {
+  const routeLayer =
+    document.getElementById(
+      "missionRouteLayer"
+    );
+  const fleetLayer =
+    document.getElementById(
+      "missionFleetLayer"
+    );
+
+  if (!routeLayer || !fleetLayer) {
+    return;
+  }
+
+  routeLayer.innerHTML = "";
+  fleetLayer.innerHTML = "";
+
+  missionRouteEntries()
+    .forEach(function(entry) {
+      const mission =
+        entry.mission || {};
+      const kind =
+        String(entry.kind || "pvp");
+      const status =
+        missionRouteStatus(mission);
+
+      const startX =
+        missionRouteNumber(
+          mission.startX ??
+          mission.depart_x,
+          myCoordinateX
+        );
+      const startY =
+        missionRouteNumber(
+          mission.startY ??
+          mission.depart_y,
+          myCoordinateY
+        );
+      const targetX =
+        missionRouteNumber(
+          mission.targetX ??
+          mission.target_x
+        );
+      const targetY =
+        missionRouteNumber(
+          mission.targetY ??
+          mission.target_y
+        );
+
+      if (
+        !Number.isFinite(startX) ||
+        !Number.isFinite(startY) ||
+        !Number.isFinite(targetX) ||
+        !Number.isFinite(targetY)
+      ) {
+        return;
+      }
+
+      const line =
+        document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "line"
+        );
+
+      line.setAttribute(
+        "x1",
+        String(worldPercent(startX))
+      );
+      line.setAttribute(
+        "y1",
+        String(worldPercent(startY))
+      );
+      line.setAttribute(
+        "x2",
+        String(worldPercent(targetX))
+      );
+      line.setAttribute(
+        "y2",
+        String(worldPercent(targetY))
+      );
+      line.setAttribute(
+        "class",
+        "mission-route-line route-" +
+        kind +
+        (
+          status === "returning"
+            ? " returning"
+            : ""
+        )
+      );
+
+      routeLayer.appendChild(line);
+
+      const hasLegacyFleet =
+        (
+          kind === "pvp" &&
+          document.querySelector(
+            "#attackFleet .attack-fleet"
+          )
+        ) ||
+        (
+          kind === "npc" &&
+          document.querySelector(
+            "#npcAttackFleet .attack-fleet"
+          )
+        );
+
+      if (hasLegacyFleet) {
+        return;
+      }
+
+      const returning =
+        status === "returning";
+      const progress =
+        missionRouteProgress(mission);
+      const fromX =
+        returning
+          ? targetX
+          : startX;
+      const fromY =
+        returning
+          ? targetY
+          : startY;
+      const toX =
+        returning
+          ? startX
+          : targetX;
+      const toY =
+        returning
+          ? startY
+          : targetY;
+
+      const x =
+        fromX +
+        (toX - fromX) *
+        progress;
+      const y =
+        fromY +
+        (toY - fromY) *
+        progress;
+
+      const fleet =
+        document.createElement(
+          "div"
+        );
+
+      fleet.className =
+        "mission-route-fleet route-" +
+        kind;
+      fleet.textContent =
+        missionRouteFleetIcon(
+          kind,
+          status
+        );
+      fleet.style.left =
+        worldPercent(x) + "%";
+      fleet.style.top =
+        worldPercent(y) + "%";
+
+      fleetLayer.appendChild(fleet);
+    });
+}
+
+function setExplorationVisualMission(mission) {
+  explorationVisualMission =
+    mission &&
+    typeof mission === "object"
+      ? mission
+      : null;
+
+  try {
+    if (explorationVisualMission) {
+      localStorage.setItem(
+        WORLD_EXPLORATION_VISUAL_KEY,
+        JSON.stringify(
+          explorationVisualMission
+        )
+      );
+    } else {
+      localStorage.removeItem(
+        WORLD_EXPLORATION_VISUAL_KEY
+      );
+    }
+  } catch (error) {
+    console.warn(
+      "Keşif rota durumu saklanamadı:",
+      error
+    );
+  }
+
+  renderMissionRoutes();
+}
+
+function restoreExplorationVisualMission() {
+  try {
+    const saved =
+      JSON.parse(
+        localStorage.getItem(
+          WORLD_EXPLORATION_VISUAL_KEY
+        ) ||
+        "null"
+      );
+
+    if (
+      saved &&
+      Number(saved.id) > 0 &&
+      [
+        "traveling",
+        "resolving"
+      ].includes(
+        missionRouteStatus(saved)
+      )
+    ) {
+      explorationVisualMission =
+        saved;
+      renderMissionRoutes();
+      pollWorldExploration(
+        Number(saved.id)
+      );
+      return;
+    }
+  } catch (error) {
+    console.warn(
+      "Keşif rota durumu okunamadı:",
+      error
+    );
+  }
+
+  setExplorationVisualMission(
+    null
+  );
+}
+
+function syncExplorationVisualMission(mission) {
+  if (
+    !mission ||
+    typeof mission !== "object"
+  ) {
+    return;
+  }
+
+  const status =
+    missionRouteStatus(mission);
+
+  if (status === "completed") {
+    setExplorationVisualMission(
+      null
+    );
+    return;
+  }
+
+  if (!explorationVisualMission) {
+    return;
+  }
+
+  setExplorationVisualMission({
+    ...explorationVisualMission,
+    status:
+      status ||
+      explorationVisualMission.status,
+    arriveAt:
+      mission.arriveAt ||
+      mission.arrive_at ||
+      explorationVisualMission.arriveAt,
+    remainingSeconds:
+      Number(
+        mission.remainingSeconds ??
+        explorationVisualMission.remainingSeconds ??
+        0
+      ),
+    travelSeconds:
+      Math.max(
+        1,
+        Number(
+          explorationVisualMission.travelSeconds ||
+          mission.travelSeconds ||
+          mission.travel_seconds ||
+          mission.remainingSeconds ||
+          1
+        )
+      )
+  });
+}
+
+
 function renderMissionPanel(missions) {
+  renderMissionRoutes();
 
   const panel =
     document.getElementById(
@@ -5967,6 +6575,50 @@ async function loadServerMissions() {
             arriveAt:
               serverArriveAt,
 
+            missionKind:
+              mine
+                ? "pvp"
+                : "incoming",
+
+            mine:
+              mine,
+
+            departAt:
+              m.depart_at ||
+              existing?.departAt ||
+              null,
+
+            startX:
+              Number.isFinite(
+                Number(m.depart_x)
+              )
+                ? Number(m.depart_x)
+                : (
+                    existing?.startX ??
+                    myCoordinateX
+                  ),
+
+            startY:
+              Number.isFinite(
+                Number(m.depart_y)
+              )
+                ? Number(m.depart_y)
+                : (
+                    existing?.startY ??
+                    myCoordinateY
+                  ),
+
+            travelSeconds:
+              Math.max(
+                1,
+                Number(
+                  m.travel_seconds ||
+                  existing?.travelSeconds ||
+                  remainingSeconds ||
+                  1
+                )
+              ),
+
             targetName:
               existing?.targetName ||
               (
@@ -6022,6 +6674,8 @@ async function loadServerMissions() {
 
 
 function startMissionPanel() {
+
+  restoreExplorationVisualMission();
 
   renderMissionPanel(
     getSavedMissions()
@@ -6918,6 +7572,30 @@ async function attack() {
       arriveAt:
         data.mission.arriveAt,
 
+      missionKind:
+        "pvp",
+
+      mine:
+        true,
+
+      departAt:
+        new Date().toISOString(),
+
+      startX:
+        myCoordinateX,
+
+      startY:
+        myCoordinateY,
+
+      travelSeconds:
+        Math.max(
+          1,
+          Number(
+            data.mission.travelSeconds ||
+            1
+          )
+        ),
+
       targetName:
         targetName,
 
@@ -7635,6 +8313,20 @@ function normalizeNpcMission(mission, fallbackCamp = null) {
     status: String(source.status || "").toLowerCase(),
     arriveAt,
     remainingSeconds,
+    departAt:
+      source.departAt ||
+      source.depart_at ||
+      null,
+    travelSeconds:
+      Math.max(
+        1,
+        Number(
+          source.travelSeconds ??
+          source.travel_seconds ??
+          remainingSeconds ??
+          1
+        )
+      ),
     targetName: String(
       source.targetName ||
       source.campName ||
@@ -8531,6 +9223,11 @@ let selectedWorldSite =
 let explorationPolling =
   false;
 
+const WORLD_EXPLORATION_VISUAL_KEY =
+  "nexora_world_exploration_visual";
+let explorationVisualMission =
+  null;
+
 let worldClaimPending =
   false;
 
@@ -9180,6 +9877,7 @@ function renderResourceGatherStatus(mission,underAttack=false) {
   if(!box||!button)return;
 
   resourceGatherMission=mission||null;
+  renderMissionRoutes();
 
   if(!mission){
     box.textContent="Aktif kaynak toplama seferi yok.";
@@ -9267,6 +9965,7 @@ function renderResourceConflictStatus(conflict) {
   if(!box)return;
 
   resourceConflictMission=conflict||null;
+  renderMissionRoutes();
 
   if(!conflict){
     box.textContent="";
@@ -10070,6 +10769,66 @@ async function startWorldExploration() {
 
     }
 
+    const explorationTarget =
+      selectedWorldSite;
+    const explorationTravelSeconds =
+      Math.max(
+        1,
+        Number(
+          d.mission?.travelSeconds ||
+          d.mission?.remainingSeconds ||
+          1
+        )
+      );
+
+    if (
+      d.mission?.id &&
+      explorationTarget
+    ) {
+      setExplorationVisualMission({
+        id:
+          Number(d.mission.id),
+        status:
+          String(
+            d.mission.status ||
+            "traveling"
+          ).toLowerCase(),
+        startX:
+          myCoordinateX,
+        startY:
+          myCoordinateY,
+        targetX:
+          Number(
+            explorationTarget.coordinate_x
+          ),
+        targetY:
+          Number(
+            explorationTarget.coordinate_y
+          ),
+        targetName:
+          String(
+            explorationTarget.name ||
+            siteTypeLabel(
+              explorationTarget.site_type
+            )
+          ),
+        departAt:
+          new Date().toISOString(),
+        arriveAt:
+          d.mission.arriveAt ||
+          d.mission.arrive_at ||
+          new Date(
+            Date.now() +
+            explorationTravelSeconds *
+            1000
+          ).toISOString(),
+        remainingSeconds:
+          explorationTravelSeconds,
+        travelSeconds:
+          explorationTravelSeconds
+      });
+    }
+
     alert(
       "🔭 Keşif başladı!\n\n" +
       (
@@ -10163,6 +10922,10 @@ async function pollWorldExploration(id) {
         const m =
           d.mission ||
           {};
+
+        syncExplorationVisualMission(
+          m
+        );
 
         if (
           m.status ===
