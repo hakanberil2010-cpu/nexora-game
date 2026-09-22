@@ -5,20 +5,432 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>TERYNDIS - Arkadaşlar</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.player{color:#9fc0df}.container{max-width:1100px;margin:28px auto;padding:0 20px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}.btn,.linkBtn{border:1px solid #1a6b98;border-radius:8px;background:#0d2941;color:#eaf4ff;padding:10px 14px;font-weight:bold;cursor:pointer;text-decoration:none}.btn:hover,.linkBtn:hover{filter:brightness(1.08)}.btn.primary{background:#138dcc;border-color:#1aa9ee;color:#fff}.btn.danger{background:#522431;border-color:#8b3d4d}.btn.good{background:#174a3c;border-color:#2b826a}.btn:disabled{opacity:.5;cursor:not-allowed}h1{margin:0 0 6px}.sub{color:#7897b6;margin-bottom:20px}.panel{background:#091a2c;border:1px solid #173b5d;border-radius:14px;padding:18px;margin-bottom:18px}.panel h2{margin:0 0 14px;font-size:18px}.sendRow{display:flex;gap:10px;flex-wrap:wrap}.sendRow input{flex:1;min-width:220px;padding:11px 12px;border-radius:8px;border:1px solid #285476;background:#071526;color:#fff;outline:none}.sendRow input:focus{border-color:#18bfff}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.cardList{display:grid;gap:10px}.card{padding:12px;border-radius:10px;background:#071526;border:1px solid #17344f}.name{font-weight:bold;color:#dff4ff;overflow-wrap:anywhere}.meta{margin-top:5px;color:#7897b6;font-size:12px}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.actions .btn,.actions .linkBtn{padding:7px 10px;font-size:12px}.empty{padding:14px;border-radius:9px;background:#071526;color:#7897b6;text-align:center}.count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;padding:0 7px;border-radius:999px;background:#102e49;color:#8bdcff;font-size:12px}.status{min-height:22px;margin:10px 0 0;color:#8bdcff;font-size:13px}.status.error{color:#ff9b9b}.status.ok{color:#7ee3b5}@media(max-width:850px){.grid{grid-template-columns:1fr}.top{height:auto;min-height:70px;padding:12px 16px;gap:10px;flex-wrap:wrap}.logo{font-size:24px;letter-spacing:4px}.player{min-width:0;font-size:13px;overflow-wrap:anywhere}.container{padding:0 12px}}
+*{box-sizing:border-box}
+:root{
+  --bg:#030912;
+  --panel:#061522;
+  --panel2:#081b2a;
+  --line:#153b55;
+  --lineStrong:#1d668d;
+  --text:#eaf7ff;
+  --muted:#7899ad;
+  --cyan:#2ecfff;
+  --cyanSoft:#8ae5ff;
+  --green:#4bd6a2;
+  --amber:#f1bd59;
+  --red:#ff7183;
+  --violet:#aa94ff;
+}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Arial,sans-serif;
+  background:
+    radial-gradient(circle at 50% -170px,rgba(46,207,255,.11),transparent 35%),
+    linear-gradient(180deg,#06111d 0,#030912 58%,#02070d 100%);
+  color:var(--text)
+}
+.top{
+  min-height:68px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:0 28px;
+  border-bottom:1px solid rgba(59,151,194,.34);
+  background:rgba(4,14,24,.95);
+  box-shadow:0 10px 30px rgba(0,0,0,.22)
+}
+.logo{
+  position:relative;
+  padding-left:13px;
+  color:#e5f9ff;
+  font-size:27px;
+  font-weight:800;
+  letter-spacing:6px;
+  text-shadow:0 0 18px rgba(46,207,255,.20)
+}
+.logo:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:4px;
+  bottom:4px;
+  width:3px;
+  border-radius:999px;
+  background:var(--cyan);
+  box-shadow:0 0 12px rgba(46,207,255,.42)
+}
+.player{color:#88aabd;font-size:13px}
+.player strong{color:#dff6ff}
+.container{
+  max-width:1180px;
+  margin:0 auto;
+  padding:24px 20px 42px
+}
+.commandHeader{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  padding-bottom:16px;
+  border-bottom:1px solid rgba(52,132,171,.32)
+}
+.headerCopy{min-width:0}
+.eyebrow{
+  margin-bottom:6px;
+  color:#59d2ff;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:2.2px;
+  text-transform:uppercase
+}
+h1{margin:0;font-size:28px;letter-spacing:.5px}
+.sub{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5
+}
+.toolbar{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  justify-content:flex-end
+}
+.btn,.linkBtn{
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #24516d;
+  border-radius:7px;
+  background:#071a29;
+  color:#b9d8e8;
+  padding:8px 11px;
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+  text-decoration:none
+}
+.btn:hover,.linkBtn:hover{filter:brightness(1.09)}
+.btn.primary{
+  border-color:#2084af;
+  background:#0c6f99;
+  color:#fff
+}
+.btn.danger{
+  border-color:#743746;
+  background:#29151d;
+  color:#ff9aaa
+}
+.btn.good{
+  border-color:#29644f;
+  background:#0b251c;
+  color:#7ce4b5
+}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.networkHud{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  margin-top:14px
+}
+.hudCard{
+  position:relative;
+  min-width:0;
+  overflow:hidden;
+  padding:12px 13px;
+  border:1px solid #153e58;
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(9,28,43,.96),rgba(5,18,29,.96))
+}
+.hudCard:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:#536d7c
+}
+.hudCard.allies:before{background:var(--green)}
+.hudCard.incoming:before{background:var(--amber)}
+.hudCard.outgoing:before{background:var(--violet)}
+.hudLabel{
+  color:#7899ad;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:1.1px;
+  text-transform:uppercase
+}
+.hudValue{
+  margin-top:5px;
+  color:#f0fbff;
+  font-size:23px;
+  font-weight:800
+}
+.contactPanel{
+  margin-top:11px;
+  overflow:hidden;
+  border:1px solid var(--lineStrong);
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(8,28,43,.98),rgba(5,18,29,.98))
+}
+.panelHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 13px;
+  border-bottom:1px solid rgba(46,130,169,.34);
+  background:rgba(8,32,48,.72)
+}
+.panelHead h2{
+  margin:0;
+  font-size:12px;
+  letter-spacing:1.3px;
+  text-transform:uppercase
+}
+.panelCode{
+  color:#5c8197;
+  font-size:9px;
+  letter-spacing:1.2px
+}
+.sendRow{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:9px;
+  padding:12px
+}
+.sendRow input{
+  width:100%;
+  min-width:0;
+  padding:11px 12px;
+  border:1px solid #214c68;
+  border-radius:7px;
+  background:#04121e;
+  color:#eefaff;
+  outline:none;
+  font:inherit
+}
+.sendRow input::placeholder{color:#526f82}
+.sendRow input:focus{
+  border-color:#2d9dcc;
+  box-shadow:0 0 0 2px rgba(46,207,255,.07)
+}
+.status{
+  min-height:0;
+  margin:0 12px 12px;
+  color:#91dfff;
+  font-size:12px
+}
+.status:empty{display:none}
+.status.error{
+  padding:9px 10px;
+  border:1px solid #6e3542;
+  border-radius:7px;
+  background:#24141b;
+  color:#ff9ca8
+}
+.status.ok{
+  padding:9px 10px;
+  border:1px solid #275c49;
+  border-radius:7px;
+  background:#0b211a;
+  color:#7ee4b6
+}
+.grid{
+  display:grid;
+  grid-template-columns:1.05fr 1fr 1fr;
+  gap:11px;
+  margin-top:11px
+}
+.panel{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(7,23,36,.98),rgba(4,16,26,.98))
+}
+.panel.alliesPanel{border-color:#245440}
+.panel.incomingPanel{border-color:#5c4c27}
+.panel.outgoingPanel{border-color:#4a426f}
+.panel h2{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:0;
+  padding:11px 12px;
+  border-bottom:1px solid rgba(45,113,147,.28);
+  background:rgba(8,30,45,.64);
+  color:#dff6ff;
+  font-size:11px;
+  letter-spacing:1px;
+  text-transform:uppercase
+}
+.count{
+  min-width:27px;
+  height:25px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 7px;
+  border:1px solid #286b8a;
+  border-radius:6px;
+  background:#092b3d;
+  color:#9ae9ff;
+  font-size:12px;
+  font-weight:800
+}
+.alliesPanel .count{border-color:#2c664f;background:#0b261d;color:#7fe4b6}
+.incomingPanel .count{border-color:#705a2a;background:#2a210f;color:#ffd27a}
+.outgoingPanel .count{border-color:#554b80;background:#1b1830;color:#b9aaff}
+.cardList{
+  display:grid;
+  gap:8px;
+  padding:9px
+}
+.card{
+  position:relative;
+  min-width:0;
+  padding:11px;
+  overflow:hidden;
+  border:1px solid #14384f;
+  border-radius:8px;
+  background:#061522
+}
+.card:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:#536c7c
+}
+.alliesPanel .card:before{background:var(--green)}
+.incomingPanel .card:before{background:var(--amber)}
+.outgoingPanel .card:before{background:var(--violet)}
+.name{
+  padding-left:3px;
+  color:#e8f8ff;
+  font-size:13px;
+  font-weight:800;
+  overflow-wrap:anywhere
+}
+.meta{
+  margin-top:5px;
+  padding-left:3px;
+  color:#67899f;
+  font-size:10px;
+  line-height:1.4
+}
+.actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:9px;
+  padding-left:3px
+}
+.actions .btn,.actions .linkBtn{
+  min-height:30px;
+  padding:6px 8px;
+  font-size:9px;
+  letter-spacing:.35px
+}
+.empty{
+  padding:17px 12px;
+  border:1px dashed #1a4058;
+  border-radius:8px;
+  background:#05131f;
+  color:#6f91a7;
+  text-align:center;
+  font-size:11px
+}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+}
+@media(max-width:650px){
+  .top{padding:11px 14px;flex-wrap:wrap}
+  .logo{font-size:22px;letter-spacing:4px}
+  .player{font-size:12px}
+  .container{padding:16px 12px 28px}
+  .commandHeader{align-items:flex-start;flex-direction:column;gap:12px}
+  .toolbar{width:100%;justify-content:flex-start}
+  .toolbar .linkBtn:first-child{flex-basis:100%;justify-content:flex-start}
+  h1{font-size:23px}
+  .networkHud{grid-template-columns:1fr 1fr}
+  .hudCard.allies{grid-column:1/-1}
+  .sendRow{grid-template-columns:1fr}
+  .sendRow .btn{width:100%}
+  .panelHead{align-items:flex-start}
+}
 </style>
 </head>
 <body>
-<header class="top"><div class="logo">TERYNDIS</div><div class="player">Oyuncu: <strong id="playerName">Komutan</strong></div></header>
+<header class="top">
+  <div class="logo">TERYNDIS</div>
+  <div class="player">Oyuncu: <strong id="playerName">Komutan</strong></div>
+</header>
+
 <main class="container">
-  <div class="toolbar"><a class="linkBtn" href="game.html">← Koloniye Dön</a><a class="linkBtn" href="profile.html">👤 Profilim</a><a class="linkBtn" href="ranking.html">🏆 Sıralama</a></div>
-  <h1>🤝 Arkadaşlar</h1>
-  <div class="sub">Oyuncu adını tam yazarak arkadaşlık isteği gönderebilirsin.</div>
-  <section class="panel"><h2>Arkadaşlık İsteği Gönder</h2><div class="sendRow"><input id="usernameInput" maxlength="24" autocomplete="off" placeholder="Oyuncu adı"><button class="btn primary" id="sendBtn" type="button">İstek Gönder</button></div><div id="status" class="status"></div></section>
+  <div class="commandHeader">
+    <div class="headerCopy">
+      <div class="eyebrow">PERSONNEL NETWORK // CONTACT COMMAND</div>
+      <h1>Arkadaşlar</h1>
+      <div class="sub">Müttefik bağlantılarını, gelen temas taleplerini ve bekleyen istekleri tek ağ üzerinden yönet.</div>
+    </div>
+    <div class="toolbar">
+      <a class="linkBtn" href="game.html">← Koloniye Dön</a>
+      <a class="linkBtn" href="profile.html">👤 Profilim</a>
+      <a class="linkBtn" href="ranking.html">🏆 Sıralama</a>
+    </div>
+  </div>
+
+  <div class="networkHud" aria-label="Sosyal ağ özeti">
+    <div class="hudCard allies">
+      <div class="hudLabel">Allies</div>
+      <div class="hudValue" id="friendsCount">0</div>
+    </div>
+    <div class="hudCard incoming">
+      <div class="hudLabel">Incoming</div>
+      <div class="hudValue" id="incomingCount">0</div>
+    </div>
+    <div class="hudCard outgoing">
+      <div class="hudLabel">Outgoing</div>
+      <div class="hudValue" id="outgoingCount">0</div>
+    </div>
+  </div>
+
+  <section class="contactPanel">
+    <div class="panelHead">
+      <h2>Contact Acquisition</h2>
+      <span class="panelCode">USERNAME / MAX 24</span>
+    </div>
+    <div class="sendRow">
+      <input id="usernameInput" maxlength="24" autocomplete="off" placeholder="Oyuncu adı">
+      <button class="btn primary" id="sendBtn" type="button">İstek Gönder</button>
+    </div>
+    <div id="status" class="status"></div>
+  </section>
+
   <div class="grid">
-    <section class="panel"><h2>Arkadaşlar <span id="friendsCount" class="count">0</span></h2><div id="friendsList" class="cardList"><div class="empty">Yükleniyor...</div></div></section>
-    <section class="panel"><h2>Gelen İstekler <span id="incomingCount" class="count">0</span></h2><div id="incomingList" class="cardList"><div class="empty">Yükleniyor...</div></div></section>
-    <section class="panel"><h2>Gönderilen İstekler <span id="outgoingCount" class="count">0</span></h2><div id="outgoingList" class="cardList"><div class="empty">Yükleniyor...</div></div></section>
+    <section class="panel alliesPanel">
+      <h2>Güvenilir Bağlantılar</h2>
+      <div id="friendsList" class="cardList"><div class="empty">Yükleniyor...</div></div>
+    </section>
+
+    <section class="panel incomingPanel">
+      <h2>Gelen İstekler</h2>
+      <div id="incomingList" class="cardList"><div class="empty">Yükleniyor...</div></div>
+    </section>
+
+    <section class="panel outgoingPanel">
+      <h2>Bekleyen Gönderimler</h2>
+      <div id="outgoingList" class="cardList"><div class="empty">Yükleniyor...</div></div>
+    </section>
   </div>
 </main>
 <script>
