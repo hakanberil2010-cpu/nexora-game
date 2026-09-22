@@ -2169,6 +2169,24 @@ async function produceArmy(req, res) {
     body.unitType || ""
   ).trim();
 
+  const requestKey = String(
+    body.requestKey || ""
+  ).trim();
+
+  if (
+    requestKey &&
+    (
+      requestKey.length < 8 ||
+      requestKey.length > 128 ||
+      !/^[A-Za-z0-9._:-]+$/.test(requestKey)
+    )
+  ) {
+    return send(res, 400, {
+      success: false,
+      message: "Geçersiz üretim istek anahtarı."
+    });
+  }
+
   const cfg = UNIT_CONFIG[unitType];
 
   if (!cfg) {
@@ -2244,17 +2262,26 @@ async function produceArmy(req, res) {
     });
   }
 
+  const trainingRequest = {
+    p_player_id: Number(playerId),
+    p_city_id: Number(city.id),
+    p_type: unitType,
+    p_requested_quantity:
+      requestedQuantity
+  };
+
+  if (requestKey) {
+    trainingRequest.p_request_key =
+      requestKey;
+  }
+
   const result = await supabase(
     "rpc/nexora_start_unit_training_bulk",
     {
       method: "POST",
-      body: JSON.stringify({
-        p_player_id: Number(playerId),
-        p_city_id: Number(city.id),
-        p_type: unitType,
-        p_requested_quantity:
-          requestedQuantity
-      })
+      body: JSON.stringify(
+        trainingRequest
+      )
     }
   );
 

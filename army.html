@@ -797,6 +797,196 @@ let loadPromise=null;
 
 let productionPending=false;
 
+const UNIT_PRODUCTION_REQUEST_KEYS_STORAGE=
+  'nexora_unit_production_request_keys';
+
+
+function productionRequestIntent(
+  type,
+  quantity
+){
+
+  return String(
+    type||
+    ''
+  )+
+  '|' +
+  (
+    quantity===null
+      ?'max'
+      :String(quantity)
+  );
+
+}
+
+
+function readProductionRequestKeys(){
+
+  try{
+
+    const parsed=
+      JSON.parse(
+        localStorage.getItem(
+          UNIT_PRODUCTION_REQUEST_KEYS_STORAGE
+        )||
+        '{}'
+      );
+
+    return parsed&&
+      typeof parsed==='object'&&
+      !Array.isArray(parsed)
+        ?parsed
+        :{};
+
+  }catch(e){
+
+    return {};
+
+  }
+
+}
+
+
+function writeProductionRequestKeys(
+  requests
+){
+
+  try{
+
+    if(
+      Object.keys(
+        requests
+      ).length
+    ){
+
+      localStorage.setItem(
+        UNIT_PRODUCTION_REQUEST_KEYS_STORAGE,
+        JSON.stringify(
+          requests
+        )
+      );
+
+    }else{
+
+      localStorage.removeItem(
+        UNIT_PRODUCTION_REQUEST_KEYS_STORAGE
+      );
+
+    }
+
+  }catch(e){}
+
+}
+
+
+function createProductionRequestKey(){
+
+  if(
+    window.crypto&&
+    typeof window.crypto.randomUUID==='function'
+  ){
+
+    return 'unit-'+
+      window.crypto.randomUUID();
+
+  }
+
+  const randomPart=
+    Math.random()
+      .toString(36)
+      .slice(2);
+
+  return 'unit-'+
+    Date.now()
+      .toString(36)+
+    '-'+
+    randomPart;
+
+}
+
+
+function getProductionRequestKey(
+  type,
+  quantity
+){
+
+  const intent=
+    productionRequestIntent(
+      type,
+      quantity
+    );
+
+  const requests=
+    readProductionRequestKeys();
+
+  const existing=
+    String(
+      requests[intent]||
+      ''
+    );
+
+  if(
+    existing.length>=8&&
+    existing.length<=128
+  ){
+
+    return existing;
+
+  }
+
+  const requestKey=
+    createProductionRequestKey();
+
+  requests[intent]=
+    requestKey;
+
+  writeProductionRequestKeys(
+    requests
+  );
+
+  return requestKey;
+
+}
+
+
+function clearProductionRequestKey(
+  type,
+  quantity,
+  requestKey
+){
+
+  const intent=
+    productionRequestIntent(
+      type,
+      quantity
+    );
+
+  const requests=
+    readProductionRequestKeys();
+
+  if(
+    String(
+      requests[intent]||
+      ''
+    )!==
+    String(
+      requestKey||
+      ''
+    )
+  ){
+
+    return;
+
+  }
+
+  delete requests[intent];
+
+  writeProductionRequestKeys(
+    requests
+  );
+
+}
+
 
 function fmt(n){
 
@@ -1504,6 +1694,13 @@ async function produce(
   }
 
 
+  const requestKey=
+    getProductionRequestKey(
+      type,
+      quantity
+    );
+
+
   productionPending=
     true;
 
@@ -1532,7 +1729,8 @@ async function produce(
           body:
             JSON.stringify({
               unitType:type,
-              quantity:quantity
+              quantity:quantity,
+              requestKey:requestKey
             })
         }
       );
@@ -1546,6 +1744,12 @@ async function produce(
       r.status===401
     ){
 
+      clearProductionRequestKey(
+        type,
+        quantity,
+        requestKey
+      );
+
       clearInvalidSession();
 
       return;
@@ -1558,6 +1762,25 @@ async function produce(
       !d.success
     ){
 
+      if(
+        (
+          r.status>=400&&
+          r.status<500
+        )||
+        (
+          r.ok&&
+          d.success===false
+        )
+      ){
+
+        clearProductionRequestKey(
+          type,
+          quantity,
+          requestKey
+        );
+
+      }
+
       alert(
         d.message||
         'Üretim başlatılamadı.'
@@ -1566,6 +1789,13 @@ async function produce(
       return;
 
     }
+
+
+    clearProductionRequestKey(
+      type,
+      quantity,
+      requestKey
+    );
 
 
     alert(
@@ -1579,7 +1809,7 @@ async function produce(
   }catch(e){
 
     alert(
-      'Bağlantı hatası'
+      'Bağlantı hatası. Aynı üretimi tekrar denediğinde işlem güvenli şekilde devam edecek.'
     );
 
   }finally{
