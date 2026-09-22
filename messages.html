@@ -6,80 +6,397 @@
 <title>TERYNDIS - Özel Mesajlar</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
-.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
-.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
-.container{max-width:1050px;margin:30px auto;padding:0 20px}
-.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
-.topBack:hover{filter:brightness(1.08)}
-h1{margin:0 0 8px}
-.sub{color:#7196b8;line-height:1.45}
-.compose{margin:22px 0;padding:18px;background:#091a2c;border:1px solid #173b5d;border-radius:14px}
-.compose h2{margin:0 0 14px;font-size:19px}
-.formRow{display:grid;grid-template-columns:220px 1fr auto;gap:10px;align-items:start}
-.input,.textarea{width:100%;border:1px solid #285476;background:#071526;color:#eaf4ff;border-radius:9px;padding:11px 12px;font:inherit}
-.textarea{min-height:92px;resize:vertical}
-.input:focus,.textarea:focus{outline:none;border-color:#1aa9ee}
-.sendButton,.button{border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
-.sendButton{padding:11px 18px;min-height:43px}
-.button{padding:10px 14px}
+:root{
+  --bg:#030912;
+  --panel:#061522;
+  --panel2:#081b2a;
+  --line:#153b55;
+  --lineStrong:#1d668d;
+  --text:#eaf7ff;
+  --muted:#7899ad;
+  --cyan:#2ecfff;
+  --cyanSoft:#8ae5ff;
+  --violet:#aa94ff;
+  --green:#4bd6a2;
+  --amber:#f1bd59;
+}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Arial,sans-serif;
+  background:
+    radial-gradient(circle at 52% -170px,rgba(46,207,255,.11),transparent 35%),
+    linear-gradient(180deg,#06111d 0,#030912 56%,#02070d 100%);
+  color:var(--text)
+}
+.top{
+  min-height:68px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:0 28px;
+  border-bottom:1px solid rgba(59,151,194,.34);
+  background:rgba(4,14,24,.95);
+  box-shadow:0 10px 30px rgba(0,0,0,.22)
+}
+.logo{
+  position:relative;
+  padding-left:13px;
+  color:#e5f9ff;
+  font-size:27px;
+  font-weight:800;
+  letter-spacing:6px;
+  text-shadow:0 0 18px rgba(46,207,255,.20)
+}
+.logo:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:4px;
+  bottom:4px;
+  width:3px;
+  border-radius:999px;
+  background:var(--cyan);
+  box-shadow:0 0 12px rgba(46,207,255,.42)
+}
+.player{color:#88aabd;font-size:13px}
+.player strong{color:#dff6ff}
+.container{
+  max-width:1120px;
+  margin:0 auto;
+  padding:24px 20px 42px
+}
+.commandHeader{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  padding-bottom:16px;
+  border-bottom:1px solid rgba(52,132,171,.32)
+}
+.headerCopy{min-width:0}
+.eyebrow{
+  margin-bottom:6px;
+  color:#59d2ff;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:2.2px;
+  text-transform:uppercase
+}
+h1{margin:0;font-size:28px;letter-spacing:.5px}
+.sub{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5
+}
+.topBack,.back{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:9px 14px;
+  border:1px solid #1d668c;
+  border-radius:7px;
+  background:#092235;
+  color:#dcf5ff;
+  text-decoration:none;
+  font-size:12px;
+  font-weight:800
+}
+.topBack:hover,.back:hover{filter:brightness(1.08)}
+.compose{
+  margin:14px 0 0;
+  overflow:hidden;
+  border:1px solid var(--lineStrong);
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(8,28,43,.98),rgba(5,18,29,.98));
+  box-shadow:0 16px 35px rgba(0,0,0,.20)
+}
+.composeHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 13px;
+  border-bottom:1px solid rgba(46,130,169,.34);
+  background:rgba(8,32,48,.72)
+}
+.composeHead h2{
+  margin:0;
+  font-size:12px;
+  letter-spacing:1.3px;
+  text-transform:uppercase
+}
+.composeCode{
+  color:#5d849a;
+  font-size:9px;
+  letter-spacing:1.2px
+}
+.formRow{
+  display:grid;
+  grid-template-columns:230px minmax(0,1fr) auto;
+  gap:10px;
+  align-items:start;
+  padding:12px
+}
+.input,.textarea{
+  width:100%;
+  border:1px solid #214c68;
+  border-radius:7px;
+  background:#04121e;
+  color:#e9f7ff;
+  padding:11px 12px;
+  font:inherit;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.015)
+}
+.input::placeholder,.textarea::placeholder{color:#526f82}
+.input:focus,.textarea:focus{
+  outline:none;
+  border-color:#2d9dcc;
+  box-shadow:0 0 0 2px rgba(46,207,255,.07)
+}
+.textarea{min-height:96px;resize:vertical}
+.counterLine{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:6px;
+  color:#607f94;
+  font-size:10px;
+  letter-spacing:.4px
+}
+.counterLine strong{color:#91e6ff}
+.sendButton,.button{
+  border:1px solid #2180aa;
+  border-radius:7px;
+  background:#0c6d97;
+  color:#fff;
+  font-weight:800;
+  cursor:pointer
+}
+.sendButton{
+  min-height:43px;
+  padding:11px 18px
+}
+.button{padding:9px 12px}
 .sendButton:hover:not(:disabled),.button:hover:not(:disabled){filter:brightness(1.08)}
-.sendButton:disabled,.button:disabled{opacity:.5;cursor:not-allowed}
-.counterLine{display:flex;justify-content:space-between;gap:10px;margin-top:7px;color:#7196b8;font-size:12px}
-.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0 12px}
-.tabs{display:flex;gap:8px}
-.tab{padding:10px 14px;border-radius:8px;border:1px solid #285476;background:#071526;color:#b9d4eb;font-weight:bold;cursor:pointer}
-.tab.active{background:#102e49;color:#23b8ff;border-color:#1aa9ee}
-.unreadBox{display:flex;align-items:center;gap:8px;color:#9cc6e2}
-.unreadBox b{font-size:20px;color:#18bfff}
-.status{display:none;margin:12px 0;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff}
-.list{display:grid;gap:11px}
-.messageCard{background:#091a2c;border:1px solid #173b5d;border-radius:13px;padding:16px}
-.messageCard.unread{border-color:#1aa9ee;box-shadow:0 0 0 1px rgba(26,169,238,.14)}
-.messageTop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.who{font-weight:bold;font-size:17px}
-.time{font-size:12px;color:#7196b8;white-space:nowrap}
-.body{margin-top:9px;color:#c9dbea;line-height:1.55;white-space:pre-wrap;word-break:break-word}
-.messageMeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px}
-.pill{padding:5px 8px;border-radius:999px;background:#102a44;color:#8bdcff;font-size:12px}
-.newBadge{padding:5px 8px;border-radius:999px;background:#123c59;color:#8bdcff;font-size:11px;font-weight:bold}
-.replyButton{margin-left:auto;padding:7px 10px;border:1px solid #285476;background:#071526;color:#8bdcff;border-radius:7px;cursor:pointer}
-.replyButton:hover{filter:brightness(1.08)}
-.empty{padding:20px;background:#091a2c;border:1px solid #173b5d;border-radius:12px;color:#8db0cf;text-align:center}
-.back{display:inline-block;margin-top:24px;color:#18bfff;text-decoration:none}
-.back:hover{text-decoration:underline}
-@media(max-width:760px){
-  .top{height:auto;min-height:70px;padding:12px 15px;gap:10px;flex-wrap:wrap}
-  .logo{font-size:22px;letter-spacing:4px}
-  .top>div:last-child{min-width:0;font-size:13px;overflow-wrap:anywhere}
-  .container{padding:0 12px;margin-top:20px}
+.sendButton:disabled,.button:disabled{opacity:.44;cursor:not-allowed}
+.channelBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:12px;
+  padding:9px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:rgba(6,20,31,.92)
+}
+.tabs{display:flex;gap:7px;min-width:0}
+.tab{
+  min-height:36px;
+  padding:8px 12px;
+  border:1px solid #244b63;
+  border-radius:7px;
+  background:#061522;
+  color:#88a9bc;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.6px;
+  cursor:pointer
+}
+.tab.active{
+  border-color:#2587b3;
+  background:linear-gradient(180deg,#0c3045,#082235);
+  color:#8de7ff;
+  box-shadow:inset 2px 0 0 var(--cyan)
+}
+.unreadBox{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  color:#789aac;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.7px
+}
+.unreadBox b{
+  min-width:30px;
+  height:30px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #2c7ea3;
+  border-radius:7px;
+  background:#0a2b3e;
+  color:#9beaff;
+  font-size:16px;
+  letter-spacing:0
+}
+.status{
+  display:none;
+  margin:11px 0 0;
+  padding:11px 13px;
+  border:1px solid #1b516e;
+  border-radius:8px;
+  background:#071b29;
+  color:#94dfff;
+  font-size:12px
+}
+.list{
+  display:grid;
+  gap:8px;
+  margin-top:12px
+}
+.messageCard{
+  position:relative;
+  overflow:hidden;
+  padding:13px 14px 12px 16px;
+  border:1px solid #14384f;
+  border-radius:8px;
+  background:linear-gradient(180deg,#071725,#05121e)
+}
+.messageCard:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:#486578
+}
+.messageCard.unread{
+  border-color:#267698;
+  box-shadow:0 0 0 1px rgba(46,207,255,.05),inset 0 0 24px rgba(46,207,255,.025)
+}
+.messageCard.unread:before{background:var(--cyan)}
+.messageTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px
+}
+.who{
+  color:#e7f8ff;
+  font-size:13px;
+  font-weight:800
+}
+.time{
+  color:#64869b;
+  font-size:10px;
+  white-space:nowrap
+}
+.body{
+  margin-top:7px;
+  color:#a9c0cf;
+  font-size:12px;
+  line-height:1.55;
+  white-space:pre-wrap;
+  word-break:break-word
+}
+.messageMeta{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:10px
+}
+.pill,.newBadge{
+  padding:4px 7px;
+  border:1px solid #21465e;
+  border-radius:999px;
+  background:#0a2233;
+  color:#86dfff;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.7px;
+  text-transform:uppercase
+}
+.newBadge{
+  border-color:#287a9d;
+  background:#0c3247;
+  color:#9beaff
+}
+.replyButton{
+  margin-left:auto;
+  padding:6px 9px;
+  border:1px solid #3b537f;
+  border-radius:7px;
+  background:#111a30;
+  color:#b4a7ff;
+  font-size:10px;
+  font-weight:800;
+  cursor:pointer
+}
+.replyButton:hover{filter:brightness(1.1)}
+.empty{
+  padding:20px;
+  border:1px dashed #1a4058;
+  border-radius:8px;
+  background:#05131f;
+  color:#6f91a7;
+  text-align:center;
+  font-size:12px
+}
+.footerBack{
+  display:flex;
+  justify-content:flex-start;
+  margin-top:14px
+}
+.back{margin:0}
+@media(max-width:800px){
   .formRow{grid-template-columns:1fr}
   .sendButton{width:100%}
+}
+@media(max-width:650px){
+  .top{padding:11px 14px;flex-wrap:wrap}
+  .logo{font-size:22px;letter-spacing:4px}
+  .player{font-size:12px}
+  .container{padding:16px 12px 28px}
+  .commandHeader{align-items:flex-start;flex-direction:column-reverse;gap:11px}
+  .topBack{width:100%;justify-content:flex-start}
+  h1{font-size:23px}
+  .channelBar{align-items:stretch;flex-direction:column}
+  .tabs{display:grid;grid-template-columns:1fr 1fr}
+  .tab{width:100%}
+  .unreadBox{justify-content:space-between}
   .messageTop{display:block}
-  .time{display:block;margin-top:6px}
+  .time{display:block;margin-top:5px}
   .replyButton{margin-left:0}
+  .composeHead{align-items:flex-start}
 }
 </style>
 </head>
 <body>
 <div class="top">
   <div class="logo">TERYNDIS</div>
-  <div>Oyuncu: <strong id="playerName">Oyuncu</strong></div>
+  <div class="player">Oyuncu: <strong id="playerName">Oyuncu</strong></div>
 </div>
 
 <div class="container">
-  <a class="topBack" href="game.html">← Koloniye Dön</a>
-  <h1>✉️ Özel Mesajlar</h1>
-  <div class="sub">Diğer oyunculara doğrudan mesaj gönder ve gelen kutunu takip et.</div>
+  <div class="commandHeader">
+    <div class="headerCopy">
+      <div class="eyebrow">SECURE COMMS // ENCRYPTED CHANNEL</div>
+      <h1>Özel Mesajlar</h1>
+      <div class="sub">Oyuncular arası doğrudan iletişimi gelen ve giden kanallardan yönet.</div>
+    </div>
+    <a class="topBack" href="game.html">← Koloniye Dön</a>
+  </div>
 
   <section class="compose">
-    <h2>Yeni Mesaj</h2>
+    <div class="composeHead">
+      <h2>Transmit Message</h2>
+      <span class="composeCode">MAX 500 CHAR</span>
+    </div>
     <div class="formRow">
-      <input class="input" id="recipientUsername" maxlength="100" placeholder="Oyuncu adı">
+      <input class="input" id="recipientUsername" maxlength="100" placeholder="Alıcı oyuncu adı">
       <div>
-        <textarea class="textarea" id="messageText" maxlength="500" placeholder="Mesajını yaz..."></textarea>
+        <textarea class="textarea" id="messageText" maxlength="500" placeholder="Şifreli mesajını yaz..."></textarea>
         <div class="counterLine">
-          <span>En fazla 500 karakter</span>
+          <span>Secure text payload</span>
           <span><strong id="charCount">0</strong>/500</span>
         </div>
       </div>
@@ -87,13 +404,14 @@ h1{margin:0 0 8px}
     </div>
   </section>
 
-  <div class="toolbar">
+  <div class="channelBar">
     <div class="tabs">
-      <button class="tab active" id="inboxTab" type="button">📥 Gelen Kutusu</button>
-      <button class="tab" id="sentTab" type="button">📤 Gönderilenler</button>
+      <button class="tab active" id="inboxTab" type="button">📥 INBOUND</button>
+      <button class="tab" id="sentTab" type="button">📤 OUTBOUND</button>
     </div>
     <div class="unreadBox">
-      Okunmamış <b id="unreadCount">0</b>
+      Okunmamış
+      <b id="unreadCount">0</b>
       <button class="button" id="markReadButton" type="button" disabled>Tümünü Okundu Say</button>
     </div>
   </div>
@@ -101,7 +419,9 @@ h1{margin:0 0 8px}
   <div id="status" class="status"></div>
   <div id="messageList" class="list"></div>
 
-  <a class="back" href="game.html">← Koloniye Dön</a>
+  <div class="footerBack">
+    <a class="back" href="game.html">← Koloniye Dön</a>
+  </div>
 </div>
 
 <script>
