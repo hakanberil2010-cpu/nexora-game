@@ -6,108 +6,464 @@
 <title>TERYNDIS - Bildirim Merkezi</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}
-.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
-.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}
-.container{max-width:1050px;margin:30px auto;padding:0 20px}
-.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}
-.topBack:hover{filter:brightness(1.08)}
-h1{margin:0 0 8px}
-.sub{color:#7196b8;line-height:1.45}
-.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:22px 0 16px}
-.counter{display:inline-flex;align-items:center;gap:9px;padding:10px 13px;border-radius:10px;background:#091a2c;border:1px solid #173b5d;color:#9cc6e2}
-.counter b{color:#18bfff;font-size:20px}
-.counterGroup{display:flex;gap:8px;flex-wrap:wrap}
-.sectionTitle{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 10px}
-.sectionTitle h2{margin:0;font-size:19px}
-.sectionLink{color:#18bfff;text-decoration:none;font-size:13px}
+:root{
+  --bg:#030912;
+  --panel:#061522;
+  --panel2:#081b2a;
+  --line:#163d57;
+  --line2:#1d5d80;
+  --text:#e8f7ff;
+  --muted:#789ab1;
+  --cyan:#2ecfff;
+  --cyanSoft:#8be6ff;
+  --green:#4bd49f;
+  --amber:#f1bd58;
+  --red:#ff7183;
+  --violet:#aa96ff;
+}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Arial,sans-serif;
+  background:
+    radial-gradient(circle at 50% -160px,rgba(46,207,255,.11),transparent 34%),
+    linear-gradient(180deg,#06111d 0,#030912 56%,#02070d 100%);
+  color:var(--text)
+}
+.top{
+  min-height:68px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:0 28px;
+  border-bottom:1px solid rgba(58,147,190,.34);
+  background:rgba(4,14,24,.95);
+  box-shadow:0 10px 30px rgba(0,0,0,.22)
+}
+.logo{
+  position:relative;
+  padding-left:13px;
+  color:#e5f9ff;
+  font-size:27px;
+  font-weight:800;
+  letter-spacing:6px;
+  text-shadow:0 0 18px rgba(46,207,255,.20)
+}
+.logo:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:4px;
+  bottom:4px;
+  width:3px;
+  border-radius:999px;
+  background:var(--cyan);
+  box-shadow:0 0 12px rgba(46,207,255,.42)
+}
+.player{
+  color:#88aabd;
+  font-size:13px
+}
+.player strong{color:#dff6ff}
+.container{
+  max-width:1160px;
+  margin:0 auto;
+  padding:24px 20px 42px
+}
+.commandHeader{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  padding-bottom:16px;
+  border-bottom:1px solid rgba(52,132,171,.32)
+}
+.headerCopy{min-width:0}
+.eyebrow{
+  margin-bottom:6px;
+  color:#59d2ff;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:2.2px;
+  text-transform:uppercase
+}
+h1{
+  margin:0;
+  font-size:28px;
+  letter-spacing:.5px
+}
+.sub{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5
+}
+.topBack,.back{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:9px 14px;
+  border:1px solid #1d668c;
+  border-radius:7px;
+  background:#092235;
+  color:#dcf5ff;
+  text-decoration:none;
+  font-size:12px;
+  font-weight:800
+}
+.topBack:hover,.back:hover{filter:brightness(1.08)}
+.signalHud{
+  display:grid;
+  grid-template-columns:1.35fr repeat(3,1fr);
+  gap:9px;
+  margin-top:15px
+}
+.counter{
+  position:relative;
+  min-width:0;
+  padding:12px 13px;
+  overflow:hidden;
+  border:1px solid #153e58;
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(9,28,43,.96),rgba(5,18,29,.96));
+  color:#7f9fb4;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:1px;
+  text-transform:uppercase
+}
+.counter:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:#41667a
+}
+.counter.primary{
+  border-color:#1d658b;
+  background:linear-gradient(180deg,rgba(10,38,55,.98),rgba(6,22,34,.98))
+}
+.counter.primary:before{background:var(--cyan)}
+.counter.activity:before{background:var(--green)}
+.counter.message:before{background:var(--violet)}
+.counter.friend:before{background:var(--amber)}
+.counter b{
+  display:block;
+  margin-top:5px;
+  color:#f2fbff;
+  font-size:23px;
+  letter-spacing:0;
+  line-height:1;
+  text-transform:none
+}
+.counter.primary b{color:var(--cyanSoft);font-size:28px}
+.toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:11px 0 0
+}
+.toolbarNote{
+  color:#587990;
+  font-size:10px;
+  letter-spacing:1px;
+  text-transform:uppercase
+}
+.button{
+  min-height:38px;
+  padding:9px 14px;
+  border:1px solid #1c79a5;
+  border-radius:7px;
+  background:#0d678f;
+  color:#fff;
+  font-weight:800;
+  cursor:pointer
+}
+.button:hover:not(:disabled){filter:brightness(1.09)}
+.button:disabled{opacity:.42;cursor:not-allowed}
+.status{
+  display:none;
+  margin:12px 0 0;
+  padding:11px 13px;
+  border:1px solid #1b516e;
+  border-radius:8px;
+  background:#071b29;
+  color:#94dfff;
+  font-size:12px
+}
+.socialGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:12px
+}
+.panel{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(7,23,36,.98),rgba(4,16,26,.98))
+}
+.panel.comms{border-color:#2e4e73}
+.panel.personnel{border-color:#5c4d29}
+.panelHead,.sectionTitle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0;
+  padding:11px 13px;
+  border-bottom:1px solid rgba(45,113,147,.30);
+  background:rgba(8,30,45,.64)
+}
+.panelHead h2,.sectionTitle h2{
+  margin:0;
+  font-size:12px;
+  letter-spacing:1.2px;
+  text-transform:uppercase
+}
+.panelCode{
+  color:#567e97;
+  font-size:9px;
+  letter-spacing:1.2px
+}
+.sectionLink{
+  color:#7edfff;
+  text-decoration:none;
+  font-size:11px;
+  font-weight:800
+}
 .sectionLink:hover{text-decoration:underline}
-.socialGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.previewList{display:grid;gap:9px}
-.previewItem{display:block;padding:13px;border-radius:11px;background:#091a2c;border:1px solid #173b5d;color:inherit;text-decoration:none}
-.previewItem:hover{filter:brightness(1.05)}
-.previewItem.unread{border-color:#1aa9ee}
-.previewTitle{display:flex;justify-content:space-between;gap:10px;font-weight:bold}
-.previewText{margin-top:6px;color:#9cc6e2;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
-.button{padding:10px 14px;border:0;border-radius:8px;background:#138dcc;color:#fff;font-weight:bold;cursor:pointer}
-.button:hover:not(:disabled){filter:brightness(1.08)}
-.button:disabled{opacity:.5;cursor:not-allowed}
-.status{display:none;margin:12px 0;padding:11px 13px;border-radius:9px;background:#091a2c;border:1px solid #173b5d;color:#8bdcff}
-.list{display:grid;gap:12px}
-.item{display:block;background:#091a2c;border:1px solid #173b5d;border-radius:13px;padding:16px;text-decoration:none;color:inherit;position:relative}
-.item:hover{filter:brightness(1.05)}
-.item.unread{border-color:#1aa9ee;box-shadow:0 0 0 1px rgba(26,169,238,.14)}
-.item.success{border-left:4px solid #2b8f66}
-.item.danger{border-left:4px solid #a84242}
-.item.neutral{border-left:4px solid #6c7787}
-.itemTop{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
-.itemTitle{font-size:18px;font-weight:bold}
-.time{font-size:12px;color:#7196b8;white-space:nowrap}
-.summary{margin-top:7px;color:#9cc6e2;line-height:1.45}
-.meta{margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.pill{padding:5px 8px;border-radius:999px;background:#102a44;color:#8bdcff;font-size:12px}
-.newBadge{padding:5px 8px;border-radius:999px;background:#123c59;color:#8bdcff;font-size:11px;font-weight:bold}
-.empty{padding:20px;background:#091a2c;border:1px solid #173b5d;border-radius:12px;color:#8db0cf;text-align:center}
-.back{display:inline-block;margin-top:24px;color:#18bfff;text-decoration:none}
-.back:hover{text-decoration:underline}
-@media(max-width:700px){
-  .top{height:auto;min-height:70px;padding:12px 15px;gap:10px;flex-wrap:wrap}
-  .logo{font-size:22px;letter-spacing:4px}
-  .top>div:last-child{min-width:0;font-size:13px;overflow-wrap:anywhere}
-  .container{padding:0 12px;margin-top:20px}
-  .itemTop{display:block}
-  .time{display:block;margin-top:7px}
+.previewList{
+  display:grid;
+  gap:8px;
+  padding:10px
+}
+.previewItem{
+  position:relative;
+  display:block;
+  min-width:0;
+  padding:11px 12px;
+  border:1px solid #14384f;
+  border-radius:7px;
+  background:#061522;
+  color:inherit;
+  text-decoration:none
+}
+.previewItem:hover{border-color:#246586;background:#082033}
+.previewItem.unread{
+  border-color:#24769b;
+  box-shadow:inset 2px 0 0 var(--cyan)
+}
+.comms .previewItem.unread{box-shadow:inset 2px 0 0 var(--violet)}
+.personnel .previewItem.unread{box-shadow:inset 2px 0 0 var(--amber)}
+.previewTitle{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  color:#dff7ff;
+  font-size:12px;
+  font-weight:800
+}
+.previewText{
+  margin-top:6px;
+  color:#8aabba;
+  font-size:12px;
+  line-height:1.42;
+  overflow-wrap:anywhere
+}
+.feedPanel{margin-top:12px}
+.feedPanel>.sectionTitle{
+  border-bottom:1px solid rgba(45,113,147,.30)
+}
+.list{
+  display:grid;
+  gap:8px;
+  padding:10px
+}
+.item{
+  position:relative;
+  display:block;
+  min-width:0;
+  padding:13px 14px 12px 16px;
+  overflow:hidden;
+  border:1px solid #15384f;
+  border-radius:8px;
+  background:linear-gradient(180deg,#071725,#05121e);
+  color:inherit;
+  text-decoration:none
+}
+.item:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:#526879
+}
+.item:hover{border-color:#27647f;background:#082033}
+.item.unread{
+  border-color:#276d8f;
+  box-shadow:0 0 0 1px rgba(46,207,255,.06),inset 0 0 26px rgba(46,207,255,.025)
+}
+.item.success:before{background:var(--green)}
+.item.danger:before{background:var(--red)}
+.item.neutral:before{background:#738797}
+.item[href="reports.html"] .pill{color:#ff9aaa;border-color:#673543;background:#25151c}
+.item[href="world.html"] .pill{color:#77ddff;border-color:#21566e;background:#0a202b}
+.item[href="missions.html"] .pill{color:#79e4b3;border-color:#275d48;background:#0b211a}
+.item[href="trade.html"] .pill{color:#ffd17a;border-color:#624f28;background:#241d0f}
+.item[href="alliance.html"] .pill{color:#b7a7ff;border-color:#51487a;background:#1c1930}
+.itemTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px
+}
+.itemTitle{
+  color:#eaf9ff;
+  font-size:14px;
+  font-weight:800
+}
+.time{
+  color:#64879e;
+  font-size:10px;
+  white-space:nowrap
+}
+.summary{
+  margin-top:6px;
+  color:#89a9bb;
+  font-size:12px;
+  line-height:1.45
+}
+.meta{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:9px
+}
+.pill,.newBadge{
+  padding:4px 7px;
+  border:1px solid #21465e;
+  border-radius:999px;
+  background:#0a2233;
+  color:#86dfff;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.7px;
+  text-transform:uppercase
+}
+.newBadge{
+  border-color:#236d8f;
+  background:#0b3146;
+  color:#9deaff
+}
+.empty{
+  padding:18px;
+  border:1px dashed #1a4058;
+  border-radius:8px;
+  background:#05131f;
+  color:#6f91a7;
+  text-align:center;
+  font-size:12px
+}
+.footerBack{
+  display:flex;
+  justify-content:flex-start;
+  margin-top:14px
+}
+.back{margin:0}
+@media(max-width:760px){
+  .signalHud{grid-template-columns:repeat(2,minmax(0,1fr))}
   .socialGrid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .top{padding:11px 14px;flex-wrap:wrap}
+  .logo{font-size:22px;letter-spacing:4px}
+  .player{font-size:12px}
+  .container{padding:16px 12px 28px}
+  .commandHeader{align-items:flex-start;flex-direction:column-reverse;gap:11px}
+  .topBack{width:100%;justify-content:flex-start}
+  h1{font-size:23px}
+  .signalHud{gap:7px}
+  .counter{padding:10px 11px}
+  .counter b{font-size:20px}
+  .counter.primary b{font-size:23px}
+  .toolbar{align-items:stretch;flex-direction:column}
+  .button{width:100%}
+  .toolbarNote{text-align:center}
+  .itemTop{display:block}
+  .time{display:block;margin-top:6px}
+  .panelHead,.sectionTitle{align-items:flex-start}
 }
 </style>
 </head>
 <body>
 <div class="top">
   <div class="logo">TERYNDIS</div>
-  <div>Oyuncu: <strong id="playerName">Oyuncu</strong></div>
+  <div class="player">Oyuncu: <strong id="playerName">Oyuncu</strong></div>
 </div>
 
 <div class="container">
-  <a class="topBack" href="game.html">← Koloniye Dön</a>
-  <h1>🔔 Bildirim Merkezi</h1>
-  <div class="sub">Oyun aktivitelerini, özel mesajları ve arkadaşlık isteklerini tek yerde takip et.</div>
+  <div class="commandHeader">
+    <div class="headerCopy">
+      <div class="eyebrow">COMMAND SIGNAL CENTER // LIVE FEED</div>
+      <h1>Bildirim Merkezi</h1>
+      <div class="sub">Oyun aktiviteleri, özel mesajlar ve personel bağlantıları tek operasyon akışında.</div>
+    </div>
+    <a class="topBack" href="game.html">← Koloniye Dön</a>
+  </div>
+
+  <div class="signalHud" aria-label="Bildirim sayaçları">
+    <div class="counter primary">Toplam Yeni <b id="totalUnreadCount">0</b></div>
+    <div class="counter activity">Aktivite <b id="unreadCount">0</b></div>
+    <div class="counter message">Mesaj <b id="messageUnreadCount">0</b></div>
+    <div class="counter friend">Arkadaşlık <b id="friendIncomingCount">0</b></div>
+  </div>
 
   <div class="toolbar">
-    <div class="counterGroup">
-      <div class="counter">Toplam yeni <b id="totalUnreadCount">0</b></div>
-      <div class="counter">Aktivite <b id="unreadCount">0</b></div>
-      <div class="counter">Mesaj <b id="messageUnreadCount">0</b></div>
-      <div class="counter">Arkadaşlık <b id="friendIncomingCount">0</b></div>
-    </div>
+    <div class="toolbarNote">Signal synchronization // 15 sec</div>
     <button class="button" id="markSeenButton" type="button" disabled>Aktiviteleri Okundu Say</button>
   </div>
 
   <div id="status" class="status"></div>
 
   <div class="socialGrid">
-    <section>
-      <div class="sectionTitle">
-        <h2>✉️ Son Mesajlar</h2>
+    <section class="panel comms">
+      <div class="panelHead">
+        <h2>✉️ İletişim Terminali</h2>
         <a class="sectionLink" href="messages.html">Tüm mesajlar →</a>
       </div>
       <div id="messageList" class="previewList"></div>
     </section>
 
-    <section>
-      <div class="sectionTitle">
-        <h2>🤝 Arkadaşlık İstekleri</h2>
+    <section class="panel personnel">
+      <div class="panelHead">
+        <h2>🤝 Personnel Network</h2>
         <a class="sectionLink" href="friends.html">Arkadaşlar →</a>
       </div>
       <div id="friendRequestList" class="previewList"></div>
     </section>
   </div>
 
-  <div class="sectionTitle">
-    <h2>⚡ Oyun Aktiviteleri</h2>
-  </div>
-  <div id="activityList" class="list"></div>
+  <section class="panel feedPanel">
+    <div class="sectionTitle">
+      <h2>⚡ Operations Feed</h2>
+      <span class="panelCode">RECENT ACTIVITY</span>
+    </div>
+    <div id="activityList" class="list"></div>
+  </section>
 
-  <a class="back" href="game.html">← Koloniye Dön</a>
+  <div class="footerBack">
+    <a class="back" href="game.html">← Koloniye Dön</a>
+  </div>
 </div>
 
 <script>
