@@ -5087,7 +5087,7 @@ function initColonyNavigation(){
     function(event){
       if(
         event.target.closest(
-          '.building-popover,.scene-controls'
+          '.building-node,.building-popover,.scene-controls'
         )
       ){
         return;
@@ -5242,7 +5242,7 @@ function initColonyNavigation(){
         performance.now()<
         colonySuppressClickUntil&&
         !event.target.closest(
-          '.scene-controls,.building-popover'
+          '.building-node,.scene-controls,.building-popover'
         )
       ){
         event.preventDefault();
