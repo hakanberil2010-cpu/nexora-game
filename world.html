@@ -6412,6 +6412,119 @@ let missionLoadInFlight =
   false;
 
 
+async function syncDueMilitaryMission(
+  token,
+  mission
+) {
+
+  const status =
+    String(
+      mission?.status ||
+      ""
+    ).toLowerCase();
+
+  const arriveAt =
+    mission?.arrive_at ||
+    mission?.arriveAt ||
+    null;
+
+  const arriveMs =
+    arriveAt
+      ? new Date(
+          arriveAt
+        ).getTime()
+      : NaN;
+
+  const due =
+    status === "resolving" ||
+    (
+      (
+        status === "traveling" ||
+        status === "returning"
+      ) &&
+      Number.isFinite(
+        arriveMs
+      ) &&
+      arriveMs <=
+        Date.now()
+    );
+
+  if (
+    !due ||
+    !Number.isSafeInteger(
+      Number(
+        mission?.id
+      )
+    )
+  ) {
+    return mission;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/auth?action=missionstatus&id=" +
+          encodeURIComponent(
+            mission.id
+          ),
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Authorization":
+              "Bearer " +
+              token
+          }
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      response.status === 401
+    ) {
+      clearInvalidSession();
+      return mission;
+    }
+
+    if (
+      !response.ok ||
+      !data.success ||
+      !data.mission
+    ) {
+
+      console.error(
+        "PvP seferi yeniden senkronize edilemedi:",
+        mission.id,
+        data
+      );
+
+      return mission;
+    }
+
+    return {
+      ...mission,
+      ...data.mission
+    };
+
+  } catch (error) {
+
+    console.error(
+      "PvP sefer resume hatası:",
+      mission?.id,
+      error
+    );
+
+    return mission;
+
+  }
+
+}
+
+
 async function loadServerMissions() {
 
   const token =
@@ -6464,7 +6577,37 @@ async function loadServerMissions() {
     const local =
       getSavedMissions();
 
-    (data.missions || [])
+    const activeMissions =
+      (data.missions || [])
+        .filter(
+          function(m) {
+
+            return [
+              "traveling",
+              "returning",
+              "resolving"
+            ].includes(
+              String(
+                m.status || ""
+              ).toLowerCase()
+            );
+
+          }
+        );
+
+    const syncedMissions =
+      await Promise.all(
+        activeMissions.map(
+          function(m) {
+            return syncDueMilitaryMission(
+              token,
+              m
+            );
+          }
+        )
+      );
+
+    syncedMissions
       .filter(
         function(m) {
 
