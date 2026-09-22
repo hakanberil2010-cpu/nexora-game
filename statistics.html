@@ -5,49 +5,212 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>TERYNDIS - İstatistikler</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#050d18;color:#eaf4ff}.top{height:76px;background:#071526;border-bottom:1px solid #173451;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.logo{font-size:30px;font-weight:bold;letter-spacing:6px;color:#18bfff}.player{color:#9fc0df}.container{max-width:1200px;margin:30px auto;padding:0 20px 40px}.topBack{display:inline-block;margin:0 0 18px;padding:10px 16px;border-radius:8px;background:#138dcc;color:#fff;text-decoration:none;font-weight:bold;border:1px solid #1aa9ee}.topBack:hover{filter:brightness(1.08)}h1{margin:0 0 8px}.sub{margin:0 0 20px;color:#7897b6}.section{margin-top:22px}.section h2{font-size:20px;margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{min-width:0;padding:16px;background:#091a2c;border:1px solid #173b5d;border-radius:12px}.label{color:#83a6c6;font-size:13px}.value{margin-top:7px;color:#eaf4ff;font-size:22px;font-weight:bold;overflow-wrap:anywhere}.resource-detail{margin-top:7px;color:#9fc0df;font-size:13px}.bar{height:7px;margin-top:10px;overflow:hidden;background:#071526;border-radius:10px}.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,#138dcc,#18bfff);border-radius:10px}.message{padding:14px 16px;background:#091a2c;border:1px solid #173b5d;border-radius:10px;color:#9fc0df}.message.error{border-color:#7b3340;color:#ffb5bf}.hidden{display:none}@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.top{height:auto;min-height:68px;padding:14px 16px;gap:14px;flex-wrap:wrap}.logo{font-size:23px;letter-spacing:4px}.player{min-width:0;font-size:13px;text-align:right;overflow-wrap:anywhere}.container{margin:20px auto;padding:0 14px 28px}.grid{grid-template-columns:1fr 1fr;gap:9px}.card{padding:13px}.value{font-size:18px}}@media(max-width:380px){.grid{grid-template-columns:1fr}}
+*{box-sizing:border-box}
+:root{
+  --bg:#040b14;
+  --panel:#071522;
+  --panel-2:#091b2b;
+  --line:#163b56;
+  --line-strong:#1f6f99;
+  --text:#eaf7ff;
+  --muted:#7fa2bb;
+  --cyan:#25c8ff;
+  --cyan-soft:#7edfff;
+  --good:#43d7a0;
+  --warn:#f0bc57;
+  --danger:#ff6f82;
+  --violet:#a993ff;
+}
+body{margin:0;font-family:Arial,sans-serif;background:
+  radial-gradient(circle at 50% -180px,rgba(37,200,255,.13),transparent 38%),
+  linear-gradient(180deg,#06111d 0,#040b14 48%,#030912 100%);
+  color:var(--text);min-height:100vh}
+.top{min-height:68px;background:rgba(5,17,29,.94);border-bottom:1px solid #17415d;display:flex;align-items:center;justify-content:space-between;padding:0 28px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.logo{font-size:27px;font-weight:800;letter-spacing:6px;color:var(--cyan);text-shadow:0 0 18px rgba(37,200,255,.18)}
+.player{color:#98bcd3;font-size:13px;letter-spacing:.4px}
+.player strong{color:#dff6ff}
+.container{max-width:1220px;margin:0 auto;padding:24px 20px 42px}
+.commandHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:0 0 16px;border-bottom:1px solid rgba(31,111,153,.42)}
+.headerCopy{min-width:0}
+.eyebrow{margin-bottom:7px;color:#55cfff;font-size:11px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase}
+h1{margin:0;font-size:28px;letter-spacing:.7px}
+.sub{margin:7px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+.topBack{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 14px;border:1px solid #1f658b;border-radius:7px;background:#0a2437;color:#dff5ff;text-decoration:none;font-size:12px;font-weight:800;white-space:nowrap}
+.topBack:hover{filter:brightness(1.08)}
+.overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+.hudCard{position:relative;overflow:hidden;min-width:0;padding:14px 15px 13px;background:linear-gradient(180deg,rgba(10,31,47,.96),rgba(6,20,32,.96));border:1px solid #17445f;border-radius:9px}
+.hudCard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--cyan)}
+.hudCard:nth-child(2):before{background:var(--violet)}
+.hudCard:nth-child(3):before{background:var(--good)}
+.hudCard:nth-child(4):before{background:var(--warn)}
+.hudLabel{color:#789db6;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
+.hudValue{margin-top:5px;color:#f2fbff;font-size:24px;font-weight:800;line-height:1.1;overflow-wrap:anywhere}
+.message{margin-top:14px;padding:12px 14px;background:#081b2a;border:1px solid #1b526f;border-radius:8px;color:#a9d3e8;font-size:13px}
+.message.error{border-color:#713847;background:#25141c;color:#ffb7c0}
+.hidden{display:none}
+.intelGrid{display:grid;grid-template-columns:1.35fr .85fr;gap:12px;margin-top:12px}
+.panel{min-width:0;background:linear-gradient(180deg,rgba(8,24,38,.98),rgba(5,18,29,.98));border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.panelHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid rgba(31,111,153,.35);background:rgba(8,31,47,.66)}
+.panelHead h2{margin:0;font-size:13px;letter-spacing:1.2px;text-transform:uppercase}
+.panelCode{color:#5d8ba7;font-size:10px;letter-spacing:1.2px}
+.combatBody{display:grid;grid-template-columns:1.08fr .92fr;gap:0}
+.combatHero{padding:18px;border-right:1px solid rgba(31,111,153,.32)}
+.metricKicker{color:#7b9fb8;font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}
+.metricBig{margin-top:5px;font-size:31px;font-weight:800;color:#f1fbff}
+.combatSecondary{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.miniMetric{padding:10px;background:#071725;border:1px solid #123b56;border-radius:7px}
+.miniMetric .label{color:#7196b0;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.miniMetric .value{margin-top:4px;font-size:18px;font-weight:800}
+.recordGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:18px}
+.record{display:flex;flex-direction:column;justify-content:center;min-height:76px;padding:11px;text-align:center;background:#071725;border:1px solid #153d57;border-radius:7px}
+.record .label{font-size:9px;text-transform:uppercase;letter-spacing:1.1px;color:#7da1b9}
+.record .value{margin-top:5px;font-size:20px;font-weight:800}
+.record.win{border-color:#1f604c}.record.win .value{color:var(--good)}
+.record.loss{border-color:#673343}.record.loss .value{color:var(--danger)}
+.record.draw{border-color:#655126}.record.draw .value{color:var(--warn)}
+.developmentBody{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:14px}
+.devCard{min-height:110px;padding:14px;background:#071725;border:1px solid #153d57;border-radius:8px;display:flex;flex-direction:column;justify-content:space-between}
+.devIcon{font-size:20px}
+.devLabel{margin-top:12px;color:#7c9fb8;font-size:10px;text-transform:uppercase;letter-spacing:1.2px}
+.devValue{margin-top:4px;font-size:24px;font-weight:800;color:#eaf8ff}
+.resources{margin-top:12px}
+.resourceGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:12px}
+.resource{min-width:0;padding:13px;background:#071725;border:1px solid #153d57;border-radius:8px}
+.resourceTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.resourceName{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.resourceTag{font-size:9px;color:#638aa4}
+.resource .value{margin-top:9px;font-size:18px;font-weight:800;overflow-wrap:anywhere}
+.resource-detail{margin-top:5px;color:#82a5bd;font-size:11px}
+.bar{height:6px;margin-top:10px;overflow:hidden;background:#04101b;border:1px solid rgba(255,255,255,.03);border-radius:10px}
+.bar span{display:block;height:100%;width:0;border-radius:10px}
+.resource.metal{border-color:#4a5968}.resource.metal .resourceName{color:#c0d0dc}.resource.metal .bar span{background:linear-gradient(90deg,#6f8798,#bdd3df)}
+.resource.energy{border-color:#6b5425}.resource.energy .resourceName{color:#ffd36f}.resource.energy .bar span{background:linear-gradient(90deg,#b27b18,#ffd35d)}
+.resource.alloy{border-color:#315b69}.resource.alloy .resourceName{color:#84d4e6}.resource.alloy .bar span{background:linear-gradient(90deg,#2789a5,#72daf3)}
+.resource.crystal{border-color:#584f82}.resource.crystal .resourceName{color:#baadff}.resource.crystal .bar span{background:linear-gradient(90deg,#6657bd,#b9a9ff)}
+.operations{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-top:12px}
+.opCard{min-width:0;padding:11px 10px;background:#061522;border:1px solid #143952;border-radius:8px}
+.opLabel{min-height:25px;color:#7297b0;font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;line-height:1.35}
+.opValue{margin-top:5px;font-size:16px;font-weight:800;overflow-wrap:anywhere}
+.opCard.production .opValue{color:#8fdfff}
+.opCard.defense .opValue{color:#72dfb1}
+@media(max-width:980px){
+  .intelGrid{grid-template-columns:1fr}
+  .operations{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .resourceGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .combatBody{grid-template-columns:1fr}
+  .combatHero{border-right:0;border-bottom:1px solid rgba(31,111,153,.32)}
+}
+@media(max-width:600px){
+  .top{padding:11px 14px;gap:10px;flex-wrap:wrap}.logo{font-size:22px;letter-spacing:4px}.player{font-size:12px}
+  .container{padding:16px 12px 28px}
+  .commandHeader{align-items:flex-start;flex-direction:column-reverse;gap:12px}
+  .topBack{width:100%;justify-content:flex-start}
+  h1{font-size:23px}
+  .overview{gap:8px}.hudCard{padding:12px}.hudValue{font-size:20px}
+  .developmentBody{grid-template-columns:1fr 1fr}
+  .resources .panelHead{align-items:flex-start}
+  .operations{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .opLabel{min-height:auto}
+}
+@media(max-width:390px){
+  .resourceGrid,.developmentBody{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 <header class="top"><div class="logo">TERYNDIS</div><div class="player">Oyuncu: <strong id="playerName">Komutan</strong></div></header>
 <main class="container">
-  <a class="topBack" href="game.html">← Koloniye Dön</a>
-  <h1>📊 İstatistikler</h1>
-  <p class="sub">Koloninin gelişimini, savaş geçmişini ve ekonomik durumunu tek ekranda takip et.</p>
+  <div class="commandHeader">
+    <div class="headerCopy">
+      <div class="eyebrow">COLONY INTELLIGENCE // LIVE TELEMETRY</div>
+      <h1>Stratejik İstatistikler</h1>
+      <p class="sub">Koloni performansı, savaş kaydı ve ekonomik kapasite tek komuta görünümünde.</p>
+    </div>
+    <a class="topBack" href="game.html">← Koloniye Dön</a>
+  </div>
+
+  <section class="overview" aria-label="Stratejik özet">
+    <div class="hudCard"><div class="hudLabel">Sıralama</div><div class="hudValue" id="rank">—</div></div>
+    <div class="hudCard"><div class="hudLabel">Toplam Puan</div><div class="hudValue" id="score">—</div></div>
+    <div class="hudCard"><div class="hudLabel">Koloni Seviyesi</div><div class="hudValue" id="colonyLevel">—</div></div>
+    <div class="hudCard"><div class="hudLabel">Asker Gücü</div><div class="hudValue" id="armyPower">—</div></div>
+  </section>
+
   <div id="message" class="message" role="status">İstatistikler yükleniyor...</div>
+
   <div id="statisticsContent" class="hidden">
-    <section class="section">
-      <h2>Genel Durum</h2>
-      <div class="grid">
-        <div class="card"><div class="label">Sıralama</div><div class="value" id="rank">—</div></div>
-        <div class="card"><div class="label">Toplam puan</div><div class="value" id="score">—</div></div>
-        <div class="card"><div class="label">Koloni seviyesi</div><div class="value" id="colonyLevel">—</div></div>
-        <div class="card"><div class="label">Asker gücü</div><div class="value" id="armyPower">—</div></div>
-        <div class="card"><div class="label">Savaş puanı</div><div class="value" id="battlePoints">—</div></div>
-        <div class="card"><div class="label">Galibiyet</div><div class="value" id="wins">—</div></div>
-        <div class="card"><div class="label">Mağlubiyet</div><div class="value" id="losses">—</div></div>
-        <div class="card"><div class="label">Beraberlik</div><div class="value" id="draws">—</div></div>
-        <div class="card"><div class="label">Toplam araştırma seviyesi</div><div class="value" id="researchLevel">—</div></div>
-        <div class="card"><div class="label">Toplam bina seviyesi</div><div class="value" id="buildingsLevel">—</div></div>
-        <div class="card"><div class="label">Savaş toplamı</div><div class="value" id="battleTotal">—</div></div>
-        <div class="card"><div class="label">Galibiyet oranı</div><div class="value" id="winRate">—</div></div>
+    <div class="intelGrid">
+      <section class="panel">
+        <div class="panelHead"><h2>Combat Record</h2><span class="panelCode">BATTLE TELEMETRY</span></div>
+        <div class="combatBody">
+          <div class="combatHero">
+            <div class="metricKicker">Savaş Puanı</div>
+            <div class="metricBig" id="battlePoints">—</div>
+            <div class="combatSecondary">
+              <div class="miniMetric"><div class="label">Toplam Savaş</div><div class="value" id="battleTotal">—</div></div>
+              <div class="miniMetric"><div class="label">Galibiyet Oranı</div><div class="value" id="winRate">—</div></div>
+            </div>
+          </div>
+          <div class="recordGrid">
+            <div class="record win"><div class="label">Galibiyet</div><div class="value" id="wins">—</div></div>
+            <div class="record loss"><div class="label">Mağlubiyet</div><div class="value" id="losses">—</div></div>
+            <div class="record draw"><div class="label">Beraberlik</div><div class="value" id="draws">—</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panelHead"><h2>Development Status</h2><span class="panelCode">COLONY PROGRESS</span></div>
+        <div class="developmentBody">
+          <div class="devCard">
+            <div class="devIcon">⌬</div>
+            <div><div class="devLabel">Araştırma Seviyesi</div><div class="devValue" id="researchLevel">—</div></div>
+          </div>
+          <div class="devCard">
+            <div class="devIcon">▦</div>
+            <div><div class="devLabel">Toplam Bina Seviyesi</div><div class="devValue" id="buildingsLevel">—</div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel resources">
+      <div class="panelHead"><h2>Resource Intelligence</h2><span class="panelCode">STORAGE / CAPACITY</span></div>
+      <div class="resourceGrid">
+        <div class="resource metal">
+          <div class="resourceTop"><span class="resourceName">Metal</span><span class="resourceTag">MAT-01</span></div>
+          <div class="value" id="metal">—</div><div class="resource-detail" id="metalRate">0%</div>
+          <div class="bar"><span id="metalBar"></span></div>
+        </div>
+        <div class="resource energy">
+          <div class="resourceTop"><span class="resourceName">Enerji</span><span class="resourceTag">NRG-02</span></div>
+          <div class="value" id="energy">—</div><div class="resource-detail" id="energyRate">0%</div>
+          <div class="bar"><span id="energyBar"></span></div>
+        </div>
+        <div class="resource alloy">
+          <div class="resourceTop"><span class="resourceName">Alaşım</span><span class="resourceTag">ALY-03</span></div>
+          <div class="value" id="alloy">—</div><div class="resource-detail" id="alloyRate">0%</div>
+          <div class="bar"><span id="alloyBar"></span></div>
+        </div>
+        <div class="resource crystal">
+          <div class="resourceTop"><span class="resourceName">Kristal</span><span class="resourceTag">CRY-04</span></div>
+          <div class="value" id="crystal">—</div><div class="resource-detail" id="crystalRate">0%</div>
+          <div class="bar"><span id="crystalBar"></span></div>
+        </div>
       </div>
     </section>
-    <section class="section">
-      <h2>Koloni Ekonomisi</h2>
-      <div class="grid">
-        <div class="card"><div class="label">Metal / kapasite</div><div class="value" id="metal">—</div><div class="resource-detail" id="metalRate">0%</div><div class="bar"><span id="metalBar"></span></div></div>
-        <div class="card"><div class="label">Enerji / kapasite</div><div class="value" id="energy">—</div><div class="resource-detail" id="energyRate">0%</div><div class="bar"><span id="energyBar"></span></div></div>
-        <div class="card"><div class="label">Alaşım / kapasite</div><div class="value" id="alloy">—</div><div class="resource-detail" id="alloyRate">0%</div><div class="bar"><span id="alloyBar"></span></div></div>
-        <div class="card"><div class="label">Kristal / kapasite</div><div class="value" id="crystal">—</div><div class="resource-detail" id="crystalRate">0%</div><div class="bar"><span id="crystalBar"></span></div></div>
-        <div class="card"><div class="label">Nüfus / kapasite</div><div class="value" id="population">—</div></div>
-        <div class="card"><div class="label">Ordu kapasitesi</div><div class="value" id="armyCapacity">—</div></div>
-        <div class="card"><div class="label">Savunma bonusu</div><div class="value" id="defenseBonus">—</div></div>
-        <div class="card"><div class="label">Metal/dk</div><div class="value" id="metalPerMinute">—</div></div>
-        <div class="card"><div class="label">Enerji/dk</div><div class="value" id="energyPerMinute">—</div></div>
-        <div class="card"><div class="label">Alaşım/dk</div><div class="value" id="alloyPerMinute">—</div></div>
-        <div class="card"><div class="label">Kristal/dk</div><div class="value" id="crystalPerMinute">—</div></div>
-      </div>
+
+    <section class="operations" aria-label="Operasyonel kapasite">
+      <div class="opCard"><div class="opLabel">Nüfus / Kapasite</div><div class="opValue" id="population">—</div></div>
+      <div class="opCard"><div class="opLabel">Ordu Kapasitesi</div><div class="opValue" id="armyCapacity">—</div></div>
+      <div class="opCard defense"><div class="opLabel">Savunma Bonusu</div><div class="opValue" id="defenseBonus">—</div></div>
+      <div class="opCard production"><div class="opLabel">Metal / dk</div><div class="opValue" id="metalPerMinute">—</div></div>
+      <div class="opCard production"><div class="opLabel">Enerji / dk</div><div class="opValue" id="energyPerMinute">—</div></div>
+      <div class="opCard production"><div class="opLabel">Alaşım / dk</div><div class="opValue" id="alloyPerMinute">—</div></div>
+      <div class="opCard production"><div class="opLabel">Kristal / dk</div><div class="opValue" id="crystalPerMinute">—</div></div>
     </section>
   </div>
 </main>
