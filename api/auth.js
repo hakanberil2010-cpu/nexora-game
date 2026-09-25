@@ -4401,7 +4401,40 @@ async function getResearch(req,res){
   const result=await supabase("research?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1");
   if(!result.ok)return send(res,500,{success:false,message:"Araştırma verileri alınamadı."});
   let research=result.data?.[0];
-  if(!research){const cr=await supabase("research",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({player_id:playerId,production_level:0,combat_level:0,defense_level:0,crystal_level:0,general_power_level:0,unit_attack_level:0,unit_defense_level:0,unit_hp_level:0,travel_speed_level:0})});if(!cr.ok)return send(res,500,{success:false,message:"Araştırma kaydı oluşturulamadı."});research=cr.data[0];}
+  if(!research){
+    const cr=await supabase("research",{
+      method:"POST",
+      headers:{Prefer:"return=representation"},
+      body:JSON.stringify({
+        player_id:playerId,
+        production_level:0,
+        combat_level:0,
+        defense_level:0,
+        crystal_level:0,
+        general_power_level:0,
+        unit_attack_level:0,
+        unit_defense_level:0,
+        unit_hp_level:0,
+        travel_speed_level:0
+      })
+    });
+
+    if(cr.ok&&cr.data?.[0]){
+      research=cr.data[0];
+    }else{
+      // Another concurrent first load may have won the unique(player_id)
+      // insert. Re-read once before treating the create as a real failure.
+      const retry=await supabase(
+        "research?select=*&player_id=eq."+encodeURIComponent(playerId)+"&limit=1"
+      );
+      if(retry.ok&&retry.data?.[0]){
+        research=retry.data[0];
+      }else{
+        console.error("Araştırma kaydı oluşturulamadı:",cr.data);
+        return send(res,500,{success:false,message:"Araştırma kaydı oluşturulamadı."});
+      }
+    }
+  }
   research=await finalizeResearch(research);
   city=await syncResearchCityResources(playerId,city,buildings,research);
   if(!city)return send(res,503,{success:false,message:"Koloni üretimi senkronize edilemedi."});
