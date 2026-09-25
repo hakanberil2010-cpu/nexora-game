@@ -6839,6 +6839,18 @@ async function createTradeOffer(req,res){
   const giveAmount=Number(body.giveAmount);
   const wantAmount=Number(body.wantAmount);
   const hours=body.durationHours==null?24:Number(body.durationHours);
+  const requestKey=String(body.requestKey||"").trim();
+
+  if(
+    requestKey&&
+    (
+      requestKey.length<8||
+      requestKey.length>128||
+      !/^[A-Za-z0-9._:-]+$/.test(requestKey)
+    )
+  ){
+    return send(res,400,{success:false,message:"Geçersiz ticaret istek anahtarı."});
+  }
 
   if(!giveResource||!wantResource||giveResource===wantResource)return send(res,400,{success:false,message:"Geçerli ve farklı iki kaynak seçmelisin."});
   if(
@@ -6850,22 +6862,49 @@ async function createTradeOffer(req,res){
     return send(res,400,{success:false,message:"Teklif süresi 1 ile 72 saat arasında tam sayı olmalı."});
   }
 
+  let expiresAt=new Date(Date.now()+hours*3600000).toISOString();
+
+  if(requestKey){
+    const requestedExpiresAt=String(body.expiresAt||"").trim();
+    const expiresAtMs=Date.parse(requestedExpiresAt);
+
+    if(!requestedExpiresAt||!Number.isFinite(expiresAtMs)){
+      return send(res,400,{success:false,message:"Geçersiz ticaret bitiş zamanı."});
+    }
+
+    expiresAt=new Date(expiresAtMs).toISOString();
+  }
+
+  const tradeRequest={
+    p_player_id:Number(playerId),
+    p_give_resource:giveResource,
+    p_give_amount:giveAmount,
+    p_want_resource:wantResource,
+    p_want_amount:wantAmount,
+    p_expires_at:expiresAt
+  };
+
+  if(requestKey){
+    tradeRequest.p_request_key=requestKey;
+  }
+
   const rpc=await supabase("rpc/create_trade_offer",{
     method:"POST",
-    body:JSON.stringify({
-      p_player_id:Number(playerId),
-      p_give_resource:giveResource,
-      p_give_amount:giveAmount,
-      p_want_resource:wantResource,
-      p_want_amount:wantAmount,
-      p_expires_at:new Date(Date.now()+hours*3600000).toISOString()
-    })
+    body:JSON.stringify(tradeRequest)
   });
 
   if(!rpc.ok)return send(res,rpc.status>=400&&rpc.status<500?400:500,{
     success:false,
     message:rpc.data?.message||"Ticaret teklifi oluşturulamadı."
   });
+
+  if(rpc.data?.success===false){
+    return send(res,400,{
+      ...rpc.data,
+      success:false,
+      message:rpc.data?.message||"Ticaret teklifi oluşturulamadı."
+    });
+  }
 
   const data=rpc.data||{};
   return send(res,200,{

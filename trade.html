@@ -151,6 +151,74 @@ const storedPlayer=JSON.parse(localStorage.getItem("nexora_player")||"null");
 if(storedPlayer?.username)document.getElementById("playerName").textContent=storedPlayer.username;
 let serverOffsetMs=0,currentPlayerId=null,tradeConfig={};
 let offersLoadPromise=null,historyLoadPromise=null,createOfferPending=false;
+const TRADE_OFFER_REQUEST_STORAGE="nexora_trade_offer_request";
+
+function createTradeRequestKey(){
+  if(window.crypto&&typeof window.crypto.randomUUID==="function"){
+    return window.crypto.randomUUID();
+  }
+
+  return "trade-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,14);
+}
+
+function tradeOfferIntent(payload){
+  return JSON.stringify([
+    String(payload.giveResource||""),
+    Number(payload.giveAmount),
+    String(payload.wantResource||""),
+    Number(payload.wantAmount),
+    Number(payload.durationHours)
+  ]);
+}
+
+function readTradeOfferRequest(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(TRADE_OFFER_REQUEST_STORAGE)||"null");
+    if(
+      !saved||
+      typeof saved.intent!=="string"||
+      typeof saved.requestKey!=="string"||
+      saved.requestKey.length<8||
+      saved.requestKey.length>128||
+      !/^[A-Za-z0-9._:-]+$/.test(saved.requestKey)||
+      !Number.isFinite(Date.parse(saved.expiresAt))
+    ){
+      return null;
+    }
+    return saved;
+  }catch{
+    return null;
+  }
+}
+
+function getTradeOfferRequest(payload){
+  const intent=tradeOfferIntent(payload);
+  const saved=readTradeOfferRequest();
+
+  if(saved&&saved.intent===intent){
+    return saved;
+  }
+
+  const requestedHours=Number(payload.durationHours);
+  const safeHours=Number.isSafeInteger(requestedHours)&&requestedHours>=1&&requestedHours<=72
+    ?requestedHours
+    :24;
+  const next={
+    intent,
+    requestKey:createTradeRequestKey(),
+    expiresAt:new Date(serverNow()+safeHours*3600000).toISOString()
+  };
+
+  localStorage.setItem(TRADE_OFFER_REQUEST_STORAGE,JSON.stringify(next));
+  return next;
+}
+
+function clearTradeOfferRequest(requestKey){
+  const saved=readTradeOfferRequest();
+  if(saved&&saved.requestKey===requestKey){
+    localStorage.removeItem(TRADE_OFFER_REQUEST_STORAGE);
+  }
+}
 
 function headers(){return {"Content-Type":"application/json",Authorization:"Bearer "+token}}
 function msg(t){document.getElementById("msg").textContent=t||""}
@@ -189,10 +257,18 @@ async function post(action,body={}){
     localStorage.removeItem("nexora_token");
     localStorage.removeItem("token");
     localStorage.removeItem("nexora_player");
+    localStorage.removeItem(TRADE_OFFER_REQUEST_STORAGE);
     location.href="login.html";
-    throw new Error(d.message||"Oturum süresi doldu.");
+    const error=new Error(d.message||"Oturum süresi doldu.");
+    error.status=401;
+    throw error;
   }
-  if(!r.ok||d.success===false)throw new Error(d.message||"İşlem başarısız.");
+  if(!r.ok||d.success===false){
+    const error=new Error(d.message||"İşlem başarısız.");
+    error.status=r.status;
+    error.data=d;
+    throw error;
+  }
   if(d.serverTime)setServerTime(d.serverTime);
   if(d.config){tradeConfig=d.config;updateTradeInfo()}
   if(d.playerId!=null)currentPlayerId=Number(d.playerId);
@@ -203,6 +279,15 @@ async function createOffer(){
   if(createOfferPending)return;
 
   const button=document.getElementById("createOfferButton");
+  const payload={
+    giveResource:give.value,
+    giveAmount:+giveAmount.value,
+    wantResource:want.value,
+    wantAmount:+wantAmount.value,
+    durationHours:+hours.value
+  };
+  const request=getTradeOfferRequest(payload);
+
   createOfferPending=true;
 
   if(button){
@@ -212,16 +297,20 @@ async function createOffer(){
 
   try{
     const d=await post("createtrade",{
-      giveResource:give.value,
-      giveAmount:+giveAmount.value,
-      wantResource:want.value,
-      wantAmount:+wantAmount.value,
-      durationHours:+hours.value
+      ...payload,
+      requestKey:request.requestKey,
+      expiresAt:request.expiresAt
     });
+    clearTradeOfferRequest(request.requestKey);
     msg(d.message);
     await loadOffers()
   }catch(e){
-    msg("❌ "+e.message)
+    if(Number(e.status)>=400&&Number(e.status)<500){
+      clearTradeOfferRequest(request.requestKey);
+      msg("❌ "+e.message);
+    }else{
+      msg("❌ "+e.message+" Aynı teklif tekrar gönderilirse güvenli biçimde yeniden denenecek.");
+    }
   }finally{
     createOfferPending=false;
 
