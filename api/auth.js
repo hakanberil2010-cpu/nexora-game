@@ -2173,13 +2173,17 @@ async function produceArmy(req, res) {
     body.requestKey || ""
   ).trim();
 
+  if (!requestKey) {
+    return send(res, 400, {
+      success: false,
+      message: "Üretim istek anahtarı gerekli."
+    });
+  }
+
   if (
-    requestKey &&
-    (
-      requestKey.length < 8 ||
-      requestKey.length > 128 ||
-      !/^[A-Za-z0-9._:-]+$/.test(requestKey)
-    )
+    requestKey.length < 8 ||
+    requestKey.length > 128 ||
+    !/^[A-Za-z0-9._:-]+$/.test(requestKey)
   ) {
     return send(res, 400, {
       success: false,
@@ -2267,13 +2271,9 @@ async function produceArmy(req, res) {
     p_city_id: Number(city.id),
     p_type: unitType,
     p_requested_quantity:
-      requestedQuantity
+      requestedQuantity,
+    p_request_key: requestKey
   };
-
-  if (requestKey) {
-    trainingRequest.p_request_key =
-      requestKey;
-  }
 
   const result = await supabase(
     "rpc/nexora_start_unit_training_bulk",
@@ -6841,13 +6841,14 @@ async function createTradeOffer(req,res){
   const hours=body.durationHours==null?24:Number(body.durationHours);
   const requestKey=String(body.requestKey||"").trim();
 
+  if(!requestKey){
+    return send(res,400,{success:false,message:"Ticaret istek anahtarı gerekli."});
+  }
+
   if(
-    requestKey&&
-    (
-      requestKey.length<8||
-      requestKey.length>128||
-      !/^[A-Za-z0-9._:-]+$/.test(requestKey)
-    )
+    requestKey.length<8||
+    requestKey.length>128||
+    !/^[A-Za-z0-9._:-]+$/.test(requestKey)
   ){
     return send(res,400,{success:false,message:"Geçersiz ticaret istek anahtarı."});
   }
@@ -6862,18 +6863,14 @@ async function createTradeOffer(req,res){
     return send(res,400,{success:false,message:"Teklif süresi 1 ile 72 saat arasında tam sayı olmalı."});
   }
 
-  let expiresAt=new Date(Date.now()+hours*3600000).toISOString();
+  const requestedExpiresAt=String(body.expiresAt||"").trim();
+  const expiresAtMs=Date.parse(requestedExpiresAt);
 
-  if(requestKey){
-    const requestedExpiresAt=String(body.expiresAt||"").trim();
-    const expiresAtMs=Date.parse(requestedExpiresAt);
-
-    if(!requestedExpiresAt||!Number.isFinite(expiresAtMs)){
-      return send(res,400,{success:false,message:"Geçersiz ticaret bitiş zamanı."});
-    }
-
-    expiresAt=new Date(expiresAtMs).toISOString();
+  if(!requestedExpiresAt||!Number.isFinite(expiresAtMs)){
+    return send(res,400,{success:false,message:"Geçersiz ticaret bitiş zamanı."});
   }
+
+  const expiresAt=new Date(expiresAtMs).toISOString();
 
   const tradeRequest={
     p_player_id:Number(playerId),
@@ -6881,12 +6878,9 @@ async function createTradeOffer(req,res){
     p_give_amount:giveAmount,
     p_want_resource:wantResource,
     p_want_amount:wantAmount,
-    p_expires_at:expiresAt
+    p_expires_at:expiresAt,
+    p_request_key:requestKey
   };
-
-  if(requestKey){
-    tradeRequest.p_request_key=requestKey;
-  }
 
   const rpc=await supabase("rpc/create_trade_offer",{
     method:"POST",
