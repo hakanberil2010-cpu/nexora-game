@@ -6696,9 +6696,23 @@ async function getEspionageStatus(req,res){
 
 async function getMilitaryMissions(req,res){
   const playerId=authPlayerId(req); if(playerId===null)return send(res,401,{success:false,message:"Oturum gerekli."});
-  const r=await supabase("military_missions?select=*&or=(attacker_player_id.eq."+encodeURIComponent(playerId)+",defender_player_id.eq."+encodeURIComponent(playerId)+")&order=depart_at.desc&limit=20");
-  if(!r.ok)return send(res,500,{success:false,message:"Seferler alınamadı."});
-  return send(res,200,{success:true,missions:r.data||[]});
+  const participantFilter="or=(attacker_player_id.eq."+encodeURIComponent(playerId)+",defender_player_id.eq."+encodeURIComponent(playerId)+")";
+  const [active,recent]=await Promise.all([
+    supabase("military_missions?select=*&"+participantFilter+"&status=in.(traveling,resolving,returning)&order=depart_at.desc,id.desc"),
+    supabase("military_missions?select=*&"+participantFilter+"&order=depart_at.desc,id.desc&limit=20")
+  ]);
+  if(!active.ok||!recent.ok)return send(res,500,{success:false,message:"Seferler alınamadı."});
+
+  const byId=new Map();
+  for(const mission of [...(recent.data||[]),...(active.data||[])]){
+    byId.set(String(mission.id),mission);
+  }
+  const missions=[...byId.values()].sort((a,b)=>{
+    const timeDiff=new Date(b.depart_at).getTime()-new Date(a.depart_at).getTime();
+    return timeDiff||Number(b.id||0)-Number(a.id||0);
+  });
+
+  return send(res,200,{success:true,missions});
 }
 
 async function getRankings(req,res){
